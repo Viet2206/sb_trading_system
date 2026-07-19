@@ -46,11 +46,9 @@ type SvgDaySeparator = {
 
 type SvgDayCloseSegment = {
   id: string;
-  label: string;
   x1: number;
   x2: number;
   y: number;
-  labelX: number;
   color: string;
   dashArray: string | undefined;
 };
@@ -170,7 +168,7 @@ export function CandleChart({
           key: level.key,
           label: level.label,
           y: Number(y),
-          labelX: Math.max(12, paneWidth - 178),
+          labelX: Math.max(12, paneWidth - 112),
           price: level.price,
           color: level.color,
           dashArray: dashArray(level.style),
@@ -236,11 +234,9 @@ export function CandleChart({
         const right = Math.max(Number(x1), Number(x2));
         return {
           id: segment.id,
-          label: segment.label,
           x1: left,
           x2: right,
           y: Number(y),
-          labelX: Math.max(left + 8, Math.min(right - 34, paneWidth - 178)),
           color: segment.color,
           dashArray: dashArray(segment.style),
         };
@@ -338,14 +334,6 @@ export function CandleChart({
               strokeDasharray={segment.dashArray}
               className="day-close-segment"
             />
-            <text
-              x={segment.labelX}
-              y={segment.y - 5}
-              fill={segment.color}
-              className="day-close-label"
-            >
-              {segment.label}
-            </text>
           </g>
         ))}
         {svgLevels.map((level) => (

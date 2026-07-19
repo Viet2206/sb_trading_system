@@ -232,6 +232,7 @@ Current Phase 1 overlay implementation:
 - First intraday close layer: previous-day-close is drawn as a horizontal segment that spans only the current day period
 - First session layer: Asia 03:00-06:00, London 09:00-12:00, and New York 15:00-18:00 boxes using chart/data time
 - Intraday day/session templates are hidden on H4 and D1 charts
+- Default chart windows are 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1
 - First labels: weekday labels plus v0 Inside Day, FGD, FRD, 3DL, and 3DS daily setup labels
 - These labels are deterministic placeholders and must be validated/refined against the Stacey Burke PDFs before they are treated as trading signals.
 

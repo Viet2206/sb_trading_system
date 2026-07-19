@@ -11,6 +11,7 @@ import {
 } from "./api";
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
+const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 
 export function App() {
   const [summary, setSummary] = useState<CandleSummary[]>([]);
@@ -32,10 +33,6 @@ export function App() {
       .map((item) => item.timeframe);
     return available.sort((a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b));
   }, [summary, symbol]);
-
-  const currentSummary = summary.find(
-    (item) => item.broker_symbol === symbol && item.timeframe === timeframe,
-  );
 
   useEffect(() => {
     void loadSummary();
@@ -77,9 +74,10 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
+      const queryWindow = chartQueryWindow(summary, nextSymbol, nextTimeframe);
       const [candleData, overlayData] = await Promise.all([
-        fetchCandles(nextSymbol, nextTimeframe, 1500),
-        fetchOverlays(nextSymbol, nextTimeframe, 1500),
+        fetchCandles(nextSymbol, nextTimeframe, queryWindow),
+        fetchOverlays(nextSymbol, nextTimeframe, queryWindow),
       ]);
       setCandles(candleData.candles);
       setOverlays(overlayData);
@@ -143,7 +141,11 @@ export function App() {
             <h2>
               {symbol || "Symbol"} <span>{timeframe || "Timeframe"}</span>
             </h2>
-            <p>{currentSummary ? `${currentSummary.candles.toLocaleString()} candles` : "Loading chart"}</p>
+            <p>
+              {candles.length
+                ? `${candles.length.toLocaleString()} loaded candles / ${chartWindowDays(timeframe)} days`
+                : "Loading chart"}
+            </p>
           </div>
         </div>
 
@@ -162,4 +164,30 @@ function preferredDefaultSymbol(symbols: string[]) {
   return symbols.find((item) => item === "XAUUSD+")
     ?? symbols.find((item) => item.startsWith("XAUUSD"))
     ?? symbols[0];
+}
+
+function chartQueryWindow(
+  summary: CandleSummary[],
+  symbol: string,
+  timeframe: string,
+): { start?: string; end?: string; limit: number } {
+  const selected = summary.find(
+    (item) => item.broker_symbol === symbol && item.timeframe === timeframe,
+  );
+  if (!selected) return { limit: 50_000 };
+
+  const windowDays = chartWindowDays(timeframe);
+  const end = new Date(selected.last_candle);
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - windowDays);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+    limit: 50_000,
+  };
+}
+
+function chartWindowDays(timeframe: string) {
+  return intradayWindowTimeframes.has(timeframe) ? 7 : 30;
 }

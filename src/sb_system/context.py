@@ -21,9 +21,18 @@ def build_sb_overlays(
     *,
     symbol: str,
     timeframe: str,
+    start: datetime | None = None,
+    end: datetime | None = None,
     limit: int = 1500,
 ) -> dict[str, Any]:
-    chart_candles = fetch_candles(engine, symbol=symbol, timeframe=timeframe, limit=limit)
+    chart_candles = fetch_candles(
+        engine,
+        symbol=symbol,
+        timeframe=timeframe,
+        start=start,
+        end=end,
+        limit=limit,
+    )
     daily_candles = fetch_candles(engine, symbol=symbol, timeframe="D1", limit=420)
 
     if chart_candles.empty:

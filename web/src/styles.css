@@ -247,15 +247,6 @@ select {
   pointer-events: none;
 }
 
-.day-close-label {
-  font-size: 10px;
-  font-weight: 900;
-  paint-order: stroke;
-  pointer-events: none;
-  stroke: #f8fafc;
-  stroke-width: 3px;
-}
-
 .level-label {
   font-size: 11px;
   font-weight: 900;
@@ -268,10 +259,10 @@ select {
 .setup-label {
   fill: #f8fafc;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 500;
   pointer-events: none;
   stroke: #0f172a;
-  stroke-width: 3px;
+  stroke-width: 2px;
   paint-order: stroke;
   text-anchor: middle;
 }

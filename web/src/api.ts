@@ -91,26 +91,30 @@ export async function fetchSummary(): Promise<CandleSummary[]> {
 export async function fetchCandles(
   symbol: string,
   timeframe: string,
-  limit = 1000,
+  options: { start?: string; end?: string; limit?: number } = {},
 ): Promise<CandleResponse> {
   const params = new URLSearchParams({
     symbol,
     timeframe,
-    limit: String(limit),
+    limit: String(options.limit ?? 1000),
   });
+  if (options.start) params.set("start", options.start);
+  if (options.end) params.set("end", options.end);
   return fetchJson<CandleResponse>(`/candles?${params.toString()}`);
 }
 
 export async function fetchOverlays(
   symbol: string,
   timeframe: string,
-  limit = 1500,
+  options: { start?: string; end?: string; limit?: number } = {},
 ): Promise<OverlayResponse> {
   const params = new URLSearchParams({
     symbol,
     timeframe,
-    limit: String(limit),
+    limit: String(options.limit ?? 1500),
   });
+  if (options.start) params.set("start", options.start);
+  if (options.end) params.set("end", options.end);
   return fetchJson<OverlayResponse>(`/context/overlays?${params.toString()}`);
 }
 

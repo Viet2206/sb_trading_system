@@ -73,7 +73,7 @@ def candles(
     timeframe: str = Query(..., description="Timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),
-    limit: int = Query(500, ge=1, le=10_000, description="Maximum candles to return."),
+    limit: int = Query(500, ge=1, le=50_000, description="Maximum candles to return."),
 ) -> dict:
     rows = fetch_candles(
         engine,
@@ -96,11 +96,15 @@ def context_overlays(
     engine: Annotated[Engine, Depends(get_engine)],
     symbol: str = Query(..., description="Broker symbol, for example EURUSD or XAUUSD+."),
     timeframe: str = Query(..., description="Chart timeframe such as M5, M15, H1, H4, or D1."),
-    limit: int = Query(1500, ge=100, le=10_000, description="Number of latest chart candles to contextualize."),
+    start: datetime | None = Query(None, description="Optional inclusive start time."),
+    end: datetime | None = Query(None, description="Optional inclusive end time."),
+    limit: int = Query(1500, ge=100, le=50_000, description="Number of latest chart candles to contextualize."),
 ) -> dict:
     return build_sb_overlays(
         engine,
         symbol=symbol,
         timeframe=timeframe,
+        start=start,
+        end=end,
         limit=limit,
     )
