@@ -26,9 +26,9 @@ class ImportConfig:
 
 def load_config(env_path: str | Path | None = None, *, require_database_url: bool = True) -> ImportConfig:
     if env_path:
-        load_dotenv(env_path)
+        load_dotenv(env_path, override=True)
     else:
-        load_dotenv(PROJECT_ROOT / ".env")
+        load_dotenv(PROJECT_ROOT / ".env", override=True)
 
     database_url = os.getenv("DATABASE_URL")
     if require_database_url and not database_url:
