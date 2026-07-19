@@ -5,6 +5,7 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
 from sb_system.market_data import (
@@ -22,6 +23,17 @@ app = FastAPI(
     title="SB System API",
     version="0.1.0",
     description="Research API for imported MT5 candle data.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
 )
 
 
@@ -76,4 +88,3 @@ def candles(
         "count": len(rows),
         "candles": dataframe_records(rows),
     }
-

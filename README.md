@@ -170,6 +170,30 @@ GET /candles/summary
 GET /candles?symbol=EURUSD&timeframe=M15&limit=200
 ```
 
+## Web UI
+
+Start the React chart dashboard after the backend API is running:
+
+```bash
+cd web
+pnpm install
+pnpm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173
+```
+
+The first dashboard supports:
+
+- Symbol and timeframe selection
+- Interactive candlestick chart with pan, zoom, and crosshair
+- Latest candle details
+- Trendline drawing by selecting the Trendline tool and clicking two chart points
+- Clearing drawn trendlines
+
 ## Project Instructions
 
 See [INSTRUCTIONS.md](INSTRUCTIONS.md) for the durable architecture and development plan.
