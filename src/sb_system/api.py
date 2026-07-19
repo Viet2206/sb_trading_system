@@ -73,7 +73,7 @@ def candles(
     timeframe: str = Query(..., description="Timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),
-    limit: int = Query(500, ge=1, le=50_000, description="Maximum candles to return."),
+    limit: int | None = Query(None, ge=1, le=200_000, description="Optional maximum candles to return."),
 ) -> dict:
     rows = fetch_candles(
         engine,
@@ -98,7 +98,7 @@ def context_overlays(
     timeframe: str = Query(..., description="Chart timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),
-    limit: int = Query(1500, ge=100, le=50_000, description="Number of latest chart candles to contextualize."),
+    limit: int | None = Query(None, ge=100, le=200_000, description="Optional maximum chart candles to contextualize."),
 ) -> dict:
     return build_sb_overlays(
         engine,

@@ -330,14 +330,17 @@ def fetch_candles(
     timeframe: str,
     start: datetime | None = None,
     end: datetime | None = None,
-    limit: int = 500,
+    limit: int | None = 500,
 ) -> pd.DataFrame:
     conditions = ["s.broker_symbol = :symbol", "c.timeframe = :timeframe"]
     params: dict[str, Any] = {
         "symbol": symbol,
         "timeframe": timeframe,
-        "limit": limit,
     }
+    limit_clause = ""
+    if limit is not None:
+        params["limit"] = limit
+        limit_clause = "LIMIT :limit"
 
     if start is not None:
         conditions.append("c.candle_time >= :start_time")
@@ -369,7 +372,7 @@ def fetch_candles(
                     JOIN market.symbols s ON s.symbol_id = c.symbol_id
                     WHERE {where_clause}
                     ORDER BY c.candle_time DESC
-                    LIMIT :limit
+                    {limit_clause}
                 )
                 SELECT *
                 FROM selected_candles

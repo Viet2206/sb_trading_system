@@ -23,7 +23,7 @@ def build_sb_overlays(
     timeframe: str,
     start: datetime | None = None,
     end: datetime | None = None,
-    limit: int = 1500,
+    limit: int | None = None,
 ) -> dict[str, Any]:
     chart_candles = fetch_candles(
         engine,

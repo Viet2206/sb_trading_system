@@ -64,11 +64,13 @@ type SvgLabel = {
 type CandleChartProps = {
   candles: Candle[];
   overlays: OverlayResponse | null;
+  defaultViewDays: number;
 };
 
 export function CandleChart({
   candles,
   overlays,
+  defaultViewDays,
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -147,9 +149,9 @@ export function CandleChart({
   useEffect(() => {
     if (!seriesRef.current) return;
     seriesRef.current.setData(chartData);
-    chartRef.current?.timeScale().fitContent();
+    applyDefaultVisibleRange();
     redrawOverlays();
-  }, [chartData]);
+  }, [chartData, defaultViewDays]);
 
   function redrawOverlays() {
     const chart = chartRef.current;
@@ -274,6 +276,19 @@ export function CandleChart({
     setSvgDaySeparators(nextDaySeparators);
     setSvgDayCloseSegments(nextDayCloseSegments);
     setSvgSetupLabels(nextSetupLabels);
+  }
+
+  function applyDefaultVisibleRange() {
+    const chart = chartRef.current;
+    if (!chart || !candles.length) return;
+
+    const end = toTimestamp(candles[candles.length - 1].candle_time);
+    const start = Math.max(
+      toTimestamp(candles[0].candle_time),
+      (end - defaultViewDays * 24 * 60 * 60) as UTCTimestamp,
+    ) as UTCTimestamp;
+
+    chart.timeScale().setVisibleRange({ from: start, to: end });
   }
 
   return (

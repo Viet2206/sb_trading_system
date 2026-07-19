@@ -74,10 +74,9 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      const queryWindow = chartQueryWindow(summary, nextSymbol, nextTimeframe);
       const [candleData, overlayData] = await Promise.all([
-        fetchCandles(nextSymbol, nextTimeframe, queryWindow),
-        fetchOverlays(nextSymbol, nextTimeframe, queryWindow),
+        fetchCandles(nextSymbol, nextTimeframe),
+        fetchOverlays(nextSymbol, nextTimeframe),
       ]);
       setCandles(candleData.candles);
       setOverlays(overlayData);
@@ -143,7 +142,7 @@ export function App() {
             </h2>
             <p>
               {candles.length
-                ? `${candles.length.toLocaleString()} loaded candles / ${chartWindowDays(timeframe)} days`
+                ? `${candles.length.toLocaleString()} loaded candles / default view ${chartWindowDays(timeframe)} days`
                 : "Loading chart"}
             </p>
           </div>
@@ -154,6 +153,7 @@ export function App() {
         <CandleChart
           candles={candles}
           overlays={overlays}
+          defaultViewDays={chartWindowDays(timeframe)}
         />
       </section>
     </main>
@@ -164,28 +164,6 @@ function preferredDefaultSymbol(symbols: string[]) {
   return symbols.find((item) => item === "XAUUSD+")
     ?? symbols.find((item) => item.startsWith("XAUUSD"))
     ?? symbols[0];
-}
-
-function chartQueryWindow(
-  summary: CandleSummary[],
-  symbol: string,
-  timeframe: string,
-): { start?: string; end?: string; limit: number } {
-  const selected = summary.find(
-    (item) => item.broker_symbol === symbol && item.timeframe === timeframe,
-  );
-  if (!selected) return { limit: 50_000 };
-
-  const windowDays = chartWindowDays(timeframe);
-  const end = new Date(selected.last_candle);
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - windowDays);
-
-  return {
-    start: start.toISOString(),
-    end: end.toISOString(),
-    limit: 50_000,
-  };
 }
 
 function chartWindowDays(timeframe: string) {

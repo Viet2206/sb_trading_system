@@ -96,10 +96,10 @@ export async function fetchCandles(
   const params = new URLSearchParams({
     symbol,
     timeframe,
-    limit: String(options.limit ?? 1000),
   });
   if (options.start) params.set("start", options.start);
   if (options.end) params.set("end", options.end);
+  if (options.limit) params.set("limit", String(options.limit));
   return fetchJson<CandleResponse>(`/candles?${params.toString()}`);
 }
 
@@ -111,10 +111,10 @@ export async function fetchOverlays(
   const params = new URLSearchParams({
     symbol,
     timeframe,
-    limit: String(options.limit ?? 1500),
   });
   if (options.start) params.set("start", options.start);
   if (options.end) params.set("end", options.end);
+  if (options.limit) params.set("limit", String(options.limit));
   return fetchJson<OverlayResponse>(`/context/overlays?${params.toString()}`);
 }
 

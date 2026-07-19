@@ -195,7 +195,7 @@ The first dashboard supports:
 - Interactive candlestick chart with pan, zoom, and crosshair
 - Black and white candlestick styling
 - SB context overlays for key levels, intraday day periods, session boxes, weekday labels, and v0 daily setup labels
-- Default chart windows: 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1
+- Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
 
 ## Project Instructions
 
