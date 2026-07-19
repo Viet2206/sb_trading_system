@@ -198,7 +198,7 @@ select {
 
 .session-box {
   opacity: 0.1;
-  stroke: currentColor;
+  stroke: #94a3b8;
   stroke-width: 1;
 }
 
@@ -222,14 +222,14 @@ select {
 }
 
 .day-separator-line {
-  stroke: #94a3b8;
+  stroke: #cbd5e1;
   stroke-width: 1;
   opacity: 0.68;
   pointer-events: none;
 }
 
 .month-separator-line {
-  stroke: #0f172a;
+  stroke: #64748b;
   stroke-width: 1.5;
   opacity: 0.8;
   pointer-events: none;
@@ -278,28 +278,28 @@ select {
 }
 
 .setup-label {
-  fill: #f8fafc;
+  fill: #475569;
   font-size: 11px;
   font-weight: 500;
   pointer-events: none;
-  stroke: #0f172a;
-  stroke-width: 2px;
+  stroke: #f8fafc;
+  stroke-width: 3px;
   paint-order: stroke;
   text-anchor: middle;
 }
 
 .setup-label.setup-inside_day {
-  fill: #7c3aed;
+  fill: #475569;
 }
 
 .setup-label.setup-fgd,
 .setup-label.setup-3dl {
-  fill: #15803d;
+  fill: #475569;
 }
 
 .setup-label.setup-frd,
 .setup-label.setup-3ds {
-  fill: #b91c1c;
+  fill: #475569;
 }
 
 .empty-state {

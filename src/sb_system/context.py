@@ -9,10 +9,13 @@ from sqlalchemy.engine import Engine
 from sb_system.market_data import fetch_candles
 
 
+OVERLAY_LINE_COLOR = "#64748b"
+SESSION_FILL_COLOR = "#94a3b8"
+
 SESSION_WINDOWS = [
-    ("asia", "Asia", time(3, 0), time(6, 0), "#38bdf8"),
-    ("london", "London", time(9, 0), time(12, 0), "#22c55e"),
-    ("new_york", "New York", time(15, 0), time(18, 0), "#f97316"),
+    ("asia", "Asia", time(3, 0), time(6, 0), SESSION_FILL_COLOR),
+    ("london", "London", time(9, 0), time(12, 0), SESSION_FILL_COLOR),
+    ("new_york", "New York", time(15, 0), time(18, 0), SESSION_FILL_COLOR),
 ]
 
 
@@ -116,33 +119,33 @@ def _build_levels(
         if include_previous_day_range:
             levels.extend(
                 [
-                    _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", current_day_start),
-                    _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", current_day_start),
+                    _level("previous_day_high", "PDH", previous_day["high"], OVERLAY_LINE_COLOR, current_day_start),
+                    _level("previous_day_low", "PDL", previous_day["low"], OVERLAY_LINE_COLOR, current_day_start),
                 ]
             )
         if include_previous_day_close:
-            levels.append(_level("previous_day_close", "PDC", previous_day["close"], "#0f766e", current_day_start))
+            levels.append(_level("previous_day_close", "PDC", previous_day["close"], OVERLAY_LINE_COLOR, current_day_start))
 
     week_start = _week_start(chart_end)
     previous_week = _previous_week_slice(daily, chart_end)
     if not previous_week.empty:
         levels.extend(
             [
-                _level("previous_week_high", "PWH", previous_week["high"].max(), "#7c3aed", week_start),
-                _level("previous_week_low", "PWL", previous_week["low"].min(), "#7c3aed", week_start),
+                _level("previous_week_high", "PWH", previous_week["high"].max(), OVERLAY_LINE_COLOR, week_start),
+                _level("previous_week_low", "PWL", previous_week["low"].min(), OVERLAY_LINE_COLOR, week_start),
             ]
         )
 
     friday = _latest_friday(daily, chart_end)
     if friday is not None:
-        levels.append(_level("friday_close", "Fri Close", friday["close"], "#db2777", friday["candle_time"]))
+        levels.append(_level("friday_close", "Fri Close", friday["close"], OVERLAY_LINE_COLOR, friday["candle_time"]))
 
     monday = _current_week_monday(daily, chart_end)
     if monday is not None:
         levels.extend(
             [
-                _level("current_monday_high", "Mon High", monday["high"], "#ea580c", monday["candle_time"]),
-                _level("current_monday_low", "Mon Low", monday["low"], "#ea580c", monday["candle_time"]),
+                _level("current_monday_high", "Mon High", monday["high"], OVERLAY_LINE_COLOR, monday["candle_time"]),
+                _level("current_monday_low", "Mon Low", monday["low"], OVERLAY_LINE_COLOR, monday["candle_time"]),
             ]
         )
 
@@ -257,7 +260,7 @@ def _build_day_range_pipes(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dic
                 "end_time": end_time.isoformat(),
                 "high": float(previous_day["high"]),
                 "low": float(previous_day["low"]),
-                "color": "#2563eb",
+                "color": OVERLAY_LINE_COLOR,
             }
         )
 
@@ -286,7 +289,7 @@ def _build_day_close_segments(chart: pd.DataFrame, daily: pd.DataFrame) -> list[
                 "start_time": first_time.isoformat(),
                 "end_time": last_time.isoformat(),
                 "price": float(previous_day["close"]),
-                "color": "#0f766e",
+                "color": OVERLAY_LINE_COLOR,
                 "style": "solid",
             }
         )
