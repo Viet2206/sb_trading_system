@@ -43,10 +43,10 @@ Check the database container:
 docker compose ps
 ```
 
-Run the notebook:
+Run the Mac import notebook:
 
 ```bash
-jupyter lab notebooks/01_mt5_to_postgres.ipynb
+jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 ```
 
 If the notebook shows `connection refused` on port `5432`, PostgreSQL is not running yet. Start it with `docker compose up -d postgres`, then rerun the connection/schema cell.
@@ -78,7 +78,7 @@ python -m ipykernel install --user --name sb-system --display-name "SB System (.
 Then open Jupyter Lab and select the `SB System (.venv)` kernel:
 
 ```bat
-jupyter lab notebooks/01_mt5_to_postgres.ipynb
+jupyter lab notebooks/01_windows_mt5_export.ipynb
 ```
 
 If the notebook says `No module named 'MetaTrader5'`, the selected Jupyter kernel is not the same Python environment where the package was installed. Inside the notebook, run:
@@ -114,6 +114,12 @@ git pull
 python scripts\export_mt5_candles.py --output-dir data\raw\mt5_export
 ```
 
+Or use the Windows notebook:
+
+```bat
+jupyter lab notebooks\01_windows_mt5_export.ipynb
+```
+
 This creates files like:
 
 ```text
@@ -130,6 +136,12 @@ git pull
 docker compose up -d postgres
 source .venv/bin/activate
 python scripts/import_candles_from_csv.py data/raw/mt5_export
+```
+
+Or use the Mac notebook:
+
+```bash
+jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 ```
 
 After import, continue building and testing SB System features on Mac using local PostgreSQL.
