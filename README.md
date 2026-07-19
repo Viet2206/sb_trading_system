@@ -25,13 +25,31 @@ Copy environment settings:
 cp .env.example .env
 ```
 
-Start or connect to PostgreSQL, then update `DATABASE_URL` in `.env`.
+Start PostgreSQL with Docker:
+
+```bash
+docker compose up -d postgres
+```
+
+The default `.env.example` connection string already matches this local Docker database:
+
+```env
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/sb_system
+```
+
+Check the database container:
+
+```bash
+docker compose ps
+```
 
 Run the notebook:
 
 ```bash
 jupyter lab notebooks/01_mt5_to_postgres.ipynb
 ```
+
+If the notebook shows `connection refused` on port `5432`, PostgreSQL is not running yet. Start it with `docker compose up -d postgres`, then rerun the connection/schema cell.
 
 ## MT5 Notes
 
@@ -46,4 +64,3 @@ pip install -r requirements-win-mt5.txt
 ## Project Instructions
 
 See [INSTRUCTIONS.md](INSTRUCTIONS.md) for the durable architecture and development plan.
-
