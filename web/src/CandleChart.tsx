@@ -58,6 +58,15 @@ type SvgDayCloseSegment = {
   color: string;
 };
 
+type SvgDayRangePipe = {
+  id: string;
+  x1: number;
+  x2: number;
+  yHigh: number;
+  yLow: number;
+  color: string;
+};
+
 type SvgLabel = {
   id: string;
   x: number;
@@ -87,6 +96,7 @@ export function CandleChart({
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
   const [svgDaySeparators, setSvgDaySeparators] = useState<SvgDaySeparator[]>([]);
   const [svgMonthSeparators, setSvgMonthSeparators] = useState<SvgMonthSeparator[]>([]);
+  const [svgDayRangePipes, setSvgDayRangePipes] = useState<SvgDayRangePipe[]>([]);
   const [svgDayCloseSegments, setSvgDayCloseSegments] = useState<SvgDayCloseSegment[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
 
@@ -267,6 +277,27 @@ export function CandleChart({
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
 
+    const nextDayRangePipes = (overlaysRef.current?.day_range_pipes ?? [])
+      .map((pipe) => {
+        const x1 = chart.timeScale().timeToCoordinate(toTimestamp(pipe.start_time));
+        const x2 = chart.timeScale().timeToCoordinate(toTimestamp(pipe.end_time));
+        const yHigh = series.priceToCoordinate(pipe.high);
+        const yLow = series.priceToCoordinate(pipe.low);
+        if (x1 == null || x2 == null || yHigh == null || yLow == null) return null;
+
+        const left = Math.min(Number(x1), Number(x2));
+        const right = Math.max(Number(x1), Number(x2));
+        return {
+          id: pipe.id,
+          x1: left,
+          x2: right,
+          yHigh: Number(yHigh),
+          yLow: Number(yLow),
+          color: pipe.color,
+        };
+      })
+      .filter((pipe): pipe is SvgDayRangePipe => pipe !== null);
+
     const setupLabelCounts = new Map<string, number>();
     const nextSetupLabels = (overlaysRef.current?.setup_labels ?? [])
       .map((label) => {
@@ -297,6 +328,7 @@ export function CandleChart({
     setSvgDayPeriods(nextDayPeriods);
     setSvgDaySeparators(nextDaySeparators);
     setSvgMonthSeparators(nextMonthSeparators);
+    setSvgDayRangePipes(nextDayRangePipes);
     setSvgDayCloseSegments(nextDayCloseSegments);
     setSvgSetupLabels(nextSetupLabels);
   }
@@ -369,6 +401,42 @@ export function CandleChart({
             <text x={session.x + 4} y={session.y + 14} className="session-label">
               {session.label}
             </text>
+          </g>
+        ))}
+        {svgDayRangePipes.map((pipe) => (
+          <g key={pipe.id} className="day-range-pipe">
+            <line
+              x1={pipe.x1}
+              y1={pipe.yHigh}
+              x2={pipe.x2}
+              y2={pipe.yHigh}
+              stroke={pipe.color}
+              className="day-range-pipe-line"
+            />
+            <line
+              x1={pipe.x1}
+              y1={pipe.yLow}
+              x2={pipe.x2}
+              y2={pipe.yLow}
+              stroke={pipe.color}
+              className="day-range-pipe-line"
+            />
+            <line
+              x1={pipe.x1}
+              y1={pipe.yHigh}
+              x2={pipe.x1}
+              y2={pipe.yLow}
+              stroke={pipe.color}
+              className="day-range-pipe-connector"
+            />
+            <line
+              x1={pipe.x2}
+              y1={pipe.yHigh}
+              x2={pipe.x2}
+              y2={pipe.yLow}
+              stroke={pipe.color}
+              className="day-range-pipe-connector"
+            />
           </g>
         ))}
         {svgDayCloseSegments.map((segment) => (

@@ -43,6 +43,7 @@ def build_sb_overlays(
             "sessions": [],
             "day_periods": [],
             "month_separators": [],
+            "day_range_pipes": [],
             "day_close_segments": [],
             "day_labels": [],
             "setup_labels": [],
@@ -55,10 +56,16 @@ def build_sb_overlays(
     chart_end = chart["candle_time"].max()
     apply_intraday_template = timeframe not in {"H4", "D1"}
 
-    levels = _build_levels(daily, chart_end, include_previous_day_close=not apply_intraday_template)
+    levels = _build_levels(
+        daily,
+        chart_end,
+        include_previous_day_close=not apply_intraday_template,
+        include_previous_day_range=not apply_intraday_template,
+    )
     sessions = _build_sessions(chart, chart_start, chart_end) if apply_intraday_template else []
     day_periods = _build_day_periods(chart) if apply_intraday_template else []
     month_separators = _build_month_separators(chart)
+    day_range_pipes = _build_day_range_pipes(chart, daily) if apply_intraday_template else []
     day_close_segments = _build_day_close_segments(chart, daily) if apply_intraday_template else []
     day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
 
@@ -69,6 +76,7 @@ def build_sb_overlays(
         "sessions": sessions,
         "day_periods": day_periods,
         "month_separators": month_separators,
+        "day_range_pipes": day_range_pipes,
         "day_close_segments": day_close_segments,
         "day_labels": day_labels,
         "setup_labels": setup_labels,
@@ -77,6 +85,7 @@ def build_sb_overlays(
             "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
             "Intraday day-period and session templates are hidden on H4 and D1 charts.",
             "Horizontal context levels are solid right-extending rays from their relevant start time.",
+            "Intraday previous-day high/low levels are drawn as connected range pipes.",
         ],
     }
 
@@ -92,6 +101,7 @@ def _build_levels(
     chart_end: pd.Timestamp,
     *,
     include_previous_day_close: bool = True,
+    include_previous_day_range: bool = True,
 ) -> list[dict[str, Any]]:
     if daily.empty:
         return []
@@ -103,12 +113,13 @@ def _build_levels(
 
     if not previous_days.empty:
         previous_day = previous_days.iloc[-1]
-        levels.extend(
-            [
-                _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", current_day_start),
-                _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", current_day_start),
-            ]
-        )
+        if include_previous_day_range:
+            levels.extend(
+                [
+                    _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", current_day_start),
+                    _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", current_day_start),
+                ]
+            )
         if include_previous_day_close:
             levels.append(_level("previous_day_close", "PDC", previous_day["close"], "#0f766e", current_day_start))
 
@@ -216,6 +227,36 @@ def _build_month_separators(chart: pd.DataFrame) -> list[dict[str, Any]]:
         previous_month = month_key
 
     return separators
+
+
+def _build_day_range_pipes(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dict[str, Any]]:
+    if daily.empty:
+        return []
+
+    pipes: list[dict[str, Any]] = []
+
+    for day, day_slice in chart.groupby(chart["candle_time"].dt.date):
+        previous_days = daily[daily["candle_time"].dt.date < day]
+        if previous_days.empty:
+            continue
+
+        previous_day = previous_days.iloc[-1]
+        first_time = day_slice.iloc[0]["candle_time"].to_pydatetime()
+        last_time = day_slice.iloc[-1]["candle_time"].to_pydatetime()
+
+        pipes.append(
+            {
+                "id": f"pdh-pdl-{day.isoformat()}",
+                "label": "PDH/PDL",
+                "start_time": first_time.isoformat(),
+                "end_time": last_time.isoformat(),
+                "high": float(previous_day["high"]),
+                "low": float(previous_day["low"]),
+                "color": "#2563eb",
+            }
+        )
+
+    return pipes
 
 
 def _build_day_close_segments(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dict[str, Any]]:

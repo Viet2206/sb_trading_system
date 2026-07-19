@@ -194,7 +194,7 @@ The first dashboard supports:
 - Symbol and timeframe selection
 - Interactive candlestick chart with pan, zoom, and crosshair
 - Black and white candlestick styling
-- SB context overlays for solid right-extending key level rays, intraday day periods, month/day separators, session boxes, weekday labels, and v0 daily setup labels
+- SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, session boxes, weekday labels, and v0 daily setup labels
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
 
 ## Project Instructions

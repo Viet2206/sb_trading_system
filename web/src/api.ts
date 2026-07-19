@@ -70,6 +70,16 @@ export type OverlayDayCloseSegment = {
   style: "solid" | "dashed" | "dotted";
 };
 
+export type OverlayDayRangePipe = {
+  id: string;
+  label: string;
+  start_time: string;
+  end_time: string;
+  high: number;
+  low: number;
+  color: string;
+};
+
 export type OverlayLabel = {
   time: string;
   price?: number;
@@ -84,6 +94,7 @@ export type OverlayResponse = {
   sessions: OverlaySession[];
   day_periods: OverlayDayPeriod[];
   month_separators: OverlayMonthSeparator[];
+  day_range_pipes: OverlayDayRangePipe[];
   day_close_segments: OverlayDayCloseSegment[];
   day_labels: OverlayLabel[];
   setup_labels: OverlayLabel[];

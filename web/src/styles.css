@@ -248,6 +248,20 @@ select {
   opacity: 0.88;
 }
 
+.day-range-pipe {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.day-range-pipe-line,
+.day-range-pipe-connector {
+  stroke-width: 1.4;
+}
+
+.day-range-pipe-connector {
+  opacity: 0.72;
+}
+
 .day-close-segment {
   stroke-width: 1.4;
   opacity: 0.78;
