@@ -64,6 +64,8 @@ type SvgDayRangePipe = {
   x2: number;
   yHigh: number;
   yLow: number;
+  previousYHigh?: number;
+  previousYLow?: number;
   color: string;
 };
 
@@ -277,7 +279,7 @@ export function CandleChart({
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
 
-    const nextDayRangePipes = (overlaysRef.current?.day_range_pipes ?? [])
+    const dayRangePipeSegments = (overlaysRef.current?.day_range_pipes ?? [])
       .map((pipe) => {
         const x1 = chart.timeScale().timeToCoordinate(toTimestamp(pipe.start_time));
         const x2 = chart.timeScale().timeToCoordinate(toTimestamp(pipe.end_time));
@@ -297,6 +299,17 @@ export function CandleChart({
         };
       })
       .filter((pipe): pipe is SvgDayRangePipe => pipe !== null);
+    const nextDayRangePipes = dayRangePipeSegments
+      .sort((left, right) => left.x1 - right.x1)
+      .map((pipe, index, pipes) => {
+        const previous = pipes[index - 1];
+        if (!previous) return pipe;
+        return {
+          ...pipe,
+          previousYHigh: previous.yHigh,
+          previousYLow: previous.yLow,
+        };
+      });
 
     const setupLabelCounts = new Map<string, number>();
     const nextSetupLabels = (overlaysRef.current?.setup_labels ?? [])
@@ -405,6 +418,26 @@ export function CandleChart({
         ))}
         {svgDayRangePipes.map((pipe) => (
           <g key={pipe.id} className="day-range-pipe">
+            {pipe.previousYHigh != null ? (
+              <line
+                x1={pipe.x1}
+                y1={pipe.previousYHigh}
+                x2={pipe.x1}
+                y2={pipe.yHigh}
+                stroke={pipe.color}
+                className="day-range-pipe-connector"
+              />
+            ) : null}
+            {pipe.previousYLow != null ? (
+              <line
+                x1={pipe.x1}
+                y1={pipe.previousYLow}
+                x2={pipe.x1}
+                y2={pipe.yLow}
+                stroke={pipe.color}
+                className="day-range-pipe-connector"
+              />
+            ) : null}
             <line
               x1={pipe.x1}
               y1={pipe.yHigh}
@@ -420,22 +453,6 @@ export function CandleChart({
               y2={pipe.yLow}
               stroke={pipe.color}
               className="day-range-pipe-line"
-            />
-            <line
-              x1={pipe.x1}
-              y1={pipe.yHigh}
-              x2={pipe.x1}
-              y2={pipe.yLow}
-              stroke={pipe.color}
-              className="day-range-pipe-connector"
-            />
-            <line
-              x1={pipe.x2}
-              y1={pipe.yHigh}
-              x2={pipe.x2}
-              y2={pipe.yLow}
-              stroke={pipe.color}
-              className="day-range-pipe-connector"
             />
           </g>
         ))}

@@ -234,22 +234,27 @@ def _build_day_range_pipes(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dic
         return []
 
     pipes: list[dict[str, Any]] = []
+    day_slices = list(chart.groupby(chart["candle_time"].dt.date))
 
-    for day, day_slice in chart.groupby(chart["candle_time"].dt.date):
+    for index, (day, day_slice) in enumerate(day_slices):
         previous_days = daily[daily["candle_time"].dt.date < day]
         if previous_days.empty:
             continue
 
         previous_day = previous_days.iloc[-1]
         first_time = day_slice.iloc[0]["candle_time"].to_pydatetime()
-        last_time = day_slice.iloc[-1]["candle_time"].to_pydatetime()
+        if index + 1 < len(day_slices):
+            _, next_day_slice = day_slices[index + 1]
+            end_time = next_day_slice.iloc[0]["candle_time"].to_pydatetime()
+        else:
+            end_time = day_slice.iloc[-1]["candle_time"].to_pydatetime()
 
         pipes.append(
             {
                 "id": f"pdh-pdl-{day.isoformat()}",
                 "label": "PDH/PDL",
                 "start_time": first_time.isoformat(),
-                "end_time": last_time.isoformat(),
+                "end_time": end_time.isoformat(),
                 "high": float(previous_day["high"]),
                 "low": float(previous_day["low"]),
                 "color": "#2563eb",
