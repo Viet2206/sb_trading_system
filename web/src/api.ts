@@ -32,6 +32,7 @@ export type OverlayLevel = {
   price: number;
   color: string;
   style: "solid" | "dashed" | "dotted";
+  start_time?: string;
 };
 
 export type OverlaySession = {
@@ -51,6 +52,12 @@ export type OverlayDayPeriod = {
   end_time: string;
   kind: string;
   variant: "even" | "odd";
+};
+
+export type OverlayMonthSeparator = {
+  id: string;
+  time: string;
+  label: string;
 };
 
 export type OverlayDayCloseSegment = {
@@ -76,6 +83,7 @@ export type OverlayResponse = {
   levels: OverlayLevel[];
   sessions: OverlaySession[];
   day_periods: OverlayDayPeriod[];
+  month_separators: OverlayMonthSeparator[];
   day_close_segments: OverlayDayCloseSegment[];
   day_labels: OverlayLabel[];
   setup_labels: OverlayLabel[];

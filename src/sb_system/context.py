@@ -42,6 +42,7 @@ def build_sb_overlays(
             "levels": [],
             "sessions": [],
             "day_periods": [],
+            "month_separators": [],
             "day_close_segments": [],
             "day_labels": [],
             "setup_labels": [],
@@ -57,6 +58,7 @@ def build_sb_overlays(
     levels = _build_levels(daily, chart_end, include_previous_day_close=not apply_intraday_template)
     sessions = _build_sessions(chart, chart_start, chart_end) if apply_intraday_template else []
     day_periods = _build_day_periods(chart) if apply_intraday_template else []
+    month_separators = _build_month_separators(chart)
     day_close_segments = _build_day_close_segments(chart, daily) if apply_intraday_template else []
     day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
 
@@ -66,6 +68,7 @@ def build_sb_overlays(
         "levels": levels,
         "sessions": sessions,
         "day_periods": day_periods,
+        "month_separators": month_separators,
         "day_close_segments": day_close_segments,
         "day_labels": day_labels,
         "setup_labels": setup_labels,
@@ -73,7 +76,7 @@ def build_sb_overlays(
             "FGD, FRD, 3DL, and 3DS are v0 deterministic labels and should be refined against the SB playbook examples.",
             "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
             "Intraday day-period and session templates are hidden on H4 and D1 charts.",
-            "Intraday previous-day-close levels are drawn as day-length segments.",
+            "Horizontal context levels are solid right-extending rays from their relevant start time.",
         ],
     }
 
@@ -94,6 +97,7 @@ def _build_levels(
         return []
 
     current_day = chart_end.date()
+    current_day_start = datetime.combine(current_day, time(0, 0), tzinfo=UTC)
     previous_days = daily[daily["candle_time"].dt.date < current_day]
     levels: list[dict[str, Any]] = []
 
@@ -101,32 +105,33 @@ def _build_levels(
         previous_day = previous_days.iloc[-1]
         levels.extend(
             [
-                _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", "solid"),
-                _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", "solid"),
+                _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", current_day_start),
+                _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", current_day_start),
             ]
         )
         if include_previous_day_close:
-            levels.append(_level("previous_day_close", "PDC", previous_day["close"], "#0f766e", "dashed"))
+            levels.append(_level("previous_day_close", "PDC", previous_day["close"], "#0f766e", current_day_start))
 
+    week_start = _week_start(chart_end)
     previous_week = _previous_week_slice(daily, chart_end)
     if not previous_week.empty:
         levels.extend(
             [
-                _level("previous_week_high", "PWH", previous_week["high"].max(), "#7c3aed", "solid"),
-                _level("previous_week_low", "PWL", previous_week["low"].min(), "#7c3aed", "solid"),
+                _level("previous_week_high", "PWH", previous_week["high"].max(), "#7c3aed", week_start),
+                _level("previous_week_low", "PWL", previous_week["low"].min(), "#7c3aed", week_start),
             ]
         )
 
-    friday_close = _latest_friday_close(daily, chart_end)
-    if friday_close is not None:
-        levels.append(_level("friday_close", "Fri Close", friday_close, "#db2777", "dashed"))
+    friday = _latest_friday(daily, chart_end)
+    if friday is not None:
+        levels.append(_level("friday_close", "Fri Close", friday["close"], "#db2777", friday["candle_time"]))
 
     monday = _current_week_monday(daily, chart_end)
     if monday is not None:
         levels.extend(
             [
-                _level("current_monday_high", "Mon High", monday["high"], "#ea580c", "dotted"),
-                _level("current_monday_low", "Mon Low", monday["low"], "#ea580c", "dotted"),
+                _level("current_monday_high", "Mon High", monday["high"], "#ea580c", monday["candle_time"]),
+                _level("current_monday_low", "Mon Low", monday["low"], "#ea580c", monday["candle_time"]),
             ]
         )
 
@@ -193,6 +198,26 @@ def _build_day_periods(chart: pd.DataFrame) -> list[dict[str, Any]]:
     return periods
 
 
+def _build_month_separators(chart: pd.DataFrame) -> list[dict[str, Any]]:
+    separators: list[dict[str, Any]] = []
+    previous_month: tuple[int, int] | None = None
+
+    for _, row in chart.iterrows():
+        candle_time = row["candle_time"]
+        month_key = (candle_time.year, candle_time.month)
+        if previous_month is not None and month_key != previous_month:
+            separators.append(
+                {
+                    "id": f"month-{candle_time.year}-{candle_time.month:02d}",
+                    "time": candle_time.isoformat(),
+                    "label": candle_time.strftime("%b"),
+                }
+            )
+        previous_month = month_key
+
+    return separators
+
+
 def _build_day_close_segments(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dict[str, Any]]:
     if daily.empty:
         return []
@@ -216,7 +241,7 @@ def _build_day_close_segments(chart: pd.DataFrame, daily: pd.DataFrame) -> list[
                 "end_time": last_time.isoformat(),
                 "price": float(previous_day["close"]),
                 "color": "#0f766e",
-                "style": "dashed",
+                "style": "solid",
             }
         )
 
@@ -295,13 +320,14 @@ def _label_kind(label: str) -> str:
     return label.lower().replace(" ", "_")
 
 
-def _level(key: str, label: str, price: Any, color: str, style: str) -> dict[str, Any]:
+def _level(key: str, label: str, price: Any, color: str, start_time: Any) -> dict[str, Any]:
     return {
         "key": key,
         "label": label,
         "price": float(price),
         "color": color,
-        "style": style,
+        "style": "solid",
+        "start_time": pd.Timestamp(start_time).isoformat(),
     }
 
 
@@ -314,14 +340,14 @@ def _previous_week_slice(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.Dat
     ]
 
 
-def _latest_friday_close(daily: pd.DataFrame, chart_end: pd.Timestamp) -> float | None:
+def _latest_friday(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.Series | None:
     friday_rows = daily[
         (daily["candle_time"] <= chart_end)
         & (daily["candle_time"].dt.weekday == 4)
     ]
     if friday_rows.empty:
         return None
-    return float(friday_rows.iloc[-1]["close"])
+    return friday_rows.iloc[-1]
 
 
 def _current_week_monday(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.Series | None:

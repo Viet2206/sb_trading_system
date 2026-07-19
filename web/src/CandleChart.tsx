@@ -12,11 +12,11 @@ import { Candle, OverlayResponse } from "./api";
 type SvgLevel = {
   key: string;
   label: string;
+  x1: number;
   y: number;
   labelX: number;
   price: number;
   color: string;
-  dashArray: string | undefined;
 };
 
 type SvgSession = {
@@ -44,13 +44,18 @@ type SvgDaySeparator = {
   height: number;
 };
 
+type SvgMonthSeparator = {
+  id: string;
+  x: number;
+  height: number;
+};
+
 type SvgDayCloseSegment = {
   id: string;
   x1: number;
   x2: number;
   y: number;
   color: string;
-  dashArray: string | undefined;
 };
 
 type SvgLabel = {
@@ -76,10 +81,12 @@ export function CandleChart({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const overlaysRef = useRef(overlays);
+  const chartDataRef = useRef<CandlestickData[]>([]);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
   const [svgDaySeparators, setSvgDaySeparators] = useState<SvgDaySeparator[]>([]);
+  const [svgMonthSeparators, setSvgMonthSeparators] = useState<SvgMonthSeparator[]>([]);
   const [svgDayCloseSegments, setSvgDayCloseSegments] = useState<SvgDayCloseSegment[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
 
@@ -148,6 +155,7 @@ export function CandleChart({
 
   useEffect(() => {
     if (!seriesRef.current) return;
+    chartDataRef.current = chartData;
     seriesRef.current.setData(chartData);
     applyDefaultVisibleRange();
     redrawOverlays();
@@ -165,15 +173,18 @@ export function CandleChart({
     const nextLevels = (overlaysRef.current?.levels ?? [])
       .map((level) => {
         const y = series.priceToCoordinate(level.price);
+        const x1 = level.start_time
+          ? coordinateForTime(chart, toTimestamp(level.start_time), chartDataRef.current)
+          : 0;
         if (y == null) return null;
         return {
           key: level.key,
           label: level.label,
+          x1: Number(x1 ?? 0),
           y: Number(y),
           labelX: Math.max(12, paneWidth - 112),
           price: level.price,
           color: level.color,
-          dashArray: dashArray(level.style),
         };
       })
       .filter((level): level is SvgLevel => level !== null);
@@ -225,6 +236,18 @@ export function CandleChart({
       height: period.height,
     }));
 
+    const nextMonthSeparators = (overlaysRef.current?.month_separators ?? [])
+      .map((separator) => {
+        const x = chart.timeScale().timeToCoordinate(toTimestamp(separator.time));
+        if (x == null || paneHeight <= 0) return null;
+        return {
+          id: separator.id,
+          x: Number(x),
+          height: Math.max(0, paneHeight - 28),
+        };
+      })
+      .filter((separator): separator is SvgMonthSeparator => separator !== null);
+
     const nextDayCloseSegments = (overlaysRef.current?.day_close_segments ?? [])
       .map((segment) => {
         const x1 = chart.timeScale().timeToCoordinate(toTimestamp(segment.start_time));
@@ -240,7 +263,6 @@ export function CandleChart({
           x2: right,
           y: Number(y),
           color: segment.color,
-          dashArray: dashArray(segment.style),
         };
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
@@ -274,6 +296,7 @@ export function CandleChart({
     setSvgSessions(nextSessions);
     setSvgDayPeriods(nextDayPeriods);
     setSvgDaySeparators(nextDaySeparators);
+    setSvgMonthSeparators(nextMonthSeparators);
     setSvgDayCloseSegments(nextDayCloseSegments);
     setSvgSetupLabels(nextSetupLabels);
   }
@@ -323,6 +346,16 @@ export function CandleChart({
             className="day-separator-line"
           />
         ))}
+        {svgMonthSeparators.map((separator) => (
+          <line
+            key={separator.id}
+            x1={separator.x}
+            y1={0}
+            x2={separator.x}
+            y2={separator.height}
+            className="month-separator-line"
+          />
+        ))}
         {svgSessions.map((session) => (
           <g key={session.id}>
             <rect
@@ -346,7 +379,6 @@ export function CandleChart({
               x2={segment.x2}
               y2={segment.y}
               stroke={segment.color}
-              strokeDasharray={segment.dashArray}
               className="day-close-segment"
             />
           </g>
@@ -354,12 +386,11 @@ export function CandleChart({
         {svgLevels.map((level) => (
           <g key={level.key}>
             <line
-              x1={0}
+              x1={level.x1}
               y1={level.y}
               x2="100%"
               y2={level.y}
               stroke={level.color}
-              strokeDasharray={level.dashArray}
               className="level-line"
             />
             <text x={level.labelX} y={level.y - 5} fill={level.color} className="level-label">
@@ -382,8 +413,18 @@ function toTimestamp(value: string): UTCTimestamp {
   return Math.floor(new Date(value).getTime() / 1000) as UTCTimestamp;
 }
 
-function dashArray(style: string): string | undefined {
-  if (style === "dashed") return "8 6";
-  if (style === "dotted") return "2 5";
-  return undefined;
+function coordinateForTime(
+  chart: IChartApi,
+  target: UTCTimestamp,
+  data: CandlestickData[],
+): number | null {
+  const exact = chart.timeScale().timeToCoordinate(target);
+  if (exact != null) return Number(exact);
+
+  const targetValue = Number(target);
+  const nextCandle = data.find((candle) => Number(candle.time) >= targetValue);
+  if (!nextCandle) return null;
+
+  const coordinate = chart.timeScale().timeToCoordinate(nextCandle.time);
+  return coordinate == null ? null : Number(coordinate);
 }

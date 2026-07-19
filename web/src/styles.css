@@ -228,6 +228,13 @@ select {
   pointer-events: none;
 }
 
+.month-separator-line {
+  stroke: #0f172a;
+  stroke-width: 1.5;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
 .session-label {
   fill: #334155;
   font-size: 11px;
