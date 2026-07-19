@@ -53,6 +53,16 @@ export type OverlayDayPeriod = {
   variant: "even" | "odd";
 };
 
+export type OverlayDayCloseSegment = {
+  id: string;
+  label: string;
+  start_time: string;
+  end_time: string;
+  price: number;
+  color: string;
+  style: "solid" | "dashed" | "dotted";
+};
+
 export type OverlayLabel = {
   time: string;
   price?: number;
@@ -66,6 +76,7 @@ export type OverlayResponse = {
   levels: OverlayLevel[];
   sessions: OverlaySession[];
   day_periods: OverlayDayPeriod[];
+  day_close_segments: OverlayDayCloseSegment[];
   day_labels: OverlayLabel[];
   setup_labels: OverlayLabel[];
   notes: string[];

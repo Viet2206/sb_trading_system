@@ -221,6 +221,13 @@ select {
   text-anchor: middle;
 }
 
+.day-separator-line {
+  stroke: #94a3b8;
+  stroke-width: 1;
+  opacity: 0.68;
+  pointer-events: none;
+}
+
 .session-label {
   fill: #334155;
   font-size: 11px;
@@ -232,6 +239,21 @@ select {
 .level-line {
   stroke-width: 1.5;
   opacity: 0.88;
+}
+
+.day-close-segment {
+  stroke-width: 1.4;
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.day-close-label {
+  font-size: 10px;
+  font-weight: 900;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: #f8fafc;
+  stroke-width: 3px;
 }
 
 .level-label {

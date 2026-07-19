@@ -33,6 +33,7 @@ def build_sb_overlays(
             "levels": [],
             "sessions": [],
             "day_periods": [],
+            "day_close_segments": [],
             "day_labels": [],
             "setup_labels": [],
             "notes": ["No chart candles available for the requested symbol/timeframe."],
@@ -44,9 +45,10 @@ def build_sb_overlays(
     chart_end = chart["candle_time"].max()
     apply_intraday_template = timeframe not in {"H4", "D1"}
 
-    levels = _build_levels(daily, chart_end)
+    levels = _build_levels(daily, chart_end, include_previous_day_close=not apply_intraday_template)
     sessions = _build_sessions(chart, chart_start, chart_end) if apply_intraday_template else []
     day_periods = _build_day_periods(chart) if apply_intraday_template else []
+    day_close_segments = _build_day_close_segments(chart, daily) if apply_intraday_template else []
     day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
 
     return {
@@ -55,12 +57,14 @@ def build_sb_overlays(
         "levels": levels,
         "sessions": sessions,
         "day_periods": day_periods,
+        "day_close_segments": day_close_segments,
         "day_labels": day_labels,
         "setup_labels": setup_labels,
         "notes": [
             "FGD, FRD, 3DL, and 3DS are v0 deterministic labels and should be refined against the SB playbook examples.",
             "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
             "Intraday day-period and session templates are hidden on H4 and D1 charts.",
+            "Intraday previous-day-close levels are drawn as day-length segments.",
         ],
     }
 
@@ -71,7 +75,12 @@ def _prepare_candles(candles: pd.DataFrame) -> pd.DataFrame:
     return prepared.sort_values("candle_time").reset_index(drop=True)
 
 
-def _build_levels(daily: pd.DataFrame, chart_end: pd.Timestamp) -> list[dict[str, Any]]:
+def _build_levels(
+    daily: pd.DataFrame,
+    chart_end: pd.Timestamp,
+    *,
+    include_previous_day_close: bool = True,
+) -> list[dict[str, Any]]:
     if daily.empty:
         return []
 
@@ -85,9 +94,10 @@ def _build_levels(daily: pd.DataFrame, chart_end: pd.Timestamp) -> list[dict[str
             [
                 _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", "solid"),
                 _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", "solid"),
-                _level("previous_day_close", "PDC", previous_day["close"], "#0f766e", "dashed"),
             ]
         )
+        if include_previous_day_close:
+            levels.append(_level("previous_day_close", "PDC", previous_day["close"], "#0f766e", "dashed"))
 
     previous_week = _previous_week_slice(daily, chart_end)
     if not previous_week.empty:
@@ -172,6 +182,36 @@ def _build_day_periods(chart: pd.DataFrame) -> list[dict[str, Any]]:
         )
 
     return periods
+
+
+def _build_day_close_segments(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dict[str, Any]]:
+    if daily.empty:
+        return []
+
+    segments: list[dict[str, Any]] = []
+
+    for day, day_slice in chart.groupby(chart["candle_time"].dt.date):
+        previous_days = daily[daily["candle_time"].dt.date < day]
+        if previous_days.empty:
+            continue
+
+        previous_day = previous_days.iloc[-1]
+        first_time = day_slice.iloc[0]["candle_time"].to_pydatetime()
+        last_time = day_slice.iloc[-1]["candle_time"].to_pydatetime()
+
+        segments.append(
+            {
+                "id": f"pdc-{day.isoformat()}",
+                "label": "PDC",
+                "start_time": first_time.isoformat(),
+                "end_time": last_time.isoformat(),
+                "price": float(previous_day["close"]),
+                "color": "#0f766e",
+                "style": "dashed",
+            }
+        )
+
+    return segments
 
 
 def _build_day_labels(

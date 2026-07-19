@@ -38,6 +38,23 @@ type SvgDayPeriod = {
   variant: "even" | "odd";
 };
 
+type SvgDaySeparator = {
+  id: string;
+  x: number;
+  height: number;
+};
+
+type SvgDayCloseSegment = {
+  id: string;
+  label: string;
+  x1: number;
+  x2: number;
+  y: number;
+  labelX: number;
+  color: string;
+  dashArray: string | undefined;
+};
+
 type SvgLabel = {
   id: string;
   x: number;
@@ -62,6 +79,8 @@ export function CandleChart({
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
+  const [svgDaySeparators, setSvgDaySeparators] = useState<SvgDaySeparator[]>([]);
+  const [svgDayCloseSegments, setSvgDayCloseSegments] = useState<SvgDayCloseSegment[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
 
   const chartData = useMemo<CandlestickData[]>(() => {
@@ -200,6 +219,34 @@ export function CandleChart({
       })
       .filter((period): period is SvgDayPeriod => period !== null);
 
+    const nextDaySeparators = nextDayPeriods.map((period) => ({
+      id: `separator-${period.id}`,
+      x: period.x,
+      height: period.height,
+    }));
+
+    const nextDayCloseSegments = (overlaysRef.current?.day_close_segments ?? [])
+      .map((segment) => {
+        const x1 = chart.timeScale().timeToCoordinate(toTimestamp(segment.start_time));
+        const x2 = chart.timeScale().timeToCoordinate(toTimestamp(segment.end_time));
+        const y = series.priceToCoordinate(segment.price);
+        if (x1 == null || x2 == null || y == null) return null;
+
+        const left = Math.min(Number(x1), Number(x2));
+        const right = Math.max(Number(x1), Number(x2));
+        return {
+          id: segment.id,
+          label: segment.label,
+          x1: left,
+          x2: right,
+          y: Number(y),
+          labelX: Math.max(left + 8, Math.min(right - 34, paneWidth - 178)),
+          color: segment.color,
+          dashArray: dashArray(segment.style),
+        };
+      })
+      .filter((segment): segment is SvgDayCloseSegment => segment !== null);
+
     const setupLabelCounts = new Map<string, number>();
     const nextSetupLabels = (overlaysRef.current?.setup_labels ?? [])
       .map((label) => {
@@ -228,6 +275,8 @@ export function CandleChart({
     }
     setSvgSessions(nextSessions);
     setSvgDayPeriods(nextDayPeriods);
+    setSvgDaySeparators(nextDaySeparators);
+    setSvgDayCloseSegments(nextDayCloseSegments);
     setSvgSetupLabels(nextSetupLabels);
   }
 
@@ -253,6 +302,16 @@ export function CandleChart({
             </text>
           </g>
         ))}
+        {svgDaySeparators.map((separator) => (
+          <line
+            key={separator.id}
+            x1={separator.x}
+            y1={0}
+            x2={separator.x}
+            y2={separator.height}
+            className="day-separator-line"
+          />
+        ))}
         {svgSessions.map((session) => (
           <g key={session.id}>
             <rect
@@ -265,6 +324,27 @@ export function CandleChart({
             />
             <text x={session.x + 4} y={session.y + 14} className="session-label">
               {session.label}
+            </text>
+          </g>
+        ))}
+        {svgDayCloseSegments.map((segment) => (
+          <g key={segment.id}>
+            <line
+              x1={segment.x1}
+              y1={segment.y}
+              x2={segment.x2}
+              y2={segment.y}
+              stroke={segment.color}
+              strokeDasharray={segment.dashArray}
+              className="day-close-segment"
+            />
+            <text
+              x={segment.labelX}
+              y={segment.y - 5}
+              fill={segment.color}
+              className="day-close-label"
+            >
+              {segment.label}
             </text>
           </g>
         ))}
