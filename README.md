@@ -53,7 +53,12 @@ If the notebook shows `connection refused` on port `5432`, PostgreSQL is not run
 
 ## MT5 Notes
 
-The normal MT5 Python package workflow is intended to run on Windows with an installed MetaTrader 5 terminal. On macOS, use the notebook to validate PostgreSQL connectivity, schema creation, and import logic. Run the MT5 extraction cells on the Windows VPS.
+The normal MT5 Python package workflow is intended to run on Windows with an installed MetaTrader 5 terminal. The recommended early workflow is:
+
+- Windows laptop/VPS: connect to MT5 and export candles to compressed CSV files.
+- MacBook: import those CSV files into local Docker PostgreSQL and build platform features.
+
+This means Windows does not need Docker or PostgreSQL during early development.
 
 Install the Windows/VPS dependencies with:
 
@@ -98,6 +103,36 @@ You can also verify the Windows MT5 environment from the terminal:
 .venv\Scripts\activate
 python scripts\check_mt5_env.py
 ```
+
+## Offline MT5 Data Workflow
+
+On Windows, export MT5 candles into local files:
+
+```bat
+git pull
+.venv\Scripts\activate
+python scripts\export_mt5_candles.py --output-dir data\raw\mt5_export
+```
+
+This creates files like:
+
+```text
+data\raw\mt5_export\EURUSD_M15_2026-01-01_to_now.csv.gz
+data\raw\mt5_export\manifest.json
+```
+
+Move the `data\raw\mt5_export` folder from Windows to the MacBook.
+
+On MacBook, start local Postgres and import the exported files:
+
+```bash
+git pull
+docker compose up -d postgres
+source .venv/bin/activate
+python scripts/import_candles_from_csv.py data/raw/mt5_export
+```
+
+After import, continue building and testing SB System features on Mac using local PostgreSQL.
 
 ## Project Instructions
 

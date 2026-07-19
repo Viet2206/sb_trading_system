@@ -18,20 +18,20 @@ SCHEMA_PATH = PROJECT_ROOT / "sql" / "001_market_data.sql"
 
 @dataclass(frozen=True)
 class ImportConfig:
-    database_url: str
+    database_url: str | None
     symbols: list[str]
     timeframes: list[str]
     import_start: date
 
 
-def load_config(env_path: str | Path | None = None) -> ImportConfig:
+def load_config(env_path: str | Path | None = None, *, require_database_url: bool = True) -> ImportConfig:
     if env_path:
         load_dotenv(env_path)
     else:
         load_dotenv(PROJECT_ROOT / ".env")
 
     database_url = os.getenv("DATABASE_URL")
-    if not database_url:
+    if require_database_url and not database_url:
         raise ValueError("DATABASE_URL is required. Copy .env.example to .env and update it.")
 
     symbols = _split_env("SB_SYMBOLS", "EURUSD,GBPUSD,USDJPY,XAUUSD")
