@@ -1,0 +1,8 @@
+pandas>=2.2
+psycopg[binary]>=3.2
+python-dotenv>=1.0
+SQLAlchemy>=2.0
+tqdm>=4.66
+ipykernel>=6.29
+jupyterlab>=4.2
+

@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.python-version
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local data exports
+data/raw/*
+data/exports/*
+!data/raw/.gitkeep
+!data/exports/.gitkeep
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+
