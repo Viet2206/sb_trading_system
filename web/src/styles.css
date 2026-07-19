@@ -255,6 +255,7 @@ select {
 
 .day-range-pipe-line,
 .day-range-pipe-connector {
+  stroke-dasharray: 5 4;
   stroke-width: 1.4;
 }
 

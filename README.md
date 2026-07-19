@@ -171,7 +171,7 @@ GET /candles?symbol=EURUSD&timeframe=M15&limit=200
 GET /context/overlays?symbol=EURUSD&timeframe=M15&limit=1500
 ```
 
-The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low, previous week high/low, latest Friday close, current Monday high/low, chart day periods, intraday previous-day-close segments, Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00. Intraday day-period and session templates are hidden on H4 and D1 charts. Overlay linework is neutral gray by default so the black/white candles remain the strongest visual signal.
+The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low, previous week high/low, latest Friday close, current Monday high/low, chart day periods, intraday previous-day-close segments, Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00. Intraday day-period and session templates are hidden on H4 and D1 charts. Horizontal context levels are red, intraday previous-day-close segments are green, and previous-day high/low pipes are gray dashed step lines.
 
 ## Web UI
 
