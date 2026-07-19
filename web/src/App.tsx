@@ -159,6 +159,7 @@ export function App() {
           <div className="status-title">SB Context</div>
           <Metric label="Levels" value={String(overlays?.levels.length ?? 0)} />
           <Metric label="Sessions" value={String(overlays?.sessions.length ?? 0)} />
+          <Metric label="Days" value={String(overlays?.day_periods.length ?? 0)} />
           <Metric label="Labels" value={String(overlays?.setup_labels.length ?? 0)} />
         </div>
 

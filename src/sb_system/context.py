@@ -32,6 +32,7 @@ def build_sb_overlays(
             "timeframe": timeframe,
             "levels": [],
             "sessions": [],
+            "day_periods": [],
             "day_labels": [],
             "setup_labels": [],
             "notes": ["No chart candles available for the requested symbol/timeframe."],
@@ -44,6 +45,7 @@ def build_sb_overlays(
 
     levels = _build_levels(daily, chart_end)
     sessions = _build_sessions(chart, chart_start, chart_end)
+    day_periods = _build_day_periods(chart)
     day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
 
     return {
@@ -51,6 +53,7 @@ def build_sb_overlays(
         "timeframe": timeframe,
         "levels": levels,
         "sessions": sessions,
+        "day_periods": day_periods,
         "day_labels": day_labels,
         "setup_labels": setup_labels,
         "notes": [
@@ -145,6 +148,28 @@ def _build_sessions(
         current_date += timedelta(days=1)
 
     return sessions
+
+
+def _build_day_periods(chart: pd.DataFrame) -> list[dict[str, Any]]:
+    periods: list[dict[str, Any]] = []
+
+    for index, (day, day_slice) in enumerate(chart.groupby(chart["candle_time"].dt.date)):
+        first_time = day_slice.iloc[0]["candle_time"].to_pydatetime()
+        last_time = day_slice.iloc[-1]["candle_time"].to_pydatetime()
+        label_time = pd.Timestamp(first_time)
+
+        periods.append(
+            {
+                "id": f"day-{day.isoformat()}",
+                "label": label_time.strftime("%a"),
+                "start_time": first_time.isoformat(),
+                "end_time": last_time.isoformat(),
+                "kind": "day_period",
+                "variant": "even" if index % 2 == 0 else "odd",
+            }
+        )
+
+    return periods
 
 
 def _build_day_labels(

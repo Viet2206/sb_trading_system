@@ -49,6 +49,15 @@ type SvgSession = {
   color: string;
 };
 
+type SvgDayPeriod = {
+  id: string;
+  label: string;
+  x: number;
+  width: number;
+  height: number;
+  variant: "even" | "odd";
+};
+
 type SvgLabel = {
   id: string;
   x: number;
@@ -83,7 +92,7 @@ export function CandleChart({
   const [svgLines, setSvgLines] = useState<SvgLine[]>([]);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
-  const [svgDayLabels, setSvgDayLabels] = useState<SvgLabel[]>([]);
+  const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
   const [pendingPoint, setPendingPoint] = useState<TrendPoint | null>(null);
 
@@ -126,8 +135,8 @@ export function CandleChart({
         fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
       },
       grid: {
-        vertLines: { color: "#e2e8f0" },
-        horzLines: { color: "#e2e8f0" },
+        vertLines: { visible: false },
+        horzLines: { visible: false },
       },
       crosshair: {
         mode: 1,
@@ -186,6 +195,7 @@ export function CandleChart({
 
     const pane = containerRef.current?.getBoundingClientRect();
     const paneWidth = pane?.width ?? 0;
+    const paneHeight = pane?.height ?? 0;
 
     const nextLines = trendLinesRef.current
       .map((line) => {
@@ -244,19 +254,23 @@ export function CandleChart({
       })
       .filter((session): session is SvgSession => session !== null);
 
-    const nextDayLabels = (overlaysRef.current?.day_labels ?? [])
-      .map((label) => {
-        const x = chart.timeScale().timeToCoordinate(toTimestamp(label.time));
-        if (x == null) return null;
+    const nextDayPeriods = (overlaysRef.current?.day_periods ?? [])
+      .map((period) => {
+        const x1 = chart.timeScale().timeToCoordinate(toTimestamp(period.start_time));
+        const x2 = chart.timeScale().timeToCoordinate(toTimestamp(period.end_time));
+        if (x1 == null || x2 == null || paneHeight <= 0) return null;
+        const left = Math.min(Number(x1), Number(x2));
+        const right = Math.max(Number(x1), Number(x2));
         return {
-          id: `${label.kind}-${label.time}`,
-          x: Number(x),
-          y: 18,
-          label: label.label,
-          kind: label.kind,
+          id: period.id,
+          label: period.label,
+          x: left,
+          width: Math.max(16, right - left),
+          height: paneHeight,
+          variant: period.variant,
         };
       })
-      .filter((label): label is SvgLabel => label !== null);
+      .filter((period): period is SvgDayPeriod => period !== null);
 
     const setupLabelCounts = new Map<string, number>();
     const nextSetupLabels = (overlaysRef.current?.setup_labels ?? [])
@@ -285,7 +299,7 @@ export function CandleChart({
       setSvgLevels(nextLevels);
     }
     setSvgSessions(nextSessions);
-    setSvgDayLabels(nextDayLabels);
+    setSvgDayPeriods(nextDayPeriods);
     setSvgSetupLabels(nextSetupLabels);
     setSvgLines(nextLines);
   }
@@ -331,6 +345,24 @@ export function CandleChart({
     >
       <div ref={containerRef} className="chart-container" />
       <svg className="trend-overlay" aria-hidden="true">
+        {svgDayPeriods.map((period) => (
+          <g key={period.id}>
+            <rect
+              x={period.x}
+              y={0}
+              width={period.width}
+              height={period.height}
+              className={`day-period-box ${period.variant}`}
+            />
+            <text
+              x={period.x + period.width / 2}
+              y={22}
+              className="day-period-label"
+            >
+              {period.label}
+            </text>
+          </g>
+        ))}
         {svgSessions.map((session) => (
           <g key={session.id}>
             <rect
@@ -361,11 +393,6 @@ export function CandleChart({
               {level.label}
             </text>
           </g>
-        ))}
-        {svgDayLabels.map((label) => (
-          <text key={label.id} x={label.x} y={label.y} className="day-label">
-            {label.label}
-          </text>
         ))}
         {svgSetupLabels.map((label) => (
           <text key={label.id} x={label.x} y={label.y} className={`setup-label setup-${label.kind}`}>

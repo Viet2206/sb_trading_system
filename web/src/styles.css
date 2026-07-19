@@ -267,6 +267,29 @@ select {
   stroke-width: 1;
 }
 
+.day-period-box {
+  fill: transparent;
+  stroke: #cbd5e1;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.day-period-box.odd {
+  fill: #e2e8f0;
+  opacity: 0.22;
+}
+
+.day-period-label {
+  fill: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: #f8fafc;
+  stroke-width: 4px;
+  text-anchor: middle;
+}
+
 .session-label {
   fill: #334155;
   font-size: 11px;
@@ -287,14 +310,6 @@ select {
   pointer-events: none;
   stroke: #f8fafc;
   stroke-width: 3px;
-}
-
-.day-label {
-  fill: #64748b;
-  font-size: 11px;
-  font-weight: 900;
-  pointer-events: none;
-  text-anchor: middle;
 }
 
 .setup-label {

@@ -44,6 +44,15 @@ export type OverlaySession = {
   color: string;
 };
 
+export type OverlayDayPeriod = {
+  id: string;
+  label: string;
+  start_time: string;
+  end_time: string;
+  kind: string;
+  variant: "even" | "odd";
+};
+
 export type OverlayLabel = {
   time: string;
   price?: number;
@@ -56,6 +65,7 @@ export type OverlayResponse = {
   timeframe: string;
   levels: OverlayLevel[];
   sessions: OverlaySession[];
+  day_periods: OverlayDayPeriod[];
   day_labels: OverlayLabel[];
   setup_labels: OverlayLabel[];
   notes: string[];
