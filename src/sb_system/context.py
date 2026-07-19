@@ -9,7 +9,7 @@ from sqlalchemy.engine import Engine
 from sb_system.market_data import fetch_candles
 
 
-HORIZONTAL_LEVEL_COLOR = "#dc2626"
+HORIZONTAL_LEVEL_COLOR = "#38bdf8"
 DAY_RANGE_PIPE_COLOR = "#64748b"
 DAY_CLOSE_SEGMENT_COLOR = "#16a34a"
 SESSION_FILL_COLOR = "#94a3b8"

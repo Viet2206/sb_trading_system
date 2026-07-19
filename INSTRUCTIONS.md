@@ -227,7 +227,7 @@ Chart overlay should support:
 Current Phase 1 overlay implementation:
 
 - Backend endpoint: `GET /context/overlays`
-- First context levels: previous day high/low, previous week high/low, latest Friday close, current Monday high/low as red solid right-extending rays from their relevant start time
+- First context levels: previous day high/low, previous week high/low, latest Friday close, current Monday high/low as light blue solid right-extending rays from their relevant start time
 - First intraday range layer: previous-day high and low are drawn as gray dashed connected step pipes, high-to-high and low-to-low, across day periods
 - First day layer: custom chart day-period bands with centered weekday labels; avoid relying on the chart library's default grid
 - First month layer: vertical month separators across the chart
