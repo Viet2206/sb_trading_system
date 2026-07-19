@@ -146,6 +146,30 @@ jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 
 After import, continue building and testing SB System features on Mac using local PostgreSQL.
 
+## Backend API
+
+After candles are imported into local PostgreSQL, start the backend API:
+
+```bash
+source .venv/bin/activate
+python scripts/run_api.py --reload
+```
+
+Open the interactive API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Useful endpoints:
+
+```text
+GET /health
+GET /symbols
+GET /candles/summary
+GET /candles?symbol=EURUSD&timeframe=M15&limit=200
+```
+
 ## Project Instructions
 
 See [INSTRUCTIONS.md](INSTRUCTIONS.md) for the durable architecture and development plan.

@@ -3,8 +3,9 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -284,6 +285,106 @@ def fetch_candle_summary(engine: Engine) -> pd.DataFrame:
         )
 
 
+def fetch_symbols(engine: Engine) -> pd.DataFrame:
+    with engine.connect() as conn:
+        return pd.read_sql_query(
+            text(
+                """
+                SELECT
+                    s.broker_symbol,
+                    s.base_symbol,
+                    s.description,
+                    s.digits,
+                    s.point,
+                    s.trade_contract_size,
+                    s.currency_base,
+                    s.currency_profit,
+                    s.currency_margin,
+                    min(c.candle_time) AS first_candle,
+                    max(c.candle_time) AS last_candle,
+                    count(c.candle_id) AS candles
+                FROM market.symbols s
+                LEFT JOIN market.candles c ON c.symbol_id = s.symbol_id
+                GROUP BY
+                    s.symbol_id,
+                    s.broker_symbol,
+                    s.base_symbol,
+                    s.description,
+                    s.digits,
+                    s.point,
+                    s.trade_contract_size,
+                    s.currency_base,
+                    s.currency_profit,
+                    s.currency_margin
+                ORDER BY s.broker_symbol
+                """
+            ),
+            conn,
+        )
+
+
+def fetch_candles(
+    engine: Engine,
+    *,
+    symbol: str,
+    timeframe: str,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    limit: int = 500,
+) -> pd.DataFrame:
+    conditions = ["s.broker_symbol = :symbol", "c.timeframe = :timeframe"]
+    params: dict[str, Any] = {
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "limit": limit,
+    }
+
+    if start is not None:
+        conditions.append("c.candle_time >= :start_time")
+        params["start_time"] = start
+
+    if end is not None:
+        conditions.append("c.candle_time <= :end_time")
+        params["end_time"] = end
+
+    where_clause = "\n                      AND ".join(conditions)
+
+    with engine.connect() as conn:
+        return pd.read_sql_query(
+            text(
+                f"""
+                WITH selected_candles AS (
+                    SELECT
+                        s.broker_symbol,
+                        c.timeframe,
+                        c.candle_time,
+                        c.open,
+                        c.high,
+                        c.low,
+                        c.close,
+                        c.tick_volume,
+                        c.spread,
+                        c.real_volume
+                    FROM market.candles c
+                    JOIN market.symbols s ON s.symbol_id = c.symbol_id
+                    WHERE {where_clause}
+                    ORDER BY c.candle_time DESC
+                    LIMIT :limit
+                )
+                SELECT *
+                FROM selected_candles
+                ORDER BY candle_time ASC
+                """
+            ),
+            conn,
+            params=params,
+        )
+
+
+def dataframe_records(df: pd.DataFrame) -> list[dict[str, Any]]:
+    return [_json_safe_record(record) for record in df.to_dict(orient="records")]
+
+
 def start_import_run(
     engine: Engine,
     *,
@@ -338,3 +439,19 @@ def utc_datetime_from_date(value: date) -> datetime:
 def _split_env(name: str, default: str) -> list[str]:
     raw = os.getenv(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _json_safe_record(record: dict[str, Any]) -> dict[str, Any]:
+    safe: dict[str, Any] = {}
+    for key, value in record.items():
+        if pd.isna(value):
+            safe[key] = None
+        elif isinstance(value, pd.Timestamp):
+            safe[key] = value.isoformat()
+        elif isinstance(value, datetime):
+            safe[key] = value.isoformat()
+        elif isinstance(value, Decimal):
+            safe[key] = float(value)
+        else:
+            safe[key] = value
+    return safe
