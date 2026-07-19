@@ -143,12 +143,12 @@ export function CandleChart({
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#16a34a",
-      downColor: "#dc2626",
-      borderUpColor: "#15803d",
-      borderDownColor: "#b91c1c",
-      wickUpColor: "#166534",
-      wickDownColor: "#991b1b",
+      upColor: "#ffffff",
+      downColor: "#111827",
+      borderUpColor: "#111827",
+      borderDownColor: "#111827",
+      wickUpColor: "#111827",
+      wickDownColor: "#111827",
     });
 
     chartRef.current = chart;

@@ -171,7 +171,7 @@ GET /candles?symbol=EURUSD&timeframe=M15&limit=200
 GET /context/overlays?symbol=EURUSD&timeframe=M15&limit=1500
 ```
 
-The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low/close, previous week high/low, latest Friday close, current Monday high/low, UTC Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS.
+The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low/close, previous week high/low, latest Friday close, current Monday high/low, Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.
 
 ## Web UI
 

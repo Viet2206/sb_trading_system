@@ -10,9 +10,9 @@ from sb_system.market_data import fetch_candles
 
 
 SESSION_WINDOWS = [
-    ("asia", "Asia", time(0, 0), time(6, 0), "#38bdf8"),
-    ("london", "London", time(7, 0), time(12, 0), "#22c55e"),
-    ("new_york", "New York", time(13, 0), time(20, 0), "#f97316"),
+    ("asia", "Asia", time(3, 0), time(6, 0), "#38bdf8"),
+    ("london", "London", time(9, 0), time(12, 0), "#22c55e"),
+    ("new_york", "New York", time(15, 0), time(18, 0), "#f97316"),
 ]
 
 
@@ -55,7 +55,7 @@ def build_sb_overlays(
         "setup_labels": setup_labels,
         "notes": [
             "FGD, FRD, 3DL, and 3DS are v0 deterministic labels and should be refined against the SB playbook examples.",
-            "Session windows are UTC defaults: Asia 00:00-06:00, London 07:00-12:00, New York 13:00-20:00.",
+            "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
         ],
     }
 
