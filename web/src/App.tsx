@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, LineChart, RefreshCw, Trash2 } from "lucide-react";
 import { CandleChart, TrendLine } from "./CandleChart";
-import { Candle, CandleSummary, fetchCandles, fetchSummary } from "./api";
+import {
+  Candle,
+  CandleSummary,
+  OverlayResponse,
+  fetchCandles,
+  fetchOverlays,
+  fetchSummary,
+} from "./api";
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 
@@ -10,6 +17,7 @@ export function App() {
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState("");
   const [candles, setCandles] = useState<Candle[]>([]);
+  const [overlays, setOverlays] = useState<OverlayResponse | null>(null);
   const [trendLines, setTrendLines] = useState<TrendLine[]>([]);
   const [drawMode, setDrawMode] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,8 +80,12 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchCandles(nextSymbol, nextTimeframe, 1500);
-      setCandles(data.candles);
+      const [candleData, overlayData] = await Promise.all([
+        fetchCandles(nextSymbol, nextTimeframe, 1500),
+        fetchOverlays(nextSymbol, nextTimeframe, 1500),
+      ]);
+      setCandles(candleData.candles);
+      setOverlays(overlayData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load candles");
     } finally {
@@ -144,6 +156,13 @@ export function App() {
         </div>
 
         <div className="status-block">
+          <div className="status-title">SB Context</div>
+          <Metric label="Levels" value={String(overlays?.levels.length ?? 0)} />
+          <Metric label="Sessions" value={String(overlays?.sessions.length ?? 0)} />
+          <Metric label="Labels" value={String(overlays?.setup_labels.length ?? 0)} />
+        </div>
+
+        <div className="status-block">
           <div className="status-title">
             <Activity size={16} />
             <span>{loading ? "Loading" : "Ready"}</span>
@@ -190,6 +209,7 @@ export function App() {
 
         <CandleChart
           candles={candles}
+          overlays={overlays}
           drawMode={drawMode}
           trendLines={trendLines}
           onTrendLinesChange={setTrendLines}

@@ -26,6 +26,41 @@ export type CandleResponse = {
   candles: Candle[];
 };
 
+export type OverlayLevel = {
+  key: string;
+  label: string;
+  price: number;
+  color: string;
+  style: "solid" | "dashed" | "dotted";
+};
+
+export type OverlaySession = {
+  id: string;
+  label: string;
+  start_time: string;
+  end_time: string;
+  high: number;
+  low: number;
+  color: string;
+};
+
+export type OverlayLabel = {
+  time: string;
+  price?: number;
+  label: string;
+  kind: string;
+};
+
+export type OverlayResponse = {
+  symbol: string;
+  timeframe: string;
+  levels: OverlayLevel[];
+  sessions: OverlaySession[];
+  day_labels: OverlayLabel[];
+  setup_labels: OverlayLabel[];
+  notes: string[];
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 export async function fetchSummary(): Promise<CandleSummary[]> {
@@ -43,6 +78,19 @@ export async function fetchCandles(
     limit: String(limit),
   });
   return fetchJson<CandleResponse>(`/candles?${params.toString()}`);
+}
+
+export async function fetchOverlays(
+  symbol: string,
+  timeframe: string,
+  limit = 1500,
+): Promise<OverlayResponse> {
+  const params = new URLSearchParams({
+    symbol,
+    timeframe,
+    limit: String(limit),
+  });
+  return fetchJson<OverlayResponse>(`/context/overlays?${params.toString()}`);
 }
 
 async function fetchJson<T>(path: string): Promise<T> {

@@ -224,6 +224,14 @@ Chart overlay should support:
 - Pattern labels
 - Confidence breakdown
 
+Current Phase 1 overlay implementation:
+
+- Backend endpoint: `GET /context/overlays`
+- First context levels: previous day high/low/close, previous week high/low, latest Friday close, current Monday high/low
+- First session layer: UTC Asia, London, and New York boxes from imported candle data
+- First labels: weekday labels plus v0 Inside Day, FGD, FRD, 3DL, and 3DS daily setup labels
+- These labels are deterministic placeholders and must be validated/refined against the Stacey Burke PDFs before they are treated as trading signals.
+
 ## Signal Confidence Model
 
 Avoid one vague AI confidence score.

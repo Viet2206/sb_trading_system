@@ -168,7 +168,10 @@ GET /health
 GET /symbols
 GET /candles/summary
 GET /candles?symbol=EURUSD&timeframe=M15&limit=200
+GET /context/overlays?symbol=EURUSD&timeframe=M15&limit=1500
 ```
+
+The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low/close, previous week high/low, latest Friday close, current Monday high/low, UTC Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS.
 
 ## Web UI
 
@@ -190,6 +193,7 @@ The first dashboard supports:
 
 - Symbol and timeframe selection
 - Interactive candlestick chart with pan, zoom, and crosshair
+- SB context overlays for key levels, session boxes, weekday labels, and v0 daily setup labels
 - Latest candle details
 - Trendline drawing by selecting the Trendline tool and clicking two chart points
 - Clearing drawn trendlines

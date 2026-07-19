@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
+from sb_system.context import build_sb_overlays
 from sb_system.market_data import (
     check_connection,
     create_db_engine,
@@ -88,3 +89,18 @@ def candles(
         "count": len(rows),
         "candles": dataframe_records(rows),
     }
+
+
+@app.get("/context/overlays")
+def context_overlays(
+    engine: Annotated[Engine, Depends(get_engine)],
+    symbol: str = Query(..., description="Broker symbol, for example EURUSD or XAUUSD+."),
+    timeframe: str = Query(..., description="Chart timeframe such as M5, M15, H1, H4, or D1."),
+    limit: int = Query(1500, ge=100, le=10_000, description="Number of latest chart candles to contextualize."),
+) -> dict:
+    return build_sb_overlays(
+        engine,
+        symbol=symbol,
+        timeframe=timeframe,
+        limit=limit,
+    )

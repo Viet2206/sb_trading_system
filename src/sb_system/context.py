@@ -1,0 +1,264 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, time, timedelta
+from typing import Any
+
+import pandas as pd
+from sqlalchemy.engine import Engine
+
+from sb_system.market_data import fetch_candles
+
+
+SESSION_WINDOWS = [
+    ("asia", "Asia", time(0, 0), time(6, 0), "#38bdf8"),
+    ("london", "London", time(7, 0), time(12, 0), "#22c55e"),
+    ("new_york", "New York", time(13, 0), time(20, 0), "#f97316"),
+]
+
+
+def build_sb_overlays(
+    engine: Engine,
+    *,
+    symbol: str,
+    timeframe: str,
+    limit: int = 1500,
+) -> dict[str, Any]:
+    chart_candles = fetch_candles(engine, symbol=symbol, timeframe=timeframe, limit=limit)
+    daily_candles = fetch_candles(engine, symbol=symbol, timeframe="D1", limit=420)
+
+    if chart_candles.empty:
+        return {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "levels": [],
+            "sessions": [],
+            "day_labels": [],
+            "setup_labels": [],
+            "notes": ["No chart candles available for the requested symbol/timeframe."],
+        }
+
+    chart = _prepare_candles(chart_candles)
+    daily = _prepare_candles(daily_candles)
+    chart_start = chart["candle_time"].min()
+    chart_end = chart["candle_time"].max()
+
+    levels = _build_levels(daily, chart_end)
+    sessions = _build_sessions(chart, chart_start, chart_end)
+    day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
+
+    return {
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "levels": levels,
+        "sessions": sessions,
+        "day_labels": day_labels,
+        "setup_labels": setup_labels,
+        "notes": [
+            "FGD, FRD, 3DL, and 3DS are v0 deterministic labels and should be refined against the SB playbook examples.",
+            "Session windows are UTC defaults: Asia 00:00-06:00, London 07:00-12:00, New York 13:00-20:00.",
+        ],
+    }
+
+
+def _prepare_candles(candles: pd.DataFrame) -> pd.DataFrame:
+    prepared = candles.copy()
+    prepared["candle_time"] = pd.to_datetime(prepared["candle_time"], utc=True)
+    return prepared.sort_values("candle_time").reset_index(drop=True)
+
+
+def _build_levels(daily: pd.DataFrame, chart_end: pd.Timestamp) -> list[dict[str, Any]]:
+    if daily.empty:
+        return []
+
+    current_day = chart_end.date()
+    previous_days = daily[daily["candle_time"].dt.date < current_day]
+    levels: list[dict[str, Any]] = []
+
+    if not previous_days.empty:
+        previous_day = previous_days.iloc[-1]
+        levels.extend(
+            [
+                _level("previous_day_high", "PDH", previous_day["high"], "#2563eb", "solid"),
+                _level("previous_day_low", "PDL", previous_day["low"], "#2563eb", "solid"),
+                _level("previous_day_close", "PDC", previous_day["close"], "#0f766e", "dashed"),
+            ]
+        )
+
+    previous_week = _previous_week_slice(daily, chart_end)
+    if not previous_week.empty:
+        levels.extend(
+            [
+                _level("previous_week_high", "PWH", previous_week["high"].max(), "#7c3aed", "solid"),
+                _level("previous_week_low", "PWL", previous_week["low"].min(), "#7c3aed", "solid"),
+            ]
+        )
+
+    friday_close = _latest_friday_close(daily, chart_end)
+    if friday_close is not None:
+        levels.append(_level("friday_close", "Fri Close", friday_close, "#db2777", "dashed"))
+
+    monday = _current_week_monday(daily, chart_end)
+    if monday is not None:
+        levels.extend(
+            [
+                _level("current_monday_high", "Mon High", monday["high"], "#ea580c", "dotted"),
+                _level("current_monday_low", "Mon Low", monday["low"], "#ea580c", "dotted"),
+            ]
+        )
+
+    return levels
+
+
+def _build_sessions(
+    chart: pd.DataFrame,
+    chart_start: pd.Timestamp,
+    chart_end: pd.Timestamp,
+) -> list[dict[str, Any]]:
+    sessions: list[dict[str, Any]] = []
+    current_date = chart_start.date()
+    end_date = chart_end.date()
+
+    while current_date <= end_date:
+        for session_id, label, start_time, end_time, color in SESSION_WINDOWS:
+            start_dt = datetime.combine(current_date, start_time, tzinfo=UTC)
+            end_dt = datetime.combine(current_date, end_time, tzinfo=UTC)
+            session_slice = chart[
+                (chart["candle_time"] >= start_dt)
+                & (chart["candle_time"] < end_dt)
+            ]
+
+            if not session_slice.empty:
+                first_time = session_slice.iloc[0]["candle_time"].to_pydatetime()
+                last_time = session_slice.iloc[-1]["candle_time"].to_pydatetime()
+                sessions.append(
+                    {
+                        "id": f"{session_id}-{current_date.isoformat()}",
+                        "label": label,
+                        "start_time": first_time.isoformat(),
+                        "end_time": last_time.isoformat(),
+                        "high": float(session_slice["high"].max()),
+                        "low": float(session_slice["low"].min()),
+                        "color": color,
+                    }
+                )
+
+        current_date += timedelta(days=1)
+
+    return sessions
+
+
+def _build_day_labels(
+    daily: pd.DataFrame,
+    chart_start: pd.Timestamp,
+    chart_end: pd.Timestamp,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if daily.empty:
+        return [], []
+
+    visible_daily = daily[
+        (daily["candle_time"] >= chart_start.floor("D"))
+        & (daily["candle_time"] <= chart_end.ceil("D"))
+    ].copy()
+
+    day_labels: list[dict[str, Any]] = []
+    setup_labels: list[dict[str, Any]] = []
+
+    for index, row in visible_daily.iterrows():
+        day_time = row["candle_time"]
+        day_labels.append(
+            {
+                "time": day_time.isoformat(),
+                "label": day_time.strftime("%a"),
+                "kind": "day_of_week",
+            }
+        )
+
+        labels = _classify_day(daily, index)
+        for label in labels:
+            setup_labels.append(
+                {
+                    "time": day_time.isoformat(),
+                    "price": float(row["high"]),
+                    "label": label,
+                    "kind": _label_kind(label),
+                }
+            )
+
+    return day_labels, setup_labels
+
+
+def _classify_day(daily: pd.DataFrame, index: int) -> list[str]:
+    labels: list[str] = []
+    if index <= 0:
+        return labels
+
+    row = daily.loc[index]
+    previous = daily.loc[index - 1]
+
+    if row["high"] < previous["high"] and row["low"] > previous["low"]:
+        labels.append("Inside Day")
+
+    if row["close"] > row["open"] and previous["close"] < previous["open"]:
+        labels.append("FGD")
+
+    if row["close"] < row["open"] and previous["close"] > previous["open"]:
+        labels.append("FRD")
+
+    if index >= 2:
+        two_back = daily.loc[index - 2]
+        if row["close"] > previous["close"] > two_back["close"]:
+            labels.append("3DL")
+        if row["close"] < previous["close"] < two_back["close"]:
+            labels.append("3DS")
+
+    return labels
+
+
+def _label_kind(label: str) -> str:
+    return label.lower().replace(" ", "_")
+
+
+def _level(key: str, label: str, price: Any, color: str, style: str) -> dict[str, Any]:
+    return {
+        "key": key,
+        "label": label,
+        "price": float(price),
+        "color": color,
+        "style": style,
+    }
+
+
+def _previous_week_slice(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.DataFrame:
+    week_start = _week_start(chart_end)
+    previous_week_start = week_start - timedelta(days=7)
+    return daily[
+        (daily["candle_time"] >= previous_week_start)
+        & (daily["candle_time"] < week_start)
+    ]
+
+
+def _latest_friday_close(daily: pd.DataFrame, chart_end: pd.Timestamp) -> float | None:
+    friday_rows = daily[
+        (daily["candle_time"] <= chart_end)
+        & (daily["candle_time"].dt.weekday == 4)
+    ]
+    if friday_rows.empty:
+        return None
+    return float(friday_rows.iloc[-1]["close"])
+
+
+def _current_week_monday(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.Series | None:
+    week_start = _week_start(chart_end)
+    monday_rows = daily[
+        (daily["candle_time"] >= week_start)
+        & (daily["candle_time"] < week_start + timedelta(days=1))
+    ]
+    if monday_rows.empty:
+        return None
+    return monday_rows.iloc[0]
+
+
+def _week_start(value: pd.Timestamp) -> datetime:
+    as_datetime = value.to_pydatetime()
+    start = as_datetime - timedelta(days=as_datetime.weekday())
+    return datetime(start.year, start.month, start.day, tzinfo=UTC)

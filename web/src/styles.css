@@ -255,6 +255,67 @@ select {
   filter: drop-shadow(0 1px 1px rgb(15 23 42 / 0.45));
 }
 
+.session-box {
+  opacity: 0.1;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.session-label {
+  fill: #334155;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.level-line {
+  stroke-width: 1.5;
+  opacity: 0.88;
+}
+
+.level-label {
+  font-size: 11px;
+  font-weight: 900;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: #f8fafc;
+  stroke-width: 3px;
+}
+
+.day-label {
+  fill: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.setup-label {
+  fill: #f8fafc;
+  font-size: 11px;
+  font-weight: 900;
+  pointer-events: none;
+  stroke: #0f172a;
+  stroke-width: 3px;
+  paint-order: stroke;
+  text-anchor: middle;
+}
+
+.setup-label.setup-inside_day {
+  fill: #7c3aed;
+}
+
+.setup-label.setup-fgd,
+.setup-label.setup-3dl {
+  fill: #15803d;
+}
+
+.setup-label.setup-frd,
+.setup-label.setup-3ds {
+  fill: #b91c1c;
+}
+
 .draw-hint,
 .empty-state {
   position: absolute;
