@@ -408,6 +408,17 @@ Core entities:
 - Keep all strategy rules auditable.
 - Every signal should explain why it exists and what would invalidate it.
 
+## GitHub Workflow
+
+For implementation tasks, finish with a GitHub-ready change set:
+
+- Create a feature branch before editing files.
+- Keep notebook execution output out of commits unless it is intentionally part of the deliverable.
+- Commit only files related to the task.
+- Push the branch to GitHub.
+- Open a pull request into `main`.
+- Include a short summary, verification notes, and any known limitations in the PR description.
+
 ## Open Questions To Resolve
 
 - Which Forex pairs should be supported first?
@@ -425,4 +436,3 @@ The first useful milestone should be:
 "Given historical candles and a small manually tagged pattern library, SB System detects candidate setup zones on a chart and shows similar historical examples with an explanation."
 
 This milestone avoids premature auto-trading and creates the foundation for testing the strategy properly.
-
