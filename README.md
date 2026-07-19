@@ -109,7 +109,7 @@ python scripts\check_mt5_env.py
 If `.env` was copied before broker symbols were updated, edit it manually before export:
 
 ```env
-SB_SYMBOLS=EURUSD,GBPUSD,USDJPY,XAUUSD+,NAS100.r,SP500.r
+SB_SYMBOLS=EURUSD,GBPUSD,USDJPY,AUDUSD,XAUUSD+,NAS100.r,SP500.r
 ```
 
 On Windows, export MT5 candles into local files:
