@@ -57,8 +57,46 @@ The normal MT5 Python package workflow is intended to run on Windows with an ins
 
 Install the Windows/VPS dependencies with:
 
-```bash
-pip install -r requirements-win-mt5.txt
+```bat
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-win-mt5.txt
+```
+
+Register the project virtual environment as a Jupyter kernel:
+
+```bat
+python -m ipykernel install --user --name sb-system --display-name "SB System (.venv)"
+```
+
+Then open Jupyter Lab and select the `SB System (.venv)` kernel:
+
+```bat
+jupyter lab notebooks/01_mt5_to_postgres.ipynb
+```
+
+If the notebook says `No module named 'MetaTrader5'`, the selected Jupyter kernel is not the same Python environment where the package was installed. Inside the notebook, run:
+
+```python
+import sys
+print(sys.executable)
+```
+
+Then install into that exact interpreter:
+
+```python
+import sys
+!"{sys.executable}" -m pip install -r requirements-win-mt5.txt
+```
+
+Restart the kernel after installation.
+
+You can also verify the Windows MT5 environment from the terminal:
+
+```bat
+.venv\Scripts\activate
+python scripts\check_mt5_env.py
 ```
 
 ## Project Instructions
