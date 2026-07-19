@@ -42,10 +42,11 @@ def build_sb_overlays(
     daily = _prepare_candles(daily_candles)
     chart_start = chart["candle_time"].min()
     chart_end = chart["candle_time"].max()
+    apply_intraday_template = timeframe not in {"H4", "D1"}
 
     levels = _build_levels(daily, chart_end)
-    sessions = _build_sessions(chart, chart_start, chart_end)
-    day_periods = _build_day_periods(chart)
+    sessions = _build_sessions(chart, chart_start, chart_end) if apply_intraday_template else []
+    day_periods = _build_day_periods(chart) if apply_intraday_template else []
     day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
 
     return {
@@ -59,6 +60,7 @@ def build_sb_overlays(
         "notes": [
             "FGD, FRD, 3DL, and 3DS are v0 deterministic labels and should be refined against the SB playbook examples.",
             "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
+            "Intraday day-period and session templates are hidden on H4 and D1 charts.",
         ],
     }
 
@@ -190,9 +192,10 @@ def _build_day_labels(
 
     for index, row in visible_daily.iterrows():
         day_time = row["candle_time"]
+        label_time = day_time + timedelta(hours=12)
         day_labels.append(
             {
-                "time": day_time.isoformat(),
+                "time": label_time.isoformat(),
                 "label": day_time.strftime("%a"),
                 "kind": "day_of_week",
             }
@@ -202,7 +205,7 @@ def _build_day_labels(
         for label in labels:
             setup_labels.append(
                 {
-                    "time": day_time.isoformat(),
+                    "time": label_time.isoformat(),
                     "price": float(row["high"]),
                     "label": label,
                     "kind": _label_kind(label),

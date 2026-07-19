@@ -230,6 +230,7 @@ Current Phase 1 overlay implementation:
 - First context levels: previous day high/low/close, previous week high/low, latest Friday close, current Monday high/low
 - First day layer: custom chart day-period bands with centered weekday labels; avoid relying on the chart library's default grid
 - First session layer: Asia 03:00-06:00, London 09:00-12:00, and New York 15:00-18:00 boxes using chart/data time
+- Intraday day/session templates are hidden on H4 and D1 charts
 - First labels: weekday labels plus v0 Inside Day, FGD, FRD, 3DL, and 3DS daily setup labels
 - These labels are deterministic placeholders and must be validated/refined against the Stacey Burke PDFs before they are treated as trading signals.
 

@@ -6,28 +6,8 @@ import {
   ISeriesApi,
   UTCTimestamp,
 } from "lightweight-charts";
-import type { MouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Candle, OverlayResponse } from "./api";
-
-type TrendPoint = {
-  time: UTCTimestamp;
-  price: number;
-};
-
-export type TrendLine = {
-  id: string;
-  start: TrendPoint;
-  end: TrendPoint;
-};
-
-type SvgLine = {
-  id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-};
 
 type SvgLevel = {
   key: string;
@@ -69,32 +49,20 @@ type SvgLabel = {
 type CandleChartProps = {
   candles: Candle[];
   overlays: OverlayResponse | null;
-  drawMode: boolean;
-  trendLines: TrendLine[];
-  onTrendLinesChange: (lines: TrendLine[]) => void;
 };
 
 export function CandleChart({
   candles,
   overlays,
-  drawMode,
-  trendLines,
-  onTrendLinesChange,
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const pendingPointRef = useRef<TrendPoint | null>(null);
-  const drawModeRef = useRef(drawMode);
-  const trendLinesRef = useRef(trendLines);
   const overlaysRef = useRef(overlays);
-  const onTrendLinesChangeRef = useRef(onTrendLinesChange);
-  const [svgLines, setSvgLines] = useState<SvgLine[]>([]);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
-  const [pendingPoint, setPendingPoint] = useState<TrendPoint | null>(null);
 
   const chartData = useMemo<CandlestickData[]>(() => {
     return candles.map((candle) => ({
@@ -107,22 +75,9 @@ export function CandleChart({
   }, [candles]);
 
   useEffect(() => {
-    drawModeRef.current = drawMode;
-  }, [drawMode]);
-
-  useEffect(() => {
-    trendLinesRef.current = trendLines;
-    redrawOverlays();
-  }, [trendLines]);
-
-  useEffect(() => {
     overlaysRef.current = overlays;
     redrawOverlays();
   }, [overlays]);
-
-  useEffect(() => {
-    onTrendLinesChangeRef.current = onTrendLinesChange;
-  }, [onTrendLinesChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -176,17 +131,8 @@ export function CandleChart({
     if (!seriesRef.current) return;
     seriesRef.current.setData(chartData);
     chartRef.current?.timeScale().fitContent();
-    pendingPointRef.current = null;
-    setPendingPoint(null);
     redrawOverlays();
   }, [chartData]);
-
-  useEffect(() => {
-    if (!drawMode) {
-      pendingPointRef.current = null;
-      setPendingPoint(null);
-    }
-  }, [drawMode]);
 
   function redrawOverlays() {
     const chart = chartRef.current;
@@ -197,24 +143,6 @@ export function CandleChart({
     const paneWidth = pane?.width ?? 0;
     const paneHeight = pane?.height ?? 0;
 
-    const nextLines = trendLinesRef.current
-      .map((line) => {
-        const x1 = chart.timeScale().timeToCoordinate(line.start.time);
-        const x2 = chart.timeScale().timeToCoordinate(line.end.time);
-        const y1 = series.priceToCoordinate(line.start.price);
-        const y2 = series.priceToCoordinate(line.end.price);
-
-        if (x1 == null || x2 == null || y1 == null || y2 == null) return null;
-        return {
-          id: line.id,
-          x1: Number(x1),
-          y1: Number(y1),
-          x2: Number(x2),
-          y2: Number(y2),
-        };
-      })
-      .filter((line): line is SvgLine => line !== null);
-
     const nextLevels = (overlaysRef.current?.levels ?? [])
       .map((level) => {
         const y = series.priceToCoordinate(level.price);
@@ -223,7 +151,7 @@ export function CandleChart({
           key: level.key,
           label: level.label,
           y: Number(y),
-          labelX: Math.max(8, paneWidth - 82),
+          labelX: Math.max(12, paneWidth - 178),
           price: level.price,
           color: level.color,
           dashArray: dashArray(level.style),
@@ -266,7 +194,7 @@ export function CandleChart({
           label: period.label,
           x: left,
           width: Math.max(16, right - left),
-          height: paneHeight,
+          height: Math.max(0, paneHeight - 28),
           variant: period.variant,
         };
       })
@@ -301,50 +229,12 @@ export function CandleChart({
     setSvgSessions(nextSessions);
     setSvgDayPeriods(nextDayPeriods);
     setSvgSetupLabels(nextSetupLabels);
-    setSvgLines(nextLines);
-  }
-
-  function handleChartClick(event: MouseEvent<HTMLDivElement>) {
-    const chart = chartRef.current;
-    const series = seriesRef.current;
-    if (!chart || !series || !drawModeRef.current) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const time = chart.timeScale().coordinateToTime(x);
-    const price = series.coordinateToPrice(y);
-
-    if (time == null || price == null) return;
-
-    const point = {
-      time: time as UTCTimestamp,
-      price,
-    };
-
-    if (!pendingPointRef.current) {
-      pendingPointRef.current = point;
-      setPendingPoint(point);
-      return;
-    }
-
-    const nextLine: TrendLine = {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      start: pendingPointRef.current,
-      end: point,
-    };
-    pendingPointRef.current = null;
-    setPendingPoint(null);
-    onTrendLinesChangeRef.current([...trendLinesRef.current, nextLine]);
   }
 
   return (
-    <div
-      className={drawMode ? "chart-frame drawing" : "chart-frame"}
-      onClick={handleChartClick}
-    >
+    <div className="chart-frame">
       <div ref={containerRef} className="chart-container" />
-      <svg className="trend-overlay" aria-hidden="true">
+      <svg className="chart-overlay" aria-hidden="true">
         {svgDayPeriods.map((period) => (
           <g key={period.id}>
             <rect
@@ -356,7 +246,7 @@ export function CandleChart({
             />
             <text
               x={period.x + period.width / 2}
-              y={22}
+              y={period.height - 10}
               className="day-period-label"
             >
               {period.label}
@@ -399,20 +289,7 @@ export function CandleChart({
             {label.label}
           </text>
         ))}
-        {svgLines.map((line) => (
-          <line
-            key={line.id}
-            x1={line.x1}
-            y1={line.y1}
-            x2={line.x2}
-            y2={line.y2}
-            className="trend-line"
-          />
-        ))}
       </svg>
-      {drawMode && pendingPoint ? (
-        <div className="draw-hint">Select the second point</div>
-      ) : null}
       {!candles.length ? <div className="empty-state">No candles loaded</div> : null}
     </div>
   );

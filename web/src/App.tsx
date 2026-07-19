@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, LineChart, RefreshCw, Trash2 } from "lucide-react";
-import { CandleChart, TrendLine } from "./CandleChart";
+import { LineChart, RefreshCw } from "lucide-react";
+import { CandleChart } from "./CandleChart";
 import {
   Candle,
   CandleSummary,
@@ -18,8 +18,6 @@ export function App() {
   const [timeframe, setTimeframe] = useState("");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [overlays, setOverlays] = useState<OverlayResponse | null>(null);
-  const [trendLines, setTrendLines] = useState<TrendLine[]>([]);
-  const [drawMode, setDrawMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +43,7 @@ export function App() {
 
   useEffect(() => {
     if (!symbol && symbols.length > 0) {
-      setSymbol(symbols[0]);
+      setSymbol(preferredDefaultSymbol(symbols));
     }
   }, [symbol, symbols]);
 
@@ -58,7 +56,6 @@ export function App() {
   useEffect(() => {
     if (symbol && timeframe) {
       void loadCandles(symbol, timeframe);
-      setTrendLines([]);
     }
   }, [symbol, timeframe]);
 
@@ -92,8 +89,6 @@ export function App() {
       setLoading(false);
     }
   }
-
-  const latest = candles[candles.length - 1];
 
   return (
     <main className="app-shell">
@@ -132,63 +127,14 @@ export function App() {
 
         <div className="tool-group">
           <button
-            className={drawMode ? "tool-button active" : "tool-button"}
-            onClick={() => setDrawMode((value) => !value)}
-            title="Draw trend line"
-          >
-            <LineChart size={18} />
-            <span>Trendline</span>
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => setTrendLines([])}
-            title="Clear trend lines"
-          >
-            <Trash2 size={18} />
-          </button>
-          <button
-            className="icon-button"
+            className="tool-button"
             onClick={() => void loadCandles()}
             title="Refresh candles"
           >
             <RefreshCw size={18} />
+            <span>{loading ? "Loading" : "Refresh"}</span>
           </button>
         </div>
-
-        <div className="status-block">
-          <div className="status-title">SB Context</div>
-          <Metric label="Levels" value={String(overlays?.levels.length ?? 0)} />
-          <Metric label="Sessions" value={String(overlays?.sessions.length ?? 0)} />
-          <Metric label="Days" value={String(overlays?.day_periods.length ?? 0)} />
-          <Metric label="Labels" value={String(overlays?.setup_labels.length ?? 0)} />
-        </div>
-
-        <div className="status-block">
-          <div className="status-title">
-            <Activity size={16} />
-            <span>{loading ? "Loading" : "Ready"}</span>
-          </div>
-          {currentSummary ? (
-            <>
-              <Metric label="Candles" value={currentSummary.candles.toLocaleString()} />
-              <Metric label="First" value={formatDate(currentSummary.first_candle)} />
-              <Metric label="Last" value={formatDate(currentSummary.last_candle)} />
-            </>
-          ) : (
-            <p className="muted">No summary selected.</p>
-          )}
-        </div>
-
-        {latest ? (
-          <div className="status-block">
-            <div className="status-title">Latest Candle</div>
-            <Metric label="Time" value={formatDate(latest.candle_time)} />
-            <Metric label="Open" value={formatPrice(latest.open)} />
-            <Metric label="High" value={formatPrice(latest.high)} />
-            <Metric label="Low" value={formatPrice(latest.low)} />
-            <Metric label="Close" value={formatPrice(latest.close)} />
-          </div>
-        ) : null}
       </aside>
 
       <section className="workspace">
@@ -197,13 +143,8 @@ export function App() {
             <h2>
               {symbol || "Symbol"} <span>{timeframe || "Timeframe"}</span>
             </h2>
-            <p>
-              {drawMode
-                ? "Click two points on the chart to draw a trend line."
-                : "Pan, zoom, inspect candles, and toggle trendline mode when needed."}
-            </p>
+            <p>{currentSummary ? `${currentSummary.candles.toLocaleString()} candles` : "Loading chart"}</p>
           </div>
-          <div className="trend-count">{trendLines.length} trend lines</div>
         </div>
 
         {error ? <div className="error-banner">{error}</div> : null}
@@ -211,30 +152,14 @@ export function App() {
         <CandleChart
           candles={candles}
           overlays={overlays}
-          drawMode={drawMode}
-          trendLines={trendLines}
-          onTrendLinesChange={setTrendLines}
         />
       </section>
     </main>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function formatDate(value: string) {
-  return value.replace("T", " ").replace("+00:00", " UTC");
-}
-
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 5,
-  }).format(value);
+function preferredDefaultSymbol(symbols: string[]) {
+  return symbols.find((item) => item === "XAUUSD+")
+    ?? symbols.find((item) => item.startsWith("XAUUSD"))
+    ?? symbols[0];
 }
