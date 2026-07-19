@@ -1,0 +1,278 @@
+{
+  "source": "mt5",
+  "created_at": "2026-07-19T15:47:08.491155+00:00",
+  "date_from": "2026-01-01T00:00:00+00:00",
+  "date_to": "2026-07-19T15:46:50.866413+00:00",
+  "symbols": [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "XAUUSD+",
+    "NAS100.r",
+    "SP500.r",
+    "AUDUSD"
+  ],
+  "timeframes": [
+    "M1",
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "total_rows": 400737,
+  "files": [
+    {
+      "symbol": "EURUSD",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\EURUSD_M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "EURUSD",
+      "timeframe": "M5",
+      "rows": 40603,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\EURUSD_M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "rows": 13536,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\EURUSD_M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "EURUSD",
+      "timeframe": "H1",
+      "rows": 3384,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\EURUSD_H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "EURUSD",
+      "timeframe": "H4",
+      "rows": 846,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\EURUSD_H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "EURUSD",
+      "timeframe": "D1",
+      "rows": 141,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\EURUSD_D1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "GBPUSD",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\GBPUSD_M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "GBPUSD",
+      "timeframe": "M5",
+      "rows": 40603,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\GBPUSD_M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "GBPUSD",
+      "timeframe": "M15",
+      "rows": 13536,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\GBPUSD_M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "GBPUSD",
+      "timeframe": "H1",
+      "rows": 3384,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\GBPUSD_H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "GBPUSD",
+      "timeframe": "H4",
+      "rows": 846,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\GBPUSD_H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "GBPUSD",
+      "timeframe": "D1",
+      "rows": 141,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\GBPUSD_D1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "USDJPY",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\USDJPY_M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "USDJPY",
+      "timeframe": "M5",
+      "rows": 40603,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\USDJPY_M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "USDJPY",
+      "timeframe": "M15",
+      "rows": 13536,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\USDJPY_M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "USDJPY",
+      "timeframe": "H1",
+      "rows": 3384,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\USDJPY_H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "USDJPY",
+      "timeframe": "H4",
+      "rows": 846,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\USDJPY_H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "USDJPY",
+      "timeframe": "D1",
+      "rows": 141,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\USDJPY_D1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "XAUUSD+",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\XAUUSD__M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "XAUUSD+",
+      "timeframe": "M5",
+      "rows": 38444,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\XAUUSD__M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "XAUUSD+",
+      "timeframe": "M15",
+      "rows": 12816,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\XAUUSD__M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "XAUUSD+",
+      "timeframe": "H1",
+      "rows": 3206,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\XAUUSD__H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "XAUUSD+",
+      "timeframe": "H4",
+      "rows": 838,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\XAUUSD__H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "XAUUSD+",
+      "timeframe": "D1",
+      "rows": 140,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\XAUUSD__D1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "NAS100.r",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\NAS100_r_M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "NAS100.r",
+      "timeframe": "M5",
+      "rows": 38573,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\NAS100_r_M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "NAS100.r",
+      "timeframe": "M15",
+      "rows": 12859,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\NAS100_r_M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "NAS100.r",
+      "timeframe": "H1",
+      "rows": 3216,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\NAS100_r_H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "NAS100.r",
+      "timeframe": "H4",
+      "rows": 840,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\NAS100_r_H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "NAS100.r",
+      "timeframe": "D1",
+      "rows": 141,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\NAS100_r_D1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "SP500.r",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\SP500_r_M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "SP500.r",
+      "timeframe": "M5",
+      "rows": 38569,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\SP500_r_M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "SP500.r",
+      "timeframe": "M15",
+      "rows": 12858,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\SP500_r_M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "SP500.r",
+      "timeframe": "H1",
+      "rows": 3216,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\SP500_r_H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "SP500.r",
+      "timeframe": "H4",
+      "rows": 840,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\SP500_r_H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "SP500.r",
+      "timeframe": "D1",
+      "rows": 141,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\SP500_r_D1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "AUDUSD",
+      "timeframe": "M1",
+      "rows": 0,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\AUDUSD_M1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "AUDUSD",
+      "timeframe": "M5",
+      "rows": 40603,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\AUDUSD_M5_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "AUDUSD",
+      "timeframe": "M15",
+      "rows": 13536,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\AUDUSD_M15_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "AUDUSD",
+      "timeframe": "H1",
+      "rows": 3384,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\AUDUSD_H1_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "AUDUSD",
+      "timeframe": "H4",
+      "rows": 846,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\AUDUSD_H4_2026-01-01_to_now.csv.gz"
+    },
+    {
+      "symbol": "AUDUSD",
+      "timeframe": "D1",
+      "rows": 141,
+      "path": "D:\\viet\\quant_trading\\sb_trading_system\\data\\raw\\mt5_export\\AUDUSD_D1_2026-01-01_to_now.csv.gz"
+    }
+  ]
+}
