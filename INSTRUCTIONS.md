@@ -1,8 +1,10 @@
-# SB System - Project Instructions
+# SB Trading System - Project Instructions
 
 ## Project Vision
 
-SB System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+SB Trading System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+
+Product bio: "Same thing every week, over and over again"
 
 The first goal is to build a reliable signal and research system. Auto-trading is intentionally out of scope until the strategy rules, examples, backtesting, and paper-trading results are validated.
 
@@ -21,7 +23,7 @@ Do not treat the PDFs as already-structured strategy rules. The first research t
 
 ## Product Direction
 
-Build SB System as a web application with a backend service and an MT5 bridge.
+Build SB Trading System as a web application with a backend service and an MT5 bridge.
 
 Preferred direction:
 
@@ -232,11 +234,13 @@ Current Phase 1 overlay implementation:
 - First day layer: custom chart day-period bands with centered weekday labels; avoid relying on the chart library's default grid
 - First month layer: vertical month separators across the chart
 - First intraday close layer: previous-day-close is drawn as a green horizontal segment that spans only the current day period
-- First session layer: Asia 03:00-06:00, London 09:00-12:00, and New York 15:00-18:00 boxes using chart/data time
+- First session layer: Asia 03:00-06:00, London 09:00-12:00, and New York 15:00-18:00 boxes using chart/data time; separate sessions by fill color and do not render session text labels on the chart
 - Intraday day/session templates are hidden on H4 and D1 charts
 - Default visible chart view is 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1; do not restrict the loaded candle history for this behavior
-- First labels: weekday labels plus v0 Inside Day, FGD, FRD, 3DL, and 3DS daily setup labels
-- These labels are deterministic placeholders and must be validated/refined against the Stacey Burke PDFs before they are treated as trading signals.
+- First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
+- Sidebar navigation has Chart, Daily Checklist, and Setting pages only; symbol/timeframe/refresh controls live in the chart header
+- Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
+- These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.
 
 ## Signal Confidence Model
 
@@ -447,6 +451,6 @@ For implementation tasks, finish with a GitHub-ready change set:
 
 The first useful milestone should be:
 
-"Given historical candles and a small manually tagged pattern library, SB System detects candidate setup zones on a chart and shows similar historical examples with an explanation."
+"Given historical candles and a small manually tagged pattern library, SB Trading System detects candidate setup zones on a chart and shows similar historical examples with an explanation."
 
 This milestone avoids premature auto-trading and creates the foundation for testing the strategy properly.

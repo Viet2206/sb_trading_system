@@ -1,6 +1,8 @@
-# SB System
+# SB Trading System
 
-SB System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+SB Trading System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+
+Same thing every week, over and over again.
 
 The current development focus is Phase 1:
 
@@ -72,10 +74,10 @@ python -m pip install -r requirements-win-mt5.txt
 Register the project virtual environment as a Jupyter kernel:
 
 ```bat
-python -m ipykernel install --user --name sb-system --display-name "SB System (.venv)"
+python -m ipykernel install --user --name sb-system --display-name "SB Trading System (.venv)"
 ```
 
-Then open Jupyter Lab and select the `SB System (.venv)` kernel:
+Then open Jupyter Lab and select the `SB Trading System (.venv)` kernel:
 
 ```bat
 jupyter lab notebooks/01_windows_mt5_export.ipynb
@@ -150,7 +152,7 @@ Or use the Mac notebook:
 jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 ```
 
-After import, continue building and testing SB System features on Mac using local PostgreSQL.
+After import, continue building and testing SB Trading System features on Mac using local PostgreSQL.
 
 ## Backend API
 
@@ -177,7 +179,7 @@ GET /candles?symbol=EURUSD&timeframe=M15&limit=200
 GET /context/overlays?symbol=EURUSD&timeframe=M15&limit=1500
 ```
 
-The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low, previous week high/low, latest Friday close, current Monday high/low, chart day periods, intraday previous-day-close segments, Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00. Intraday day-period and session templates are hidden on H4 and D1 charts. Horizontal context levels are light blue, intraday previous-day-close segments are green, and previous-day high/low pipes are gray dashed step lines.
+The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low, previous week high/low, latest Friday close, current Monday high/low, chart day periods, intraday previous-day-close segments, Asia/London/New York session boxes, weekday labels, and deterministic daily setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. FGD requires a green daily candle after at least two consecutive red daily candles, FRD requires a red daily candle after at least two consecutive green daily candles, and 3DL/3DS marks only the third consecutive green/red daily candle. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00. Intraday day-period and session templates are hidden on H4 and D1 charts. Horizontal context levels are light blue, intraday previous-day-close segments are green, previous-day high/low pipes are gray dashed step lines, and session boxes are separated by fill color without text labels by default; these colors and styles can be changed on the Web UI Settings page.
 
 ## Web UI
 
@@ -197,10 +199,11 @@ http://127.0.0.1:5173
 
 The first dashboard supports:
 
-- Symbol and timeframe selection
+- Sidebar navigation for Chart, Daily Checklist, and Setting
+- Symbol/timeframe selection and refresh from the chart header
 - Interactive candlestick chart with pan, zoom, and crosshair
 - Black and white candlestick styling
-- SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, session boxes, weekday labels, and v0 daily setup labels
+- SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
 
 ## Project Instructions

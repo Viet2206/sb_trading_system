@@ -86,7 +86,7 @@ def build_sb_overlays(
         "day_labels": day_labels,
         "setup_labels": setup_labels,
         "notes": [
-            "FGD, FRD, 3DL, and 3DS are v0 deterministic labels and should be refined against the SB playbook examples.",
+            "FGD, FRD, 3DL, and 3DS are deterministic daily-candle labels and should be refined against manually tagged SB examples.",
             "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
             "Intraday day-period and session templates are hidden on H4 and D1 charts.",
             "Horizontal context levels are solid right-extending rays from their relevant start time.",
@@ -347,24 +347,49 @@ def _classify_day(daily: pd.DataFrame, index: int) -> list[str]:
 
     row = daily.loc[index]
     previous = daily.loc[index - 1]
+    direction = _candle_direction(row)
 
     if row["high"] < previous["high"] and row["low"] > previous["low"]:
         labels.append("Inside Day")
 
-    if row["close"] > row["open"] and previous["close"] < previous["open"]:
+    if direction == "green" and _previous_direction_count(daily, index, "red") >= 2:
         labels.append("FGD")
 
-    if row["close"] < row["open"] and previous["close"] > previous["open"]:
+    if direction == "red" and _previous_direction_count(daily, index, "green") >= 2:
         labels.append("FRD")
 
-    if index >= 2:
-        two_back = daily.loc[index - 2]
-        if row["close"] > previous["close"] > two_back["close"]:
+    if index >= 2 and direction is not None:
+        previous_direction = _candle_direction(previous)
+        two_back_direction = _candle_direction(daily.loc[index - 2])
+        three_back_direction = _candle_direction(daily.loc[index - 3]) if index >= 3 else None
+        is_third_day = (
+            previous_direction == direction
+            and two_back_direction == direction
+            and three_back_direction != direction
+        )
+        if is_third_day and direction == "green":
             labels.append("3DL")
-        if row["close"] < previous["close"] < two_back["close"]:
+        if is_third_day and direction == "red":
             labels.append("3DS")
 
     return labels
+
+
+def _candle_direction(row: pd.Series) -> str | None:
+    if row["close"] > row["open"]:
+        return "green"
+    if row["close"] < row["open"]:
+        return "red"
+    return None
+
+
+def _previous_direction_count(daily: pd.DataFrame, index: int, direction: str) -> int:
+    count = 0
+    current = index - 1
+    while current >= 0 and _candle_direction(daily.loc[current]) == direction:
+        count += 1
+        current -= 1
+    return count
 
 
 def _label_kind(label: str) -> str:
