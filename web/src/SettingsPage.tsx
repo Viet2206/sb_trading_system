@@ -16,7 +16,9 @@ type ColorField = {
     | "horizontalLevelColor"
     | "previousCloseColor"
     | "previousRangePipeColor"
-    | "sessionFillColor"
+    | "asiaSessionFillColor"
+    | "londonSessionFillColor"
+    | "newYorkSessionFillColor"
     | "daySeparatorColor"
     | "monthSeparatorColor"
     | "weekdayLabelColor"
@@ -37,7 +39,9 @@ const colorFields: ColorField[] = [
   { key: "horizontalLevelColor", label: "Horizontal Levels" },
   { key: "previousCloseColor", label: "Previous Close" },
   { key: "previousRangePipeColor", label: "Previous High/Low Pipe" },
-  { key: "sessionFillColor", label: "Session Boxes" },
+  { key: "asiaSessionFillColor", label: "Asia Session" },
+  { key: "londonSessionFillColor", label: "London Session" },
+  { key: "newYorkSessionFillColor", label: "New York Session" },
   { key: "daySeparatorColor", label: "Day Separators" },
   { key: "monthSeparatorColor", label: "Month Separators" },
   { key: "weekdayLabelColor", label: "Weekday Labels" },

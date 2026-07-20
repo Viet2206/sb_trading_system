@@ -7,7 +7,9 @@ export type ChartSettings = {
   previousCloseStyle: LineStyle;
   previousRangePipeColor: string;
   previousRangePipeStyle: LineStyle;
-  sessionFillColor: string;
+  asiaSessionFillColor: string;
+  londonSessionFillColor: string;
+  newYorkSessionFillColor: string;
   daySeparatorColor: string;
   monthSeparatorColor: string;
   weekdayLabelColor: string;
@@ -24,7 +26,9 @@ export const defaultChartSettings: ChartSettings = {
   previousCloseStyle: "solid",
   previousRangePipeColor: "#64748b",
   previousRangePipeStyle: "dashed",
-  sessionFillColor: "#94a3b8",
+  asiaSessionFillColor: "#bae6fd",
+  londonSessionFillColor: "#bbf7d0",
+  newYorkSessionFillColor: "#fed7aa",
   daySeparatorColor: "#cbd5e1",
   monthSeparatorColor: "#64748b",
   weekdayLabelColor: "#0f172a",

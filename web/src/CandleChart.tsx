@@ -22,7 +22,6 @@ type SvgLevel = {
 
 type SvgSession = {
   id: string;
-  label: string;
   x: number;
   y: number;
   width: number;
@@ -228,12 +227,11 @@ export function CandleChart({
         const bottom = Math.max(Number(yHigh), Number(yLow));
         return {
           id: session.id,
-          label: session.label,
           x: left,
           y: top,
           width: Math.max(2, right - left),
           height: Math.max(2, bottom - top),
-          color: settings.sessionFillColor,
+          color: sessionColor(session.id, settings),
         };
       })
       .filter((session): session is SvgSession => session !== null);
@@ -435,9 +433,6 @@ export function CandleChart({
               fill={session.color}
               className="session-box"
             />
-            <text x={session.x + 4} y={session.y + 14} className="session-label">
-              {session.label}
-            </text>
           </g>
         ))}
         {svgDayRangePipes.map((pipe) => (
@@ -532,6 +527,13 @@ export function CandleChart({
 
 function toTimestamp(value: string): UTCTimestamp {
   return Math.floor(new Date(value).getTime() / 1000) as UTCTimestamp;
+}
+
+function sessionColor(sessionId: string, settings: ChartSettings) {
+  if (sessionId.startsWith("asia-")) return settings.asiaSessionFillColor;
+  if (sessionId.startsWith("london-")) return settings.londonSessionFillColor;
+  if (sessionId.startsWith("new_york-")) return settings.newYorkSessionFillColor;
+  return settings.asiaSessionFillColor;
 }
 
 function coordinateForTime(
