@@ -51,20 +51,7 @@ select {
 .brand-row {
   display: flex;
   align-items: center;
-  gap: 10px;
   min-width: 0;
-}
-
-.brand-mark {
-  flex: 0 0 auto;
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  color: #f8fafc;
-  background: #047857;
-  border: 1px solid #34d399;
-  border-radius: 8px;
 }
 
 .brand-copy {
@@ -92,14 +79,10 @@ select {
   overflow-x: hidden;
 }
 
-.app-shell.sidebar-collapsed .brand-copy,
+.app-shell.sidebar-collapsed .brand-row,
 .app-shell.sidebar-collapsed .nav-button span,
 .app-shell.sidebar-collapsed .collapse-button span {
   display: none;
-}
-
-.app-shell.sidebar-collapsed .brand-row {
-  justify-content: center;
 }
 
 .field {
@@ -627,10 +610,13 @@ select {
     align-items: stretch;
   }
 
-  .app-shell.sidebar-collapsed .brand-copy,
+  .app-shell.sidebar-collapsed .brand-row {
+    display: flex;
+  }
+
   .app-shell.sidebar-collapsed .nav-button span,
   .app-shell.sidebar-collapsed .collapse-button span {
-    display: block;
+    display: inline;
   }
 
   .app-shell.sidebar-collapsed .side-nav,

@@ -113,9 +113,6 @@ export function App() {
     <main className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <aside className="sidebar">
         <div className="brand-row">
-          <div className="brand-mark">
-            <LineChart size={20} />
-          </div>
           <div className="brand-copy">
             <h1>SB Trading System</h1>
             <p>Same thing every week, over and over again</p>
