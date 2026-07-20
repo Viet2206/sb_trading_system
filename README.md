@@ -193,7 +193,8 @@ http://127.0.0.1:5173
 
 The first dashboard supports:
 
-- Symbol and timeframe selection
+- Sidebar navigation for Chart, Daily Checklist, and Setting
+- Symbol/timeframe selection and refresh from the chart header
 - Interactive candlestick chart with pan, zoom, and crosshair
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, session boxes, weekday labels, and v0 daily setup labels

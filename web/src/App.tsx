@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { LineChart, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings } from "lucide-react";
+import {
+  ClipboardList,
+  LineChart,
+  PanelLeftClose,
+  PanelLeftOpen,
+  RefreshCw,
+  Settings,
+} from "lucide-react";
 import { CandleChart } from "./CandleChart";
 import { SettingsPage } from "./SettingsPage";
 import {
@@ -15,9 +22,10 @@ import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSett
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
+type Page = "chart" | "checklist" | "settings";
 
 export function App() {
-  const [activePage, setActivePage] = useState<"chart" | "settings">("chart");
+  const [activePage, setActivePage] = useState<Page>("chart");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed());
   const [summary, setSummary] = useState<CandleSummary[]>([]);
   const [symbol, setSymbol] = useState("");
@@ -133,56 +141,27 @@ export function App() {
             <span>Chart</span>
           </button>
           <button
+            className={activePage === "checklist" ? "nav-button active" : "nav-button"}
+            onClick={() => setActivePage("checklist")}
+            title="Daily Checklist"
+          >
+            <ClipboardList size={17} />
+            <span>Daily Checklist</span>
+          </button>
+          <button
             className={activePage === "settings" ? "nav-button active" : "nav-button"}
             onClick={() => setActivePage("settings")}
-            title="Settings"
+            title="Setting"
           >
             <Settings size={17} />
-            <span>Settings</span>
+            <span>Setting</span>
           </button>
         </nav>
-
-        {activePage === "chart" && !sidebarCollapsed ? (
-          <>
-            <label className="field">
-              <span>Symbol</span>
-              <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
-                {symbols.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Timeframe</span>
-              <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)}>
-                {timeframes.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="tool-group">
-              <button
-                className="tool-button"
-                onClick={() => void loadCandles()}
-                title="Refresh candles"
-              >
-                <RefreshCw size={18} />
-                <span>{loading ? "Loading" : "Refresh"}</span>
-              </button>
-            </div>
-          </>
-        ) : null}
       </aside>
 
       <section className="workspace">
         <div className="topbar">
-          <div>
+          <div className="topbar-main">
             {activePage === "chart" ? (
               <>
                 <h2>
@@ -194,13 +173,53 @@ export function App() {
                     : "Loading chart"}
                 </p>
               </>
+            ) : activePage === "checklist" ? (
+              <>
+                <h2>Daily Checklist</h2>
+                <p>Same thing every week, over and over again</p>
+              </>
             ) : (
               <>
-                <h2>Settings</h2>
+                <h2>Setting</h2>
                 <p>Adjust chart colors, line styles, and spacing</p>
               </>
             )}
           </div>
+
+          {activePage === "chart" ? (
+            <div className="chart-toolbar">
+              <label className="chart-control">
+                <span>Symbol</span>
+                <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
+                  {symbols.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="chart-control compact">
+                <span>Timeframe</span>
+                <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)}>
+                  {timeframes.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                className="chart-refresh-button"
+                onClick={() => void loadCandles()}
+                title="Refresh candles"
+              >
+                <RefreshCw size={17} />
+                <span>{loading ? "Loading" : "Refresh"}</span>
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {error ? <div className="error-banner">{error}</div> : null}
@@ -212,11 +231,38 @@ export function App() {
             defaultViewDays={chartWindowDays(timeframe)}
             settings={chartSettings}
           />
+        ) : activePage === "checklist" ? (
+          <DailyChecklistPage />
         ) : (
           <SettingsPage settings={chartSettings} onChange={setChartSettings} />
         )}
       </section>
     </main>
+  );
+}
+
+function DailyChecklistPage() {
+  const items = [
+    "Weekly bias",
+    "Previous day high / low",
+    "Previous close",
+    "Monday range",
+    "Session timing",
+    "Setup quality",
+    "Risk defined",
+  ];
+
+  return (
+    <div className="checklist-page">
+      <div className="checklist-list">
+        {items.map((item) => (
+          <label key={item} className="checklist-item">
+            <input type="checkbox" />
+            <span>{item}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 
