@@ -469,8 +469,7 @@ select {
 
 .session-box {
   opacity: 0.28;
-  stroke: #94a3b8;
-  stroke-width: 1;
+  stroke: none;
 }
 
 .day-period-box {
