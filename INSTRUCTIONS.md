@@ -237,10 +237,10 @@ Current Phase 1 overlay implementation:
 - First session layer: Asia 03:00-06:00, London 09:00-12:00, and New York 15:00-18:00 boxes using chart/data time; separate sessions by fill color and do not render session text labels on the chart
 - Intraday day/session templates are hidden on H4 and D1 charts
 - Default visible chart view is 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1; do not restrict the loaded candle history for this behavior
-- First labels: weekday labels plus v0 Inside Day, FGD, FRD, 3DL, and 3DS daily setup labels
+- First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
 - Sidebar navigation has Chart, Daily Checklist, and Setting pages only; symbol/timeframe/refresh controls live in the chart header
 - Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
-- These labels are deterministic placeholders and must be validated/refined against the Stacey Burke PDFs before they are treated as trading signals.
+- These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.
 
 ## Signal Confidence Model
 
