@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { LineChart, RefreshCw } from "lucide-react";
+import { LineChart, RefreshCw, Settings } from "lucide-react";
 import { CandleChart } from "./CandleChart";
+import { SettingsPage } from "./SettingsPage";
 import {
   Candle,
   CandleSummary,
@@ -9,16 +10,19 @@ import {
   fetchOverlays,
   fetchSummary,
 } from "./api";
+import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSettings";
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 
 export function App() {
+  const [activePage, setActivePage] = useState<"chart" | "settings">("chart");
   const [summary, setSummary] = useState<CandleSummary[]>([]);
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState("");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [overlays, setOverlays] = useState<OverlayResponse | null>(null);
+  const [chartSettings, setChartSettings] = useState<ChartSettings>(() => loadChartSettings());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +41,10 @@ export function App() {
   useEffect(() => {
     void loadSummary();
   }, []);
+
+  useEffect(() => {
+    saveChartSettings(chartSettings);
+  }, [chartSettings]);
 
   useEffect(() => {
     if (!symbol && symbols.length > 0) {
@@ -100,61 +108,96 @@ export function App() {
           </div>
         </div>
 
-        <label className="field">
-          <span>Symbol</span>
-          <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
-            {symbols.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="field">
-          <span>Timeframe</span>
-          <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)}>
-            {timeframes.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="tool-group">
+        <nav className="side-nav" aria-label="Workspace pages">
           <button
-            className="tool-button"
-            onClick={() => void loadCandles()}
-            title="Refresh candles"
+            className={activePage === "chart" ? "nav-button active" : "nav-button"}
+            onClick={() => setActivePage("chart")}
           >
-            <RefreshCw size={18} />
-            <span>{loading ? "Loading" : "Refresh"}</span>
+            <LineChart size={17} />
+            <span>Chart</span>
           </button>
-        </div>
+          <button
+            className={activePage === "settings" ? "nav-button active" : "nav-button"}
+            onClick={() => setActivePage("settings")}
+          >
+            <Settings size={17} />
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        {activePage === "chart" ? (
+          <>
+            <label className="field">
+              <span>Symbol</span>
+              <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
+                {symbols.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Timeframe</span>
+              <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)}>
+                {timeframes.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="tool-group">
+              <button
+                className="tool-button"
+                onClick={() => void loadCandles()}
+                title="Refresh candles"
+              >
+                <RefreshCw size={18} />
+                <span>{loading ? "Loading" : "Refresh"}</span>
+              </button>
+            </div>
+          </>
+        ) : null}
       </aside>
 
       <section className="workspace">
         <div className="topbar">
           <div>
-            <h2>
-              {symbol || "Symbol"} <span>{timeframe || "Timeframe"}</span>
-            </h2>
-            <p>
-              {candles.length
-                ? `${candles.length.toLocaleString()} loaded candles / default view ${chartWindowDays(timeframe)} days`
-                : "Loading chart"}
-            </p>
+            {activePage === "chart" ? (
+              <>
+                <h2>
+                  {symbol || "Symbol"} <span>{timeframe || "Timeframe"}</span>
+                </h2>
+                <p>
+                  {candles.length
+                    ? `${candles.length.toLocaleString()} loaded candles / default view ${chartWindowDays(timeframe)} days`
+                    : "Loading chart"}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2>Settings</h2>
+                <p>Adjust chart colors, line styles, and spacing</p>
+              </>
+            )}
           </div>
         </div>
 
         {error ? <div className="error-banner">{error}</div> : null}
 
-        <CandleChart
-          candles={candles}
-          overlays={overlays}
-          defaultViewDays={chartWindowDays(timeframe)}
-        />
+        {activePage === "chart" ? (
+          <CandleChart
+            candles={candles}
+            overlays={overlays}
+            defaultViewDays={chartWindowDays(timeframe)}
+            settings={chartSettings}
+          />
+        ) : (
+          <SettingsPage settings={chartSettings} onChange={setChartSettings} />
+        )}
       </section>
     </main>
   );

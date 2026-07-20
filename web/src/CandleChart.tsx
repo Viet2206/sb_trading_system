@@ -8,6 +8,7 @@ import {
 } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Candle, OverlayResponse } from "./api";
+import { ChartSettings, lineDashArray } from "./chartSettings";
 
 type SvgLevel = {
   key: string;
@@ -81,14 +82,14 @@ type CandleChartProps = {
   candles: Candle[];
   overlays: OverlayResponse | null;
   defaultViewDays: number;
+  settings: ChartSettings;
 };
-
-const RIGHT_OFFSET_BARS = 14;
 
 export function CandleChart({
   candles,
   overlays,
   defaultViewDays,
+  settings,
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -120,6 +121,16 @@ export function CandleChart({
   }, [overlays]);
 
   useEffect(() => {
+    chartRef.current?.applyOptions({
+      timeScale: {
+        rightOffset: settings.rightOffsetBars,
+      },
+    });
+    applyDefaultVisibleRange();
+    redrawOverlays();
+  }, [settings]);
+
+  useEffect(() => {
     if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
@@ -141,7 +152,7 @@ export function CandleChart({
       },
       timeScale: {
         borderColor: "#cbd5e1",
-        rightOffset: RIGHT_OFFSET_BARS,
+        rightOffset: settings.rightOffsetBars,
         timeVisible: true,
         secondsVisible: false,
       },
@@ -199,7 +210,7 @@ export function CandleChart({
           y: Number(y),
           labelX: Math.max(12, paneWidth - 112),
           price: level.price,
-          color: level.color,
+          color: settings.horizontalLevelColor,
         };
       })
       .filter((level): level is SvgLevel => level !== null);
@@ -222,7 +233,7 @@ export function CandleChart({
           y: top,
           width: Math.max(2, right - left),
           height: Math.max(2, bottom - top),
-          color: session.color,
+          color: settings.sessionFillColor,
         };
       })
       .filter((session): session is SvgSession => session !== null);
@@ -277,7 +288,7 @@ export function CandleChart({
           x1: left,
           x2: right,
           y: Number(y),
-          color: segment.color,
+          color: settings.previousCloseColor,
         };
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
@@ -298,7 +309,7 @@ export function CandleChart({
           x2: right,
           yHigh: Number(yHigh),
           yLow: Number(yLow),
-          color: pipe.color,
+          color: settings.previousRangePipeColor,
         };
       })
       .filter((pipe): pipe is SvgDayRangePipe => pipe !== null);
@@ -365,7 +376,7 @@ export function CandleChart({
 
     chart.timeScale().setVisibleLogicalRange({
       from: startIndex,
-      to: Math.max(0, candles.length - 1 + RIGHT_OFFSET_BARS),
+      to: Math.max(0, candles.length - 1 + settings.rightOffsetBars),
     });
   }
 
@@ -386,6 +397,7 @@ export function CandleChart({
               x={period.x + period.width / 2}
               y={period.height - 10}
               className="day-period-label"
+              style={{ fill: settings.weekdayLabelColor }}
             >
               {period.label}
             </text>
@@ -399,6 +411,7 @@ export function CandleChart({
             x2={separator.x}
             y2={separator.height}
             className="day-separator-line"
+            style={{ stroke: settings.daySeparatorColor }}
           />
         ))}
         {svgMonthSeparators.map((separator) => (
@@ -409,6 +422,7 @@ export function CandleChart({
             x2={separator.x}
             y2={separator.height}
             className="month-separator-line"
+            style={{ stroke: settings.monthSeparatorColor }}
           />
         ))}
         {svgSessions.map((session) => (
@@ -436,6 +450,7 @@ export function CandleChart({
                 y2={pipe.yHigh}
                 stroke={pipe.color}
                 className="day-range-pipe-connector"
+                strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
               />
             ) : null}
             {pipe.previousYLow != null ? (
@@ -446,6 +461,7 @@ export function CandleChart({
                 y2={pipe.yLow}
                 stroke={pipe.color}
                 className="day-range-pipe-connector"
+                strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
               />
             ) : null}
             <line
@@ -455,6 +471,7 @@ export function CandleChart({
               y2={pipe.yHigh}
               stroke={pipe.color}
               className="day-range-pipe-line"
+              strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
             />
             <line
               x1={pipe.x1}
@@ -463,6 +480,7 @@ export function CandleChart({
               y2={pipe.yLow}
               stroke={pipe.color}
               className="day-range-pipe-line"
+              strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
             />
           </g>
         ))}
@@ -475,6 +493,7 @@ export function CandleChart({
               y2={segment.y}
               stroke={segment.color}
               className="day-close-segment"
+              strokeDasharray={lineDashArray(settings.previousCloseStyle)}
             />
           </g>
         ))}
@@ -487,6 +506,7 @@ export function CandleChart({
               y2={level.y}
               stroke={level.color}
               className="level-line"
+              strokeDasharray={lineDashArray(settings.horizontalLevelStyle)}
             />
             <text x={level.labelX} y={level.y - 5} fill={level.color} className="level-label">
               {level.label}
@@ -494,7 +514,13 @@ export function CandleChart({
           </g>
         ))}
         {svgSetupLabels.map((label) => (
-          <text key={label.id} x={label.x} y={label.y} className={`setup-label setup-${label.kind}`}>
+          <text
+            key={label.id}
+            x={label.x}
+            y={label.y}
+            className={`setup-label setup-${label.kind}`}
+            style={{ fill: settings.signalLabelColor }}
+          >
             {label.label}
           </text>
         ))}

@@ -236,6 +236,7 @@ Current Phase 1 overlay implementation:
 - Intraday day/session templates are hidden on H4 and D1 charts
 - Default visible chart view is 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1; do not restrict the loaded candle history for this behavior
 - First labels: weekday labels plus v0 Inside Day, FGD, FRD, 3DL, and 3DS daily setup labels
+- Web UI Settings page controls overlay colors, line styles, label colors, session fill, and right-side chart spacing, with values saved in browser local storage
 - These labels are deterministic placeholders and must be validated/refined against the Stacey Burke PDFs before they are treated as trading signals.
 
 ## Signal Confidence Model
