@@ -26,15 +26,15 @@ class ImportConfig:
 
 def load_config(env_path: str | Path | None = None, *, require_database_url: bool = True) -> ImportConfig:
     if env_path:
-        load_dotenv(env_path)
+        load_dotenv(env_path, override=True)
     else:
-        load_dotenv(PROJECT_ROOT / ".env")
+        load_dotenv(PROJECT_ROOT / ".env", override=True)
 
     database_url = os.getenv("DATABASE_URL")
     if require_database_url and not database_url:
         raise ValueError("DATABASE_URL is required. Copy .env.example to .env and update it.")
 
-    symbols = _split_env("SB_SYMBOLS", "EURUSD,GBPUSD,USDJPY,XAUUSD+,NAS100.r,SP500.r")
+    symbols = _split_env("SB_SYMBOLS", "EURUSD,GBPUSD,USDJPY,AUDUSD,XAUUSD+,NAS100.r,SP500.r")
     timeframes = _split_env("SB_TIMEFRAMES", "M1,M5,M15,H1,H4,D1")
     import_start = date.fromisoformat(os.getenv("SB_IMPORT_START", "2026-01-01"))
 
