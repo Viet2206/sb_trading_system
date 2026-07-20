@@ -83,6 +83,8 @@ type CandleChartProps = {
   defaultViewDays: number;
 };
 
+const RIGHT_OFFSET_BARS = 14;
+
 export function CandleChart({
   candles,
   overlays,
@@ -123,7 +125,7 @@ export function CandleChart({
     const chart = createChart(containerRef.current, {
       autoSize: true,
       layout: {
-        background: { color: "#f8fafc" },
+        background: { color: "#ffffff" },
         textColor: "#1f2937",
         fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
       },
@@ -139,6 +141,7 @@ export function CandleChart({
       },
       timeScale: {
         borderColor: "#cbd5e1",
+        rightOffset: RIGHT_OFFSET_BARS,
         timeVisible: true,
         secondsVisible: false,
       },
@@ -355,8 +358,15 @@ export function CandleChart({
       toTimestamp(candles[0].candle_time),
       (end - defaultViewDays * 24 * 60 * 60) as UTCTimestamp,
     ) as UTCTimestamp;
+    const startIndex = Math.max(
+      0,
+      chartDataRef.current.findIndex((candle) => Number(candle.time) >= Number(start)),
+    );
 
-    chart.timeScale().setVisibleRange({ from: start, to: end });
+    chart.timeScale().setVisibleLogicalRange({
+      from: startIndex,
+      to: Math.max(0, candles.length - 1 + RIGHT_OFFSET_BARS),
+    });
   }
 
   return (
