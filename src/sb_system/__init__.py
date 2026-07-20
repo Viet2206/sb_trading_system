@@ -1,2 +1,1 @@
-"""SB System utilities."""
-
+"""SB Trading System utilities."""

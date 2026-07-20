@@ -11,7 +11,7 @@ if str(PROJECT_ROOT / "src") not in sys.path:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the SB System backend API.")
+    parser = argparse.ArgumentParser(description="Run the SB Trading System backend API.")
     parser.add_argument("--host", default="127.0.0.1", help="API bind host.")
     parser.add_argument("--port", default=8000, type=int, help="API bind port.")
     parser.add_argument("--reload", action="store_true", help="Enable uvicorn reload mode.")
@@ -34,4 +34,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

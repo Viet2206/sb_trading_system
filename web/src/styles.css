@@ -25,18 +25,23 @@ select {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 236px minmax(0, 1fr);
   height: 100vh;
   min-height: 100vh;
   background: #ffffff;
+  transition: grid-template-columns 160ms ease;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   min-height: 0;
-  padding: 20px;
+  padding: 16px;
   overflow-y: auto;
   background: #111827;
   color: #f9fafb;
@@ -46,14 +51,15 @@ select {
 .brand-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .brand-mark {
+  flex: 0 0 auto;
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   place-items: center;
   color: #f8fafc;
   background: #047857;
@@ -61,9 +67,13 @@ select {
   border-radius: 8px;
 }
 
+.brand-copy {
+  min-width: 0;
+}
+
 .brand-row h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.2;
 }
 
@@ -73,6 +83,23 @@ select {
   margin: 4px 0 0;
   color: #94a3b8;
   font-size: 13px;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px;
+  overflow-x: hidden;
+}
+
+.app-shell.sidebar-collapsed .brand-copy,
+.app-shell.sidebar-collapsed .nav-button span,
+.app-shell.sidebar-collapsed .collapse-button span {
+  display: none;
+}
+
+.app-shell.sidebar-collapsed .brand-row {
+  justify-content: center;
 }
 
 .field {
@@ -123,11 +150,41 @@ select {
   text-align: left;
 }
 
+.collapse-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  color: #cbd5e1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  gap: 8px;
+  padding: 0 11px;
+}
+
+.collapse-button:hover {
+  color: #f8fafc;
+  border-color: #38bdf8;
+}
+
 .nav-button:hover,
 .nav-button.active {
   color: #f8fafc;
   background: #0f766e;
   border-color: #2dd4bf;
+}
+
+.app-shell.sidebar-collapsed .side-nav,
+.app-shell.sidebar-collapsed .collapse-button {
+  width: 48px;
+}
+
+.app-shell.sidebar-collapsed .nav-button {
+  justify-content: center;
+  width: 48px;
+  padding: 0;
 }
 
 .tool-group {
@@ -461,9 +518,29 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
     border-right: 0;
     border-bottom: 1px solid #020617;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar {
+    align-items: stretch;
+  }
+
+  .app-shell.sidebar-collapsed .brand-copy,
+  .app-shell.sidebar-collapsed .nav-button span,
+  .app-shell.sidebar-collapsed .collapse-button span {
+    display: block;
+  }
+
+  .app-shell.sidebar-collapsed .side-nav,
+  .app-shell.sidebar-collapsed .collapse-button,
+  .app-shell.sidebar-collapsed .nav-button {
+    width: 100%;
   }
 
   .topbar {

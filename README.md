@@ -1,6 +1,8 @@
-# SB System
+# SB Trading System
 
-SB System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+SB Trading System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+
+Same thing every week, over and over again.
 
 The current development focus is Phase 1:
 
@@ -72,10 +74,10 @@ python -m pip install -r requirements-win-mt5.txt
 Register the project virtual environment as a Jupyter kernel:
 
 ```bat
-python -m ipykernel install --user --name sb-system --display-name "SB System (.venv)"
+python -m ipykernel install --user --name sb-system --display-name "SB Trading System (.venv)"
 ```
 
-Then open Jupyter Lab and select the `SB System (.venv)` kernel:
+Then open Jupyter Lab and select the `SB Trading System (.venv)` kernel:
 
 ```bat
 jupyter lab notebooks/01_windows_mt5_export.ipynb
@@ -144,7 +146,7 @@ Or use the Mac notebook:
 jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 ```
 
-After import, continue building and testing SB System features on Mac using local PostgreSQL.
+After import, continue building and testing SB Trading System features on Mac using local PostgreSQL.
 
 ## Backend API
 

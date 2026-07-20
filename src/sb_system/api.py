@@ -21,7 +21,7 @@ from sb_system.market_data import (
 
 
 app = FastAPI(
-    title="SB System API",
+    title="SB Trading System API",
     version="0.1.0",
     description="Research API for imported MT5 candle data.",
 )

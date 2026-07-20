@@ -1,8 +1,10 @@
-# SB System - Project Instructions
+# SB Trading System - Project Instructions
 
 ## Project Vision
 
-SB System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+SB Trading System is a Forex trading research and signal platform based on Stacey Burke trading concepts.
+
+Product bio: "Same thing every week, over and over again"
 
 The first goal is to build a reliable signal and research system. Auto-trading is intentionally out of scope until the strategy rules, examples, backtesting, and paper-trading results are validated.
 
@@ -21,7 +23,7 @@ Do not treat the PDFs as already-structured strategy rules. The first research t
 
 ## Product Direction
 
-Build SB System as a web application with a backend service and an MT5 bridge.
+Build SB Trading System as a web application with a backend service and an MT5 bridge.
 
 Preferred direction:
 
@@ -448,6 +450,6 @@ For implementation tasks, finish with a GitHub-ready change set:
 
 The first useful milestone should be:
 
-"Given historical candles and a small manually tagged pattern library, SB System detects candidate setup zones on a chart and shows similar historical examples with an explanation."
+"Given historical candles and a small manually tagged pattern library, SB Trading System detects candidate setup zones on a chart and shows similar historical examples with an explanation."
 
 This milestone avoids premature auto-trading and creates the foundation for testing the strategy properly.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { LineChart, RefreshCw, Settings } from "lucide-react";
+import { LineChart, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings } from "lucide-react";
 import { CandleChart } from "./CandleChart";
 import { SettingsPage } from "./SettingsPage";
 import {
@@ -14,9 +14,11 @@ import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSett
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
+const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
 
 export function App() {
   const [activePage, setActivePage] = useState<"chart" | "settings">("chart");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed());
   const [summary, setSummary] = useState<CandleSummary[]>([]);
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState("");
@@ -45,6 +47,10 @@ export function App() {
   useEffect(() => {
     saveChartSettings(chartSettings);
   }, [chartSettings]);
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     if (!symbol && symbols.length > 0) {
@@ -96,22 +102,32 @@ export function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={sidebarCollapsed ? "app-shell sidebar-collapsed" : "app-shell"}>
       <aside className="sidebar">
         <div className="brand-row">
           <div className="brand-mark">
             <LineChart size={20} />
           </div>
-          <div>
-            <h1>SB System</h1>
-            <p>Market data workbench</p>
+          <div className="brand-copy">
+            <h1>SB Trading System</h1>
+            <p>Same thing every week, over and over again</p>
           </div>
         </div>
+
+        <button
+          className="collapse-button"
+          onClick={() => setSidebarCollapsed((value) => !value)}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          <span>{sidebarCollapsed ? "Expand" : "Collapse"}</span>
+        </button>
 
         <nav className="side-nav" aria-label="Workspace pages">
           <button
             className={activePage === "chart" ? "nav-button active" : "nav-button"}
             onClick={() => setActivePage("chart")}
+            title="Chart"
           >
             <LineChart size={17} />
             <span>Chart</span>
@@ -119,13 +135,14 @@ export function App() {
           <button
             className={activePage === "settings" ? "nav-button active" : "nav-button"}
             onClick={() => setActivePage("settings")}
+            title="Settings"
           >
             <Settings size={17} />
             <span>Settings</span>
           </button>
         </nav>
 
-        {activePage === "chart" ? (
+        {activePage === "chart" && !sidebarCollapsed ? (
           <>
             <label className="field">
               <span>Symbol</span>
@@ -211,4 +228,8 @@ function preferredDefaultSymbol(symbols: string[]) {
 
 function chartWindowDays(timeframe: string) {
   return intradayWindowTimeframes.has(timeframe) ? 7 : 30;
+}
+
+function loadSidebarCollapsed() {
+  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
 }
