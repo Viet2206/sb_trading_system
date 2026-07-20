@@ -137,6 +137,7 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-top: auto;
   min-height: 38px;
   color: #cbd5e1;
   background: #0f172a;

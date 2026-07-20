@@ -119,15 +119,6 @@ export function App() {
           </div>
         </div>
 
-        <button
-          className="collapse-button"
-          onClick={() => setSidebarCollapsed((value) => !value)}
-          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
-          <span>{sidebarCollapsed ? "Expand" : "Collapse"}</span>
-        </button>
-
         <nav className="side-nav" aria-label="Workspace pages">
           <button
             className={activePage === "chart" ? "nav-button active" : "nav-button"}
@@ -154,6 +145,15 @@ export function App() {
             <span>Setting</span>
           </button>
         </nav>
+
+        <button
+          className="collapse-button"
+          onClick={() => setSidebarCollapsed((value) => !value)}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          <span>{sidebarCollapsed ? "Expand" : "Collapse"}</span>
+        </button>
       </aside>
 
       <section className="workspace">
