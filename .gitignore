@@ -21,10 +21,15 @@ data/exports/*
 !data/raw/.gitkeep
 !data/exports/.gitkeep
 
+# Frontend
+node_modules/
+web/node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+
 # Logs
 *.log
 
 # IDE
 .idea/
 .vscode/
-

@@ -152,6 +152,57 @@ jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 
 After import, continue building and testing SB System features on Mac using local PostgreSQL.
 
+## Backend API
+
+After candles are imported into local PostgreSQL, start the backend API:
+
+```bash
+source .venv/bin/activate
+python scripts/run_api.py --reload
+```
+
+Open the interactive API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Useful endpoints:
+
+```text
+GET /health
+GET /symbols
+GET /candles/summary
+GET /candles?symbol=EURUSD&timeframe=M15&limit=200
+GET /context/overlays?symbol=EURUSD&timeframe=M15&limit=1500
+```
+
+The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low, previous week high/low, latest Friday close, current Monday high/low, chart day periods, intraday previous-day-close segments, Asia/London/New York session boxes, weekday labels, and v0 setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00. Intraday day-period and session templates are hidden on H4 and D1 charts. Horizontal context levels are light blue, intraday previous-day-close segments are green, and previous-day high/low pipes are gray dashed step lines.
+
+## Web UI
+
+Start the React chart dashboard after the backend API is running:
+
+```bash
+cd web
+pnpm install
+pnpm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173
+```
+
+The first dashboard supports:
+
+- Symbol and timeframe selection
+- Interactive candlestick chart with pan, zoom, and crosshair
+- Black and white candlestick styling
+- SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, session boxes, weekday labels, and v0 daily setup labels
+- Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
+
 ## Project Instructions
 
 See [INSTRUCTIONS.md](INSTRUCTIONS.md) for the durable architecture and development plan.
