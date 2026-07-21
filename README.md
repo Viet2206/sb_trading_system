@@ -265,7 +265,7 @@ python scripts/run_api.py --reload
 Open the interactive API docs:
 
 ```text
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8010/docs
 ```
 
 Useful endpoints:
