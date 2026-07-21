@@ -35,6 +35,15 @@ Preferred direction:
 
 Avoid building the first version as a Windows-only desktop app. That would make AI, RAG, visual search, testing, and cross-platform use harder.
 
+Current lightweight deployment direction:
+
+- Windows laptop runs MT5, the FastAPI backend, and the web UI.
+- No Docker or database is required for the first Windows deployment.
+- A Python MT5 polling process writes candles into local files under `data/market`.
+- The backend reads those local files directly when `SB_STORAGE=file`.
+- The Settings page controls the shared update interval used by the UI auto-refresh and the MT5 polling process.
+- PostgreSQL remains available later by switching `SB_STORAGE=postgres`.
+
 ## Core Principle
 
 Separate the system into three layers:
@@ -83,8 +92,15 @@ Possible implementations:
 Initial scope:
 
 - Read symbols, candles, ticks, spread, and account metadata.
-- Push normalized data to backend.
+- Save normalized candle data to the file store for the current no-database phase.
 - Do not execute real trades in the first version.
+
+Current implementation:
+
+- Script: `scripts/poll_mt5_to_files.py`
+- First run backfills from `SB_IMPORT_START`.
+- Later runs re-request a small overlap before the latest saved candle so active/incomplete candles can be updated safely.
+- Runtime update interval is stored in `data/runtime/settings.json` and can be changed from the Web UI Setting page.
 
 ### 2. Backend API
 
@@ -104,6 +120,11 @@ Responsibilities:
 - Serve signals and chart overlays to the UI.
 - Manage pattern library metadata.
 - Manage RAG and vector search.
+
+Current storage modes:
+
+- `SB_STORAGE=file`: read candles from `data/market/<symbol>/<timeframe>.csv.gz`; recommended for the small Windows laptop phase.
+- `SB_STORAGE=postgres`: read candles from PostgreSQL; keep for VPS, automation, trade logs, and larger multi-process workflows.
 
 ### 3. SB Strategy Engine
 
@@ -240,6 +261,7 @@ Current Phase 1 overlay implementation:
 - First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
 - Sidebar navigation has Chart, Daily Checklist, and Setting pages only; symbol/timeframe/refresh controls live in the chart header
 - Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
+- Web UI Setting page also controls the update interval in minutes; this is saved to the backend runtime settings file for the MT5 poller and used by the chart auto-refresh
 - These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.
 
 ## Signal Confidence Model

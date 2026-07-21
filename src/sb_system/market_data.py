@@ -20,6 +20,9 @@ SCHEMA_PATH = PROJECT_ROOT / "sql" / "001_market_data.sql"
 @dataclass(frozen=True)
 class ImportConfig:
     database_url: str | None
+    storage: str
+    data_dir: Path
+    file_format: str
     symbols: list[str]
     timeframes: list[str]
     import_start: date
@@ -35,12 +38,27 @@ def load_config(env_path: str | Path | None = None, *, require_database_url: boo
     if require_database_url and not database_url:
         raise ValueError("DATABASE_URL is required. Copy .env.example to .env and update it.")
 
+    storage = os.getenv("SB_STORAGE", "file").strip().lower()
+    if storage not in {"postgres", "file"}:
+        raise ValueError("SB_STORAGE must be either 'postgres' or 'file'.")
+
+    data_dir = Path(os.getenv("SB_DATA_DIR", str(PROJECT_ROOT / "data" / "market"))).expanduser()
+    if not data_dir.is_absolute():
+        data_dir = PROJECT_ROOT / data_dir
+
+    file_format = os.getenv("SB_FILE_FORMAT", "csv.gz").strip().lower()
+    if file_format not in {"csv", "csv.gz", "parquet"}:
+        raise ValueError("SB_FILE_FORMAT must be one of: csv, csv.gz, parquet.")
+
     symbols = _split_env("SB_SYMBOLS", "EURUSD,GBPUSD,USDJPY,AUDUSD,XAUUSD+,NAS100.r,SP500.r")
     timeframes = _split_env("SB_TIMEFRAMES", "M1,M5,M15,H1,H4,D1")
     import_start = date.fromisoformat(os.getenv("SB_IMPORT_START", "2026-01-01"))
 
     return ImportConfig(
         database_url=database_url,
+        storage=storage,
+        data_dir=data_dir,
+        file_format=file_format,
         symbols=symbols,
         timeframes=timeframes,
         import_start=import_start,

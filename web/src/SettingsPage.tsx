@@ -115,6 +115,24 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
 
       <section className="settings-section">
         <div className="settings-section-title">
+          <h3>Chart Updates</h3>
+        </div>
+        <label className="setting-row range-row">
+          <span>Update Interval Minutes</span>
+          <input
+            data-testid="setting-updateIntervalMinutes"
+            type="number"
+            min={1}
+            max={60}
+            step={1}
+            value={settings.updateIntervalMinutes}
+            onChange={(event) => update("updateIntervalMinutes", Number(event.target.value))}
+          />
+        </label>
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-section-title">
           <h3>Chart Space</h3>
         </div>
         <label className="setting-row range-row">
