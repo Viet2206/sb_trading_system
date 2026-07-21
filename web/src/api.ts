@@ -101,6 +101,10 @@ export type OverlayResponse = {
   notes: string[];
 };
 
+export type RuntimeSettings = {
+  update_interval_minutes: number;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 export async function fetchSummary(): Promise<CandleSummary[]> {
@@ -137,8 +141,22 @@ export async function fetchOverlays(
   return fetchJson<OverlayResponse>(`/context/overlays?${params.toString()}`);
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+export async function fetchRuntimeSettings(): Promise<RuntimeSettings> {
+  return fetchJson<RuntimeSettings>("/runtime/settings");
+}
+
+export async function updateRuntimeSettings(settings: RuntimeSettings): Promise<RuntimeSettings> {
+  return fetchJson<RuntimeSettings>("/runtime/settings", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(settings),
+  });
+}
+
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, init);
   if (!response.ok) {
     const message = await response.text();
     throw new Error(message || `Request failed with ${response.status}`);

@@ -15,7 +15,9 @@ import {
   OverlayResponse,
   fetchCandles,
   fetchOverlays,
+  fetchRuntimeSettings,
   fetchSummary,
+  updateRuntimeSettings,
 } from "./api";
 import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSettings";
 
@@ -50,11 +52,24 @@ export function App() {
 
   useEffect(() => {
     void loadSummary();
+    void loadRuntimeSettings();
   }, []);
 
   useEffect(() => {
     saveChartSettings(chartSettings);
   }, [chartSettings]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void updateRuntimeSettings({
+        update_interval_minutes: chartSettings.updateIntervalMinutes,
+      }).catch(() => {
+        // The UI setting still works locally if the backend is not running.
+      });
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [chartSettings.updateIntervalMinutes]);
 
   useEffect(() => {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarCollapsed));
@@ -78,6 +93,16 @@ export function App() {
     }
   }, [symbol, timeframe]);
 
+  useEffect(() => {
+    if (!symbol || !timeframe) return;
+
+    const interval = window.setInterval(() => {
+      void loadCandles(symbol, timeframe);
+    }, chartSettings.updateIntervalMinutes * 60 * 1000);
+
+    return () => window.clearInterval(interval);
+  }, [symbol, timeframe, chartSettings.updateIntervalMinutes]);
+
   async function loadSummary() {
     setLoading(true);
     setError(null);
@@ -88,6 +113,18 @@ export function App() {
       setError(err instanceof Error ? err.message : "Failed to load API summary");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadRuntimeSettings() {
+    try {
+      const runtime = await fetchRuntimeSettings();
+      setChartSettings((current) => ({
+        ...current,
+        updateIntervalMinutes: runtime.update_interval_minutes,
+      }));
+    } catch {
+      // Local browser settings remain usable while the backend starts.
     }
   }
 
@@ -166,7 +203,7 @@ export function App() {
                 </h2>
                 <p>
                   {candles.length
-                    ? `${candles.length.toLocaleString()} loaded candles / default view ${chartWindowDays(timeframe)} days`
+                    ? `${candles.length.toLocaleString()} loaded candles / default view ${chartWindowDays(timeframe)} days / update ${chartSettings.updateIntervalMinutes} min`
                     : "Loading chart"}
                 </p>
               </>
@@ -178,7 +215,7 @@ export function App() {
             ) : (
               <>
                 <h2>Setting</h2>
-                <p>Adjust chart colors, line styles, and spacing</p>
+                <p>Adjust chart colors, line styles, spacing, and update timing</p>
               </>
             )}
           </div>

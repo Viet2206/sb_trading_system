@@ -18,8 +18,12 @@ env/
 # Local data exports
 data/raw/*
 data/exports/*
+data/market/*
+data/runtime/*
 !data/raw/.gitkeep
 !data/exports/.gitkeep
+!data/market/.gitkeep
+!data/runtime/.gitkeep
 
 # Frontend
 node_modules/

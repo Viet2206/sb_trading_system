@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, time, timedelta
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
-from sqlalchemy.engine import Engine
 
 from sb_system.market_data import fetch_candles
+
+
+CandleFetcher = Callable[..., pd.DataFrame]
 
 
 HORIZONTAL_LEVEL_COLOR = "#38bdf8"
@@ -22,23 +24,24 @@ SESSION_WINDOWS = [
 
 
 def build_sb_overlays(
-    engine: Engine,
+    source: Any,
     *,
     symbol: str,
     timeframe: str,
     start: datetime | None = None,
     end: datetime | None = None,
     limit: int | None = None,
+    fetcher: CandleFetcher = fetch_candles,
 ) -> dict[str, Any]:
-    chart_candles = fetch_candles(
-        engine,
+    chart_candles = fetcher(
+        source,
         symbol=symbol,
         timeframe=timeframe,
         start=start,
         end=end,
         limit=limit,
     )
-    daily_candles = fetch_candles(engine, symbol=symbol, timeframe="D1", limit=420)
+    daily_candles = fetcher(source, symbol=symbol, timeframe="D1", limit=420)
 
     if chart_candles.empty:
         return {

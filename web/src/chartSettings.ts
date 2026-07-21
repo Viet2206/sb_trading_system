@@ -15,6 +15,7 @@ export type ChartSettings = {
   weekdayLabelColor: string;
   signalLabelColor: string;
   rightOffsetBars: number;
+  updateIntervalMinutes: number;
 };
 
 const STORAGE_KEY = "sb-system-chart-settings-v1";
@@ -34,6 +35,7 @@ export const defaultChartSettings: ChartSettings = {
   weekdayLabelColor: "#0f172a",
   signalLabelColor: "#475569",
   rightOffsetBars: 14,
+  updateIntervalMinutes: 5,
 };
 
 export function loadChartSettings(): ChartSettings {
@@ -64,6 +66,7 @@ function sanitizeSettings(value: Partial<ChartSettings>): ChartSettings {
     previousCloseStyle: sanitizeLineStyle(value.previousCloseStyle),
     previousRangePipeStyle: sanitizeLineStyle(value.previousRangePipeStyle),
     rightOffsetBars: sanitizeOffset(value.rightOffsetBars),
+    updateIntervalMinutes: sanitizeInterval(value.updateIntervalMinutes),
   };
 }
 
@@ -77,4 +80,10 @@ function sanitizeOffset(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(40, Math.max(0, Math.round(value)))
     : defaultChartSettings.rightOffsetBars;
+}
+
+function sanitizeInterval(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(60, Math.max(1, Math.round(value)))
+    : defaultChartSettings.updateIntervalMinutes;
 }
