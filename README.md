@@ -112,8 +112,8 @@ python scripts\run_api.py --reload
 
 ```bat
 cd web
-pnpm install
-pnpm run dev
+npm install
+npm run dev
 ```
 
 Open:
@@ -121,6 +121,52 @@ Open:
 ```text
 http://127.0.0.1:5173
 ```
+
+## Tailscale Access From Mac
+
+Run MT5, the poller, the API, and the web UI on the Windows laptop. Then open the web UI from your Mac through the Windows laptop's Tailscale address.
+
+Install and log in to Tailscale on both Windows and Mac, then find the Windows Tailscale IP:
+
+```bat
+tailscale ip -4
+```
+
+In Windows `.env`, make sure the API host is not locked to localhost:
+
+```env
+SB_API_HOST=0.0.0.0
+SB_API_PORT=8010
+```
+
+Start the API on Windows:
+
+```bat
+.venv\Scripts\activate
+python scripts\run_api.py --reload
+```
+
+Start the web UI on Windows:
+
+```bat
+cd web
+npm install
+npm run dev
+```
+
+From your Mac, open:
+
+```text
+http://<WINDOWS_TAILSCALE_IP>:5173
+```
+
+For example:
+
+```text
+http://100.x.y.z:5173
+```
+
+The web UI automatically calls the backend API on the same Windows Tailscale host using port `8010`.
 
 ## Optional PostgreSQL Setup
 

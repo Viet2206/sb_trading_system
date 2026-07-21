@@ -44,6 +44,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:5173",
     ],
+    allow_origin_regex=r"^https?://[A-Za-z0-9_.-]+:5173$|^https?://(?:\d{1,3}\.){3}\d{1,3}:5173$",
     allow_credentials=False,
     allow_methods=["GET", "PUT"],
     allow_headers=["*"],

@@ -105,7 +105,7 @@ export type RuntimeSettings = {
   update_interval_minutes: number;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8010";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl();
 
 export async function fetchSummary(): Promise<CandleSummary[]> {
   return fetchJson<CandleSummary[]>("/candles/summary");
@@ -162,4 +162,8 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message || `Request failed with ${response.status}`);
   }
   return response.json() as Promise<T>;
+}
+
+function defaultApiBaseUrl() {
+  return `${window.location.protocol}//${window.location.hostname}:8010`;
 }
