@@ -105,7 +105,7 @@ def candle_summary(config: Annotated[ImportConfig, Depends(get_config)]) -> list
 @app.get("/candles")
 def candles(
     config: Annotated[ImportConfig, Depends(get_config)],
-    symbol: str = Query(..., description="Broker symbol, for example EURUSD or XAUUSD+."),
+    symbol: str = Query(..., description="Broker symbol, for example EURUSD or XAUUSD.pc."),
     timeframe: str = Query(..., description="Timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),
@@ -141,7 +141,7 @@ def candles(
 @app.get("/context/overlays")
 def context_overlays(
     config: Annotated[ImportConfig, Depends(get_config)],
-    symbol: str = Query(..., description="Broker symbol, for example EURUSD or XAUUSD+."),
+    symbol: str = Query(..., description="Broker symbol, for example EURUSD or XAUUSD.pc."),
     timeframe: str = Query(..., description="Chart timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),

@@ -301,7 +301,8 @@ function DailyChecklistPage() {
 }
 
 function preferredDefaultSymbol(symbols: string[]) {
-  return symbols.find((item) => item === "XAUUSD+")
+  return symbols.find((item) => item === "XAUUSD.pc")
+    ?? symbols.find((item) => item === "XAUUSD+")
     ?? symbols.find((item) => item.startsWith("XAUUSD"))
     ?? symbols[0];
 }
