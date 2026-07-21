@@ -210,8 +210,10 @@ python scripts\check_mt5_env.py
 If `.env` was copied before broker symbols were updated, edit it manually before export:
 
 ```env
-SB_SYMBOLS=EURUSD,GBPUSD,USDJPY,AUDUSD,XAUUSD+,NAS100.r,SP500.r
+SB_SYMBOLS=EURUSD,GBPUSD,USDJPY,AUDUSD,NZDUSD,USDCAD,AMD,MSFT,XAUUSD.pc,NAS100,BTCUSD.sc,USDCHF.pc,GBPJPY.pc,EURJPY.pc,SP500,AUDCAD.pc,AUDCHF.pc,AUDJPY.pc,CADCHF.pc,CADJPY.pc,CHFJPY.pc,COPPER-C,EURAUD.pc,EURCAD.pc,EURCHF.pc,EURGBP.pc,GBPAUD.pc,GBPCAD.pc,GBPCHF.pc
 ```
+
+Use the exact broker symbols shown in MetaTrader 5 Market Watch, including suffixes like `.pc` and `.sc`.
 
 On Windows, export MT5 candles into local files:
 
