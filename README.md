@@ -61,6 +61,24 @@ http://127.0.0.1:5173
 
 This is the recommended path for a small Windows laptop.
 
+After installing Python, Node.js LTS, Git, MetaTrader 5, and Tailscale, you can pull code and start the whole platform with one script:
+
+```bat
+scripts\windows_start_platform.bat
+```
+
+This script opens separate windows for:
+
+- MT5 candle polling
+- Backend API on port `8010`
+- Web UI on port `5173`
+
+If you only want API + Web UI and do not want to poll MT5 data yet:
+
+```bat
+scripts\windows_start_platform.bat --no-poller
+```
+
 Install Python dependencies:
 
 ```bat
