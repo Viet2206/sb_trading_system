@@ -23,13 +23,14 @@ Do not treat the PDFs as already-structured strategy rules. The first research t
 
 ## Product Direction
 
-Build SB Trading System as a web application with a backend service and an MT5 bridge.
+Build SB Trading System as a web application with a backend service and a broker data bridge.
 
 Preferred direction:
 
 - Web UI usable from both Windows and macOS laptops.
-- MT5 terminal can run on Windows or VPS.
-- A bridge process connects MT5 data to the backend.
+- cTrader Open API is the preferred Phase 1 market-data source because it can run from Mac or Windows without a local MT5 terminal.
+- MT5 remains an optional fallback for Windows/VPS.
+- A bridge process connects broker data to the backend.
 - Backend handles strategy logic, data storage, RAG, pattern search, and signal scoring.
 - Web UI displays live charts, detected setups, overlays, similar examples, and confidence details.
 
@@ -37,11 +38,11 @@ Avoid building the first version as a Windows-only desktop app. That would make 
 
 Current lightweight deployment direction:
 
-- Windows laptop runs MT5, the FastAPI backend, and the web UI.
-- No Docker or database is required for the first Windows deployment.
-- A Python MT5 polling process writes candles into local files under `data/market`.
+- MacBook or Windows laptop runs the cTrader Open API poller, the FastAPI backend, and the web UI.
+- No Docker or database is required for the first deployment.
+- A Python cTrader polling process writes candles into local files under `data/market`.
 - The backend reads those local files directly when `SB_STORAGE=file`.
-- The Settings page controls the shared update interval used by the UI auto-refresh and the MT5 polling process.
+- The Settings page controls the shared update interval used by the UI auto-refresh and the cTrader polling process.
 - PostgreSQL remains available later by switching `SB_STORAGE=postgres`.
 
 ## Core Principle
@@ -58,8 +59,8 @@ The rule engine should generate setup candidates. AI should retrieve examples, c
 
 ```mermaid
 flowchart LR
-  MT5["MT5 Terminal / Broker"]
-  Bridge["MT5 Bridge"]
+  Broker["cTrader Open API / Broker"]
+  Bridge["Market Data Bridge"]
   Backend["Backend API"]
   Engine["SB Strategy Engine"]
   AI["AI Layer"]
@@ -68,7 +69,7 @@ flowchart LR
   UI["Web UI"]
   Chart["Live Chart Overlay"]
 
-  MT5 --> Bridge --> Backend
+  Broker --> Bridge --> Backend
   Backend --> Engine
   Backend --> AI
   Backend --> DB
@@ -79,12 +80,13 @@ flowchart LR
 
 ## Main Components
 
-### 1. MT5 Bridge
+### 1. Market Data Bridge
 
-Responsible for getting live and historical market data from MetaTrader 5.
+Responsible for getting historical and 5-minute refreshed market data from the broker.
 
 Possible implementations:
 
+- cTrader Open API Python poller for trendbars.
 - Python process using the MetaTrader5 package.
 - MQL5 Expert Advisor sending data to the backend through WebRequest or sockets.
 - Hybrid approach: Python for research/backtesting, MQL5 EA for production signal/execution bridge.
@@ -97,8 +99,9 @@ Initial scope:
 
 Current implementation:
 
-- Script: `scripts/poll_mt5_to_files.py`
-- First run backfills from `SB_IMPORT_START`.
+- Preferred script: `scripts/poll_ctrader_to_files.py`
+- Optional legacy MT5 script: `scripts/poll_mt5_to_files.py`
+- First cTrader run backfills from `CTRADER_IMPORT_START`.
 - Later runs re-request a small overlap before the latest saved candle so active/incomplete candles can be updated safely.
 - Runtime update interval is stored in `data/runtime/settings.json` and can be changed from the Web UI Setting page.
 
@@ -114,7 +117,7 @@ Suggested stack:
 
 Responsibilities:
 
-- Receive market data from MT5 bridge.
+- Receive market data from cTrader or MT5 bridge.
 - Store OHLCV/tick/session data.
 - Run deterministic strategy detection.
 - Serve signals and chart overlays to the UI.
@@ -261,7 +264,7 @@ Current Phase 1 overlay implementation:
 - First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
 - Sidebar navigation has Chart, Daily Checklist, and Setting pages only; symbol/timeframe/refresh controls live in the chart header
 - Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
-- Web UI Setting page also controls the update interval in minutes; this is saved to the backend runtime settings file for the MT5 poller and used by the chart auto-refresh
+- Web UI Setting page also controls the update interval in minutes; this is saved to the backend runtime settings file for the cTrader poller and used by the chart auto-refresh
 - These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.
 
 ## Signal Confidence Model
@@ -331,11 +334,11 @@ Deliverables:
 
 ### Phase 3 - Market Data Foundation
 
-Goal: connect MT5 and store normalized market data.
+Goal: connect cTrader Open API and store normalized market data.
 
 Deliverables:
 
-- MT5 bridge prototype
+- cTrader Open API bridge prototype
 - Candle/tick schema
 - Symbol/session configuration
 - Historical import
@@ -414,7 +417,7 @@ Initial prototype:
 - Vector search: local vector DB first, upgrade later if needed
 - Frontend: React or Next.js
 - Charting: Lightweight Charts, TradingView library if available/licensed, or another robust financial chart component
-- MT5 bridge: Python MetaTrader5 package or MQL5 EA
+- Market-data bridge: cTrader Open API first, MT5 Python package or MQL5 EA as fallback
 
 Keep the first version simple. Prefer working signal detection and review flow over complex infrastructure.
 
@@ -466,7 +469,7 @@ For implementation tasks, finish with a GitHub-ready change set:
 - Which sessions should be modeled first: Asia, London, New York, rollover?
 - Which setup types are highest priority?
 - Should examples be manually tagged first or auto-tagged with review?
-- Will MT5 run locally on Windows, on a VPS, or both?
+- Will cTrader Open API polling run on Mac, Windows, or a VPS?
 - Should the first UI be local-only or hosted on a private server?
 
 ## First Implementation Target

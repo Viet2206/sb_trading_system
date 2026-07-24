@@ -24,8 +24,20 @@ if not exist ".env" (
     copy ".env.example" ".env" >nul
     echo Created .env from .env.example
 )
+findstr /B /C:"SB_DATA_SOURCE=" ".env" >nul || echo SB_DATA_SOURCE=ctrader>>".env"
 findstr /B /C:"SB_API_HOST=" ".env" >nul || echo SB_API_HOST=0.0.0.0>>".env"
 findstr /B /C:"SB_API_PORT=" ".env" >nul || echo SB_API_PORT=8010>>".env"
+
+set "DATA_SOURCE=ctrader"
+for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"SB_DATA_SOURCE=" ".env"') do set "DATA_SOURCE=%%B"
+set "REQUIREMENTS=requirements-ctrader.txt"
+set "POLLER_TITLE=SB cTrader Poller"
+set "POLLER_COMMAND=python scripts\poll_ctrader_to_files.py"
+if /I "%DATA_SOURCE%"=="mt5" (
+    set "REQUIREMENTS=requirements-win-mt5.txt"
+    set "POLLER_TITLE=SB MT5 Poller"
+    set "POLLER_COMMAND=python scripts\poll_mt5_to_files.py"
+)
 
 echo.
 echo === Prepare Python virtual environment ===
@@ -40,7 +52,7 @@ if not exist ".venv\Scripts\python.exe" (
 
 call ".venv\Scripts\activate.bat"
 python -m pip install --upgrade pip
-python -m pip install -r requirements-win-mt5.txt
+python -m pip install -r "%REQUIREMENTS%"
 if errorlevel 1 (
     echo Python dependency install failed.
     pause
@@ -70,9 +82,9 @@ popd
 echo.
 echo === Start platform windows ===
 if "%START_POLLER%"=="1" (
-    start "SB MT5 Poller" /D "%PROJECT_ROOT%" cmd /k "call .venv\Scripts\activate.bat && python scripts\poll_mt5_to_files.py"
+    start "%POLLER_TITLE%" /D "%PROJECT_ROOT%" cmd /k "call .venv\Scripts\activate.bat && %POLLER_COMMAND%"
 ) else (
-    echo Skipping MT5 poller because --no-poller was passed.
+    echo Skipping market data poller because --no-poller was passed.
 )
 start "SB API 8010" /D "%PROJECT_ROOT%" cmd /k "call .venv\Scripts\activate.bat && python scripts\run_api.py --reload"
 start "SB Web 5173" /D "%PROJECT_ROOT%\web" cmd /k "npm run dev"

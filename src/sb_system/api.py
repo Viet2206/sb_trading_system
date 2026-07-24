@@ -35,7 +35,7 @@ from sb_system.runtime_settings import (
 app = FastAPI(
     title="SB Trading System API",
     version="0.1.0",
-    description="Research API for imported MT5 candle data.",
+    description="Research API for imported broker candle data.",
 )
 
 app.add_middleware(

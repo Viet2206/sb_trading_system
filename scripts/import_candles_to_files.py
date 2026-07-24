@@ -17,11 +17,11 @@ from sb_system.market_data import load_config
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Import MT5 candle CSV exports into the local file store."
+        description="Import broker candle CSV exports into the local file store."
     )
     parser.add_argument(
         "input",
-        help="CSV/CSV.GZ file or directory containing MT5 candle exports.",
+        help="CSV/CSV.GZ file or directory containing broker candle exports.",
     )
     parser.add_argument(
         "--env",
