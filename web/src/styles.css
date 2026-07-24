@@ -514,10 +514,6 @@ select {
   background: #ffffff;
 }
 
-.matrix-symbol.highlighted {
-  background: #facc15;
-}
-
 .matrix-symbol button {
   width: 100%;
   min-height: 30px;
