@@ -75,10 +75,31 @@ SB_DATA_SOURCE=ctrader
 CTRADER_HOST_TYPE=demo
 CTRADER_CLIENT_ID=your_client_id
 CTRADER_CLIENT_SECRET=your_client_secret
+CTRADER_REDIRECT_URI=http://localhost
 CTRADER_ACCESS_TOKEN=your_access_token
+CTRADER_REFRESH_TOKEN=your_refresh_token
 CTRADER_ACCOUNT_ID=your_account_id
 CTRADER_SYMBOLS=EURUSD,GBPUSD,USDJPY,AUDUSD,XAUUSD,NAS100,SP500
 CTRADER_TIMEFRAMES=M5,M15,H1,H4,D1
+```
+
+Generate the missing OAuth token and account ID:
+
+```bat
+python scripts\ctrader_auth_helper.py --print-url --write-env
+```
+
+Open the printed URL, approve access in cTrader, then copy the `code` value from the redirect URL and run:
+
+```bat
+python scripts\ctrader_auth_helper.py --code YOUR_AUTH_CODE --write-env
+python scripts\ctrader_auth_helper.py --accounts --write-env
+```
+
+If cTrader returns multiple accounts, choose one:
+
+```bat
+python scripts\ctrader_auth_helper.py --accounts --account-id YOUR_ACCOUNT_ID --write-env
 ```
 
 After installing Python, Node.js LTS, Git, and Tailscale, you can pull code and start the whole platform with one script:

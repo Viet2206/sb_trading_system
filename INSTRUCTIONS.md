@@ -100,10 +100,13 @@ Initial scope:
 Current implementation:
 
 - Preferred script: `scripts/poll_ctrader_to_files.py`
+- OAuth helper: `scripts/ctrader_auth_helper.py`
 - Optional legacy MT5 script: `scripts/poll_mt5_to_files.py`
 - First cTrader run backfills from `CTRADER_IMPORT_START`.
 - Later runs re-request a small overlap before the latest saved candle so active/incomplete candles can be updated safely.
 - Runtime update interval is stored in `data/runtime/settings.json` and can be changed from the Web UI Setting page.
+- Required cTrader values are `CTRADER_CLIENT_ID`, `CTRADER_CLIENT_SECRET`, `CTRADER_ACCESS_TOKEN`, and `CTRADER_ACCOUNT_ID`.
+- Use `python scripts\ctrader_auth_helper.py --print-url --write-env`, then `--code YOUR_AUTH_CODE --write-env`, then `--accounts --write-env` to obtain token/account values.
 
 ### 2. Backend API
 
