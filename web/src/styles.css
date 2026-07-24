@@ -424,8 +424,9 @@ select {
   font-weight: 700;
 }
 
-.weekly-matrix-section {
+.weekly-matrix-panel {
   display: grid;
+  gap: 0;
   min-width: 0;
   background: #ffffff;
   border: 1px solid #111827;
@@ -433,7 +434,7 @@ select {
   overflow: hidden;
 }
 
-.weekly-matrix-title {
+.weekly-matrix-heading {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
   min-height: 34px;
@@ -445,12 +446,17 @@ select {
   text-align: center;
 }
 
-.weekly-matrix-title span {
+.weekly-matrix-heading h4 {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #0f172a;
   background: #ffffff;
   border-right: 2px solid #111827;
+  font-size: 13px;
 }
 
-.weekly-matrix-title strong {
+.weekly-matrix-heading span {
   display: grid;
   place-items: center;
 }

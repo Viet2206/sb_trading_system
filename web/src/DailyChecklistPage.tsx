@@ -144,21 +144,20 @@ export function DailyChecklistPage() {
 
       {error ? <div className="inline-error">{error}</div> : null}
 
-      <section className="weekly-matrix-section">
-        <div className="weekly-matrix-title">
-          <span />
-          <strong>Day Signal</strong>
-        </div>
-        <WeeklyTemplateMatrix
-          matrix={data.weekly_matrix}
-          selectedSymbol={selectedSymbol}
-          onSelectSymbol={chooseSymbol}
-        />
-      </section>
-
       <section className="scan-section">
         <div className="section-heading">
           <h3>Market Scan</h3>
+        </div>
+        <div className="weekly-matrix-panel">
+          <div className="weekly-matrix-heading">
+            <h4>Weekly Template Matrix</h4>
+            <span>Day Signal</span>
+          </div>
+          <WeeklyTemplateMatrix
+            matrix={data.weekly_matrix}
+            selectedSymbol={selectedSymbol}
+            onSelectSymbol={chooseSymbol}
+          />
         </div>
         <div className="scan-table-wrap">
           <table className="scan-table">
@@ -332,11 +331,11 @@ function WeeklyTemplateMatrix({
   selectedSymbol,
   onSelectSymbol,
 }: {
-  matrix: WeeklyMatrix;
+  matrix?: WeeklyMatrix;
   selectedSymbol: string;
   onSelectSymbol: (symbol: string) => void;
 }) {
-  if (matrix.rows.length === 0) {
+  if (!matrix || matrix.rows.length === 0) {
     return <div className="checklist-empty">No weekly matrix data available.</div>;
   }
 
