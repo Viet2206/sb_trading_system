@@ -211,7 +211,7 @@ export function App() {
             ) : activePage === "checklist" ? (
               <>
                 <h2>Daily Checklist</h2>
-                <p>Same thing every week, over and over again</p>
+                <p>Wait until there is money laying in the corner</p>
               </>
             ) : (
               <>
