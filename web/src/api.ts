@@ -105,6 +105,57 @@ export type RuntimeSettings = {
   update_interval_minutes: number;
 };
 
+export type DailyChecklistRow = {
+  symbol: string;
+  last_candle_time: string;
+  day_of_week: string;
+  direction: string;
+  day_count: number;
+  signal_days: string[];
+  previous_signal_days: string[];
+  weekly_template_state: string;
+  price_location: string[];
+  candidate_direction: string;
+  quality_score: number;
+  no_trade_reasons: string[];
+  context: Record<string, number | null>;
+  setup_checklist: string[];
+};
+
+export type DailyChecklistSession = {
+  id: string;
+  label: string;
+  time: string;
+  focus: string;
+};
+
+export type DailyChecklistManualCheck = {
+  id: string;
+  label: string;
+};
+
+export type DailyChecklistState = {
+  date: string;
+  symbol: string | null;
+  checks: Record<string, boolean>;
+  journal: {
+    did_trade?: string;
+    setup_grade?: string;
+    result?: string;
+    mistake_tag?: string;
+    notes?: string;
+  };
+};
+
+export type DailyChecklistResponse = {
+  date: string | null;
+  generated_at: string;
+  rows: DailyChecklistRow[];
+  sessions: DailyChecklistSession[];
+  manual_checks: DailyChecklistManualCheck[];
+  state: DailyChecklistState;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl();
 
 export async function fetchSummary(): Promise<CandleSummary[]> {
@@ -152,6 +203,25 @@ export async function updateRuntimeSettings(settings: RuntimeSettings): Promise<
       "Content-Type": "application/json",
     },
     body: JSON.stringify(settings),
+  });
+}
+
+export async function fetchDailyChecklist(date?: string): Promise<DailyChecklistResponse> {
+  const params = new URLSearchParams();
+  if (date) params.set("date", date);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return fetchJson<DailyChecklistResponse>(`/daily-checklist${suffix}`);
+}
+
+export async function updateDailyChecklistState(
+  state: DailyChecklistState,
+): Promise<DailyChecklistState> {
+  return fetchJson<DailyChecklistState>("/daily-checklist/state", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(state),
   });
 }
 

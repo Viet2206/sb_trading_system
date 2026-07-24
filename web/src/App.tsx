@@ -8,6 +8,7 @@ import {
   Settings,
 } from "lucide-react";
 import { CandleChart } from "./CandleChart";
+import { DailyChecklistPage } from "./DailyChecklistPage";
 import { SettingsPage } from "./SettingsPage";
 import {
   Candle,
@@ -272,31 +273,6 @@ export function App() {
         )}
       </section>
     </main>
-  );
-}
-
-function DailyChecklistPage() {
-  const items = [
-    "Weekly bias",
-    "Previous day high / low",
-    "Previous close",
-    "Monday range",
-    "Session timing",
-    "Setup quality",
-    "Risk defined",
-  ];
-
-  return (
-    <div className="checklist-page">
-      <div className="checklist-list">
-        {items.map((item) => (
-          <label key={item} className="checklist-item">
-            <input type="checkbox" />
-            <span>{item}</span>
-          </label>
-        ))}
-      </div>
-    </div>
   );
 }
 
