@@ -424,6 +424,148 @@ select {
   font-weight: 700;
 }
 
+.weekly-matrix-section {
+  display: grid;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #111827;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.weekly-matrix-title {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  min-height: 34px;
+  color: #ffffff;
+  background: #05a957;
+  border-bottom: 2px solid #111827;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.weekly-matrix-title span {
+  background: #ffffff;
+  border-right: 2px solid #111827;
+}
+
+.weekly-matrix-title strong {
+  display: grid;
+  place-items: center;
+}
+
+.weekly-matrix-wrap {
+  overflow-x: auto;
+}
+
+.weekly-matrix-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.weekly-matrix-table th,
+.weekly-matrix-table td {
+  height: 34px;
+  padding: 0 10px;
+  border-right: 2px solid #111827;
+  border-bottom: 2px solid #111827;
+  text-align: center;
+}
+
+.weekly-matrix-table th:last-child,
+.weekly-matrix-table td:last-child {
+  border-right: 0;
+}
+
+.weekly-matrix-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.weekly-matrix-table th {
+  color: #0f172a;
+  background: #f3f4f6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.weekly-matrix-table th:first-child,
+.matrix-symbol {
+  width: 180px;
+}
+
+.weekly-matrix-table tbody tr {
+  cursor: pointer;
+}
+
+.weekly-matrix-table tbody tr.selected td {
+  box-shadow: inset 0 0 0 2px #0f766e;
+}
+
+.matrix-symbol {
+  background: #ffffff;
+}
+
+.matrix-symbol.highlighted {
+  background: #facc15;
+}
+
+.matrix-symbol button {
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  color: #0f172a;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.matrix-cell {
+  color: #0f172a;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.matrix-cell.tone-bullish {
+  color: #049454;
+  background: #dcfce7;
+}
+
+.matrix-cell.tone-bearish {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.matrix-cell.tone-inside {
+  color: #7e22ce;
+  background: #f3e8ff;
+}
+
+.matrix-cell.tone-neutral {
+  color: #475569;
+  background: #f8fafc;
+}
+
+.matrix-cell.tone-empty {
+  background: #ffffff;
+}
+
+.matrix-cell.tone-bullish.strength-strong {
+  color: #ffffff;
+  background: #059669;
+}
+
+.matrix-cell.tone-bearish.strength-strong {
+  color: #ffffff;
+  background: #dc2626;
+}
+
 .scan-section,
 .checklist-panel {
   display: grid;

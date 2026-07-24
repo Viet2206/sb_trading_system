@@ -49,6 +49,12 @@ class DailyChecklistTests(unittest.TestCase):
         self.assertIn("FRD", rows["EURUSD"]["signal_days"])
         self.assertEqual(rows["EURUSD"]["candidate_direction"], "Sell")
         self.assertGreater(rows["XAUUSD"]["quality_score"], rows["AUDUSD"]["quality_score"])
+        self.assertEqual(
+            [column["label"] for column in checklist["weekly_matrix"]["columns"]],
+            ["Fri*", "Mon", "Tue", "Wed", "Thu", "Fri"],
+        )
+        xau_matrix = _matrix_row(checklist, "XAUUSD")
+        self.assertTrue(any("FGD" in cell["labels"] for cell in xau_matrix["cells"]))
 
     def test_checklist_state_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -68,6 +74,13 @@ class DailyChecklistTests(unittest.TestCase):
         self.assertEqual(loaded["symbol"], "XAUUSD")
         self.assertTrue(loaded["checks"]["major_news_clear"])
         self.assertEqual(loaded["journal"]["result"], "+50")
+
+
+def _matrix_row(checklist: dict, symbol: str) -> dict:
+    for row in checklist["weekly_matrix"]["rows"]:
+        if row["symbol"] == symbol:
+            return row
+    raise AssertionError(f"Matrix row not found: {symbol}")
 
 
 def _daily(candles: list[tuple[float, float, float, float]]) -> pd.DataFrame:

@@ -122,6 +122,32 @@ export type DailyChecklistRow = {
   setup_checklist: string[];
 };
 
+export type WeeklyMatrixColumn = {
+  key: string;
+  label: string;
+  date: string;
+};
+
+export type WeeklyMatrixCell = {
+  date: string;
+  text: string;
+  labels: string[];
+  direction: string;
+  tone: "bullish" | "bearish" | "inside" | "neutral" | "empty";
+  strength: "none" | "normal" | "signal" | "strong";
+};
+
+export type WeeklyMatrixRow = {
+  symbol: string;
+  highlight: boolean;
+  cells: WeeklyMatrixCell[];
+};
+
+export type WeeklyMatrix = {
+  columns: WeeklyMatrixColumn[];
+  rows: WeeklyMatrixRow[];
+};
+
 export type DailyChecklistSession = {
   id: string;
   label: string;
@@ -151,6 +177,7 @@ export type DailyChecklistResponse = {
   date: string | null;
   generated_at: string;
   rows: DailyChecklistRow[];
+  weekly_matrix: WeeklyMatrix;
   sessions: DailyChecklistSession[];
   manual_checks: DailyChecklistManualCheck[];
   state: DailyChecklistState;

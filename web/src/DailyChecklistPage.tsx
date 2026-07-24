@@ -12,6 +12,7 @@ import {
   DailyChecklistResponse,
   DailyChecklistRow,
   DailyChecklistState,
+  WeeklyMatrix,
   fetchDailyChecklist,
   updateDailyChecklistState,
 } from "./api";
@@ -142,6 +143,18 @@ export function DailyChecklistPage() {
       </div>
 
       {error ? <div className="inline-error">{error}</div> : null}
+
+      <section className="weekly-matrix-section">
+        <div className="weekly-matrix-title">
+          <span />
+          <strong>Day Signal</strong>
+        </div>
+        <WeeklyTemplateMatrix
+          matrix={data.weekly_matrix}
+          selectedSymbol={selectedSymbol}
+          onSelectSymbol={chooseSymbol}
+        />
+      </section>
 
       <section className="scan-section">
         <div className="section-heading">
@@ -310,6 +323,59 @@ export function DailyChecklistPage() {
           </section>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function WeeklyTemplateMatrix({
+  matrix,
+  selectedSymbol,
+  onSelectSymbol,
+}: {
+  matrix: WeeklyMatrix;
+  selectedSymbol: string;
+  onSelectSymbol: (symbol: string) => void;
+}) {
+  if (matrix.rows.length === 0) {
+    return <div className="checklist-empty">No weekly matrix data available.</div>;
+  }
+
+  return (
+    <div className="weekly-matrix-wrap">
+      <table className="weekly-matrix-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            {matrix.columns.map((column) => (
+              <th key={column.key} title={column.date}>
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.rows.map((row) => (
+            <tr
+              key={row.symbol}
+              className={row.symbol === selectedSymbol ? "selected" : ""}
+              onClick={() => onSelectSymbol(row.symbol)}
+            >
+              <td className={row.highlight ? "matrix-symbol highlighted" : "matrix-symbol"}>
+                <button onClick={() => onSelectSymbol(row.symbol)}>{row.symbol}</button>
+              </td>
+              {row.cells.map((cell) => (
+                <td
+                  key={`${row.symbol}-${cell.date}`}
+                  className={`matrix-cell tone-${cell.tone} strength-${cell.strength}`}
+                  title={`${cell.date}${cell.labels.length ? ` / ${cell.labels.join(", ")}` : ""}`}
+                >
+                  {cell.text}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -66,19 +66,24 @@ def build_daily_checklist(
     fetcher: CandleFetcher = fetch_candles,
 ) -> dict[str, Any]:
     rows = []
+    daily_by_symbol = {}
     for symbol in sorted(set(symbols)):
         daily = fetcher(source, symbol=symbol, timeframe="D1", limit=420)
+        if not daily.empty:
+            daily_by_symbol[symbol] = _prepare_daily(daily)
         row = _build_symbol_row(symbol, daily, target_date)
         if row is not None:
             rows.append(row)
 
     rows = sorted(rows, key=lambda item: (-item["quality_score"], item["symbol"]))
     selected_date = _selected_date(rows, target_date)
+    weekly_matrix = _build_weekly_matrix(daily_by_symbol, selected_date)
 
     return {
         "date": selected_date.isoformat() if selected_date else None,
         "generated_at": datetime.now(UTC).isoformat(),
         "rows": rows,
+        "weekly_matrix": weekly_matrix,
         "sessions": SESSION_PLAN,
         "manual_checks": _manual_check_definitions(),
         "state": load_checklist_state(selected_date.isoformat() if selected_date else None),
@@ -354,6 +359,143 @@ def _setup_checklist(labels: list[str], previous_labels: list[str]) -> list[str]
         "Entry trigger is clear on M5",
         "Risk and target are predefined",
     ]
+
+
+def _build_weekly_matrix(
+    daily_by_symbol: dict[str, pd.DataFrame],
+    selected_date: date | None,
+) -> dict[str, Any]:
+    if selected_date is None:
+        return {"columns": [], "rows": []}
+
+    selected_timestamp = pd.Timestamp(datetime.combine(selected_date, datetime.min.time(), tzinfo=UTC))
+    week_start = pd.Timestamp(_week_start(selected_timestamp))
+    previous_friday = week_start - pd.Timedelta(days=3)
+    column_dates = [previous_friday] + [week_start + pd.Timedelta(days=offset) for offset in range(5)]
+    columns = [
+        {
+            "key": "previous_friday" if index == 0 else column_time.strftime("%a").lower(),
+            "label": "Fri*" if index == 0 else column_time.strftime("%a"),
+            "date": column_time.date().isoformat(),
+        }
+        for index, column_time in enumerate(column_dates)
+    ]
+
+    rows = []
+    for symbol, daily in sorted(daily_by_symbol.items()):
+        daily = daily[daily["candle_time"].dt.date <= selected_date].reset_index(drop=True)
+        cells = []
+        for column in columns:
+            cell_date = date.fromisoformat(column["date"])
+            cells.append(_matrix_cell(daily, cell_date))
+        rows.append(
+            {
+                "symbol": symbol,
+                "highlight": any(cell["strength"] == "strong" for cell in cells),
+                "cells": cells,
+            }
+        )
+
+    return {"columns": columns, "rows": rows}
+
+
+def _matrix_cell(daily: pd.DataFrame, cell_date: date) -> dict[str, Any]:
+    matches = daily[daily["candle_time"].dt.date == cell_date]
+    if matches.empty:
+        return {
+            "date": cell_date.isoformat(),
+            "text": "",
+            "labels": [],
+            "direction": "none",
+            "tone": "empty",
+            "strength": "none",
+        }
+
+    index = int(matches.index[-1])
+    row = daily.loc[index]
+    direction = _candle_direction(row) or "flat"
+    labels = _matrix_signal_labels(daily, index)
+    text = _matrix_text(labels, direction)
+    tone = _matrix_tone(labels, direction)
+    strength = "strong" if any(label in {"3DL", "3DS"} for label in labels) else "signal" if labels else "normal"
+
+    return {
+        "date": cell_date.isoformat(),
+        "text": text,
+        "labels": labels,
+        "direction": direction,
+        "tone": tone,
+        "strength": strength,
+    }
+
+
+def _matrix_signal_labels(daily: pd.DataFrame, index: int) -> list[str]:
+    labels = _classify_day(daily, index)
+    matrix_labels = []
+
+    if "Inside Day" in labels:
+        matrix_labels.append("ID")
+    for label in labels:
+        if label != "Inside Day":
+            matrix_labels.append(label)
+
+    cib_label = _cib_label(daily, index)
+    if cib_label and "ID" not in matrix_labels:
+        matrix_labels.append(cib_label)
+
+    return matrix_labels
+
+
+def _cib_label(daily: pd.DataFrame, index: int) -> str | None:
+    if index <= 0:
+        return None
+
+    if not _close_inside_previous_range(daily, index):
+        return None
+
+    previous_is_cib = _close_inside_previous_range(daily, index - 1) if index >= 2 else False
+    return "2CIB" if previous_is_cib else "CIB"
+
+
+def _close_inside_previous_range(daily: pd.DataFrame, index: int) -> bool:
+    if index <= 0:
+        return False
+    row = daily.loc[index]
+    previous = daily.loc[index - 1]
+    return float(previous["low"]) < float(row["close"]) < float(previous["high"])
+
+
+def _matrix_text(labels: list[str], direction: str) -> str:
+    arrow = _direction_arrow(direction)
+    if not labels:
+        return arrow
+    return " ".join(labels + ([arrow] if arrow else []))
+
+
+def _direction_arrow(direction: str) -> str:
+    if direction == "green":
+        return "▲"
+    if direction == "red":
+        return "▼"
+    return ""
+
+
+def _matrix_tone(labels: list[str], direction: str) -> str:
+    if "3DL" in labels or (
+        direction == "green" and any(label in labels for label in ["FGD", "CIB", "2CIB"])
+    ):
+        return "bullish"
+    if "3DS" in labels or (
+        direction == "red" and any(label in labels for label in ["FRD", "CIB", "2CIB"])
+    ):
+        return "bearish"
+    if "ID" in labels:
+        return "inside"
+    if direction == "green":
+        return "bullish"
+    if direction == "red":
+        return "bearish"
+    return "neutral"
 
 
 def _selected_date(rows: list[dict[str, Any]], target_date: date | None) -> date | None:
