@@ -15,6 +15,8 @@ HORIZONTAL_LEVEL_COLOR = "#38bdf8"
 DAY_RANGE_PIPE_COLOR = "#64748b"
 DAY_CLOSE_SEGMENT_COLOR = "#16a34a"
 SESSION_FILL_COLOR = "#94a3b8"
+CIB_BULLISH_COLOR = "#16a34a"
+CIB_BEARISH_COLOR = "#ef4444"
 
 SESSION_WINDOWS = [
     ("asia", "Asia", time(3, 0), time(6, 0), SESSION_FILL_COLOR),
@@ -53,6 +55,7 @@ def build_sb_overlays(
             "month_separators": [],
             "day_range_pipes": [],
             "day_close_segments": [],
+            "cib_markers": [],
             "day_labels": [],
             "setup_labels": [],
             "notes": ["No chart candles available for the requested symbol/timeframe."],
@@ -75,6 +78,7 @@ def build_sb_overlays(
     month_separators = _build_month_separators(chart)
     day_range_pipes = _build_day_range_pipes(chart, daily) if apply_intraday_template else []
     day_close_segments = _build_day_close_segments(chart, daily) if apply_intraday_template else []
+    cib_markers = _build_cib_markers(chart, daily) if apply_intraday_template else []
     day_labels, setup_labels = _build_day_labels(daily, chart_start, chart_end)
 
     return {
@@ -86,6 +90,7 @@ def build_sb_overlays(
         "month_separators": month_separators,
         "day_range_pipes": day_range_pipes,
         "day_close_segments": day_close_segments,
+        "cib_markers": cib_markers,
         "day_labels": day_labels,
         "setup_labels": setup_labels,
         "notes": [
@@ -95,6 +100,7 @@ def build_sb_overlays(
             "Horizontal context levels are solid right-extending rays from their relevant start time.",
             "Monthly context includes previous-month high/low and current-month first trading-day high/low.",
             "Intraday previous-day high/low levels are drawn as connected range pipes.",
+            "A compact candle-body marker at each day boundary identifies a previous-day Closing Inside Breakout.",
         ],
     }
 
@@ -346,6 +352,44 @@ def _build_day_close_segments(chart: pd.DataFrame, daily: pd.DataFrame) -> list[
     return segments
 
 
+def _build_cib_markers(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dict[str, Any]]:
+    if daily.empty:
+        return []
+
+    markers: list[dict[str, Any]] = []
+    for day, day_slice in chart.groupby(chart["candle_time"].dt.date):
+        previous_days = daily[daily["candle_time"].dt.date < day]
+        if len(previous_days) < 2:
+            continue
+
+        previous_index = int(previous_days.index[-1])
+        if not _is_closing_inside_breakout(daily, previous_index):
+            continue
+
+        previous_day = daily.loc[previous_index]
+        direction = _candle_direction(previous_day)
+        if direction is None:
+            continue
+
+        boundary_time = day_slice.iloc[0]["candle_time"].to_pydatetime()
+        markers.append(
+            {
+                "id": f"cib-{day.isoformat()}",
+                "time": boundary_time.isoformat(),
+                "open": float(previous_day["open"]),
+                "close": float(previous_day["close"]),
+                "direction": direction,
+                "color": (
+                    CIB_BULLISH_COLOR
+                    if direction == "green"
+                    else CIB_BEARISH_COLOR
+                ),
+            }
+        )
+
+    return markers
+
+
 def _build_day_labels(
     daily: pd.DataFrame,
     chart_start: pd.Timestamp,
@@ -428,6 +472,24 @@ def _candle_direction(row: pd.Series) -> str | None:
     if row["close"] < row["open"]:
         return "red"
     return None
+
+
+def _is_closing_inside_breakout(daily: pd.DataFrame, index: int) -> bool:
+    if index <= 0:
+        return False
+
+    row = daily.loc[index]
+    previous = daily.loc[index - 1]
+    closes_inside = (
+        float(previous["low"])
+        < float(row["close"])
+        < float(previous["high"])
+    )
+    breaks_range = (
+        float(row["high"]) > float(previous["high"])
+        or float(row["low"]) < float(previous["low"])
+    )
+    return closes_inside and breaks_range
 
 
 def _previous_direction_count(daily: pd.DataFrame, index: int, direction: str) -> int:

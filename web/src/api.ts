@@ -80,6 +80,15 @@ export type OverlayDayRangePipe = {
   color: string;
 };
 
+export type OverlayCibMarker = {
+  id: string;
+  time: string;
+  open: number;
+  close: number;
+  direction: "green" | "red";
+  color: string;
+};
+
 export type OverlayLabel = {
   time: string;
   price?: number;
@@ -96,6 +105,7 @@ export type OverlayResponse = {
   month_separators: OverlayMonthSeparator[];
   day_range_pipes: OverlayDayRangePipe[];
   day_close_segments: OverlayDayCloseSegment[];
+  cib_markers: OverlayCibMarker[];
   day_labels: OverlayLabel[];
   setup_labels: OverlayLabel[];
   notes: string[];

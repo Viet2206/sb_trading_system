@@ -15,6 +15,8 @@ export type ChartSettings = {
   monthSeparatorColor: string;
   weekdayLabelColor: string;
   signalLabelColor: string;
+  cibBullishColor: string;
+  cibBearishColor: string;
   ema9Color: string;
   ema21Color: string;
   ema50Color: string;
@@ -41,6 +43,8 @@ export const defaultChartSettings: ChartSettings = {
   monthSeparatorColor: "#64748b",
   weekdayLabelColor: "#b30000",
   signalLabelColor: "#ff0000",
+  cibBullishColor: "#16a34a",
+  cibBearishColor: "#ef4444",
   ema9Color: "#dc2626",
   ema21Color: "#2563eb",
   ema50Color: "#16a34a",

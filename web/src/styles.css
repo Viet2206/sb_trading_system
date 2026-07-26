@@ -1133,6 +1133,12 @@ select {
   pointer-events: none;
 }
 
+.cib-marker {
+  opacity: 0.96;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+}
+
 .level-label {
   dominant-baseline: central;
   font-size: 11px;

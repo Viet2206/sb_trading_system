@@ -83,6 +83,15 @@ type SvgDayRangePipe = {
   color: string;
 };
 
+type SvgCibMarker = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+};
+
 type SvgLabel = {
   id: string;
   x: number;
@@ -122,6 +131,7 @@ export function CandleChart({
   const [svgMonthSeparators, setSvgMonthSeparators] = useState<SvgMonthSeparator[]>([]);
   const [svgDayRangePipes, setSvgDayRangePipes] = useState<SvgDayRangePipe[]>([]);
   const [svgDayCloseSegments, setSvgDayCloseSegments] = useState<SvgDayCloseSegment[]>([]);
+  const [svgCibMarkers, setSvgCibMarkers] = useState<SvgCibMarker[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
 
   const chartData = useMemo<CandlestickData[]>(() => {
@@ -392,6 +402,35 @@ export function CandleChart({
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
 
+    const nextCibMarkers = (overlaysRef.current?.cib_markers ?? [])
+      .map((marker) => {
+        const boundaryX = coordinateForTime(
+          chart,
+          toTimestamp(marker.time),
+          chartDataRef.current,
+        );
+        const yOpen = series.priceToCoordinate(marker.open);
+        const yClose = series.priceToCoordinate(marker.close);
+        if (boundaryX == null || yOpen == null || yClose == null) return null;
+
+        const rawHeight = Math.abs(Number(yClose) - Number(yOpen));
+        const height = Math.min(24, Math.max(4, rawHeight));
+        const width = 12;
+        return {
+          id: marker.id,
+          x: Number(boundaryX) - width,
+          y: marker.direction === "green"
+            ? Number(yClose)
+            : Number(yClose) - height,
+          width,
+          height,
+          color: marker.direction === "green"
+            ? currentSettings.cibBullishColor
+            : currentSettings.cibBearishColor,
+        };
+      })
+      .filter((marker): marker is SvgCibMarker => marker !== null);
+
     const dayRangePipeSegments = (overlaysRef.current?.day_range_pipes ?? [])
       .map((pipe) => {
         const x1 = chart.timeScale().timeToCoordinate(toTimestamp(pipe.start_time));
@@ -458,6 +497,7 @@ export function CandleChart({
     setSvgMonthSeparators(nextMonthSeparators);
     setSvgDayRangePipes(nextDayRangePipes);
     setSvgDayCloseSegments(nextDayCloseSegments);
+    setSvgCibMarkers(nextCibMarkers);
     setSvgSetupLabels(nextSetupLabels);
   }
 
@@ -611,6 +651,17 @@ export function CandleChart({
               {level.label}
             </text>
           </g>
+        ))}
+        {svgCibMarkers.map((marker) => (
+          <rect
+            key={marker.id}
+            x={marker.x}
+            y={marker.y}
+            width={marker.width}
+            height={marker.height}
+            fill={marker.color}
+            className="cib-marker"
+          />
         ))}
         {svgSetupLabels.map((label) => (
           <text

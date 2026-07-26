@@ -23,6 +23,8 @@ type ColorField = {
     | "monthSeparatorColor"
     | "weekdayLabelColor"
     | "signalLabelColor"
+    | "cibBullishColor"
+    | "cibBearishColor"
     | "ema9Color"
     | "ema21Color"
     | "ema50Color"
@@ -51,6 +53,8 @@ const colorFields: ColorField[] = [
   { key: "monthSeparatorColor", label: "Month Separators" },
   { key: "weekdayLabelColor", label: "Weekday Labels" },
   { key: "signalLabelColor", label: "Signal Labels" },
+  { key: "cibBullishColor", label: "CIB Bullish Marker" },
+  { key: "cibBearishColor", label: "CIB Bearish Marker" },
   { key: "ema9Color", label: "EMA 9" },
   { key: "ema21Color", label: "EMA 21" },
   { key: "ema50Color", label: "EMA 50" },

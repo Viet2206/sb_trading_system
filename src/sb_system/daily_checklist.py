@@ -8,7 +8,12 @@ from typing import Any, Callable, Iterable
 
 import pandas as pd
 
-from sb_system.context import _classify_day, _candle_direction, _week_start
+from sb_system.context import (
+    _classify_day,
+    _candle_direction,
+    _is_closing_inside_breakout,
+    _week_start,
+)
 from sb_system.market_data import PROJECT_ROOT, fetch_candles
 
 
@@ -450,19 +455,15 @@ def _cib_label(daily: pd.DataFrame, index: int) -> str | None:
     if index <= 0:
         return None
 
-    if not _close_inside_previous_range(daily, index):
+    if not _is_closing_inside_breakout(daily, index):
         return None
 
-    previous_is_cib = _close_inside_previous_range(daily, index - 1) if index >= 2 else False
+    previous_is_cib = (
+        _is_closing_inside_breakout(daily, index - 1)
+        if index >= 2
+        else False
+    )
     return "2CIB" if previous_is_cib else "CIB"
-
-
-def _close_inside_previous_range(daily: pd.DataFrame, index: int) -> bool:
-    if index <= 0:
-        return False
-    row = daily.loc[index]
-    previous = daily.loc[index - 1]
-    return float(previous["low"]) < float(row["close"]) < float(previous["high"])
 
 
 def _matrix_text(labels: list[str], direction: str) -> str:
