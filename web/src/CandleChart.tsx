@@ -544,7 +544,7 @@ export function CandleChart({
               className="level-line"
               strokeDasharray={lineDashArray(settings.horizontalLevelStyle)}
             />
-            <text x={level.labelX} y={level.y - 5} fill={level.color} className="level-label">
+            <text x={level.labelX} y={level.y} fill={level.color} className="level-label">
               {level.label}
             </text>
           </g>
