@@ -258,7 +258,7 @@ export function CandleChart({
           label: level.label,
           x1: Number(x1 ?? 0),
           y: Number(y),
-          labelX: Math.max(12, paneWidth - 112),
+          labelX: Math.max(12, paneWidth - 82),
           price: level.price,
           color: currentSettings.horizontalLevelColor,
         };

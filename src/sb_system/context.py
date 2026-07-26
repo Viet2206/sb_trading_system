@@ -93,6 +93,7 @@ def build_sb_overlays(
             "Session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00.",
             "Intraday day-period and session templates are hidden on H4 and D1 charts.",
             "Horizontal context levels are solid right-extending rays from their relevant start time.",
+            "Monthly context includes previous-month high/low and current-month first trading-day high/low.",
             "Intraday previous-day high/low levels are drawn as connected range pipes.",
         ],
     }
@@ -130,6 +131,49 @@ def _build_levels(
             )
         if include_previous_day_close:
             levels.append(_level("previous_day_close", "PDC", previous_day["close"], HORIZONTAL_LEVEL_COLOR, current_day_start))
+
+    month_start = _month_start(chart_end)
+    previous_month = _previous_month_slice(daily, chart_end)
+    if not previous_month.empty:
+        levels.extend(
+            [
+                _level(
+                    "previous_month_high",
+                    "PMH",
+                    previous_month["high"].max(),
+                    HORIZONTAL_LEVEL_COLOR,
+                    month_start,
+                ),
+                _level(
+                    "previous_month_low",
+                    "PML",
+                    previous_month["low"].min(),
+                    HORIZONTAL_LEVEL_COLOR,
+                    month_start,
+                ),
+            ]
+        )
+
+    first_month_day = _current_month_first_day(daily, chart_end)
+    if first_month_day is not None:
+        levels.extend(
+            [
+                _level(
+                    "current_month_first_day_high",
+                    "1st Day High",
+                    first_month_day["high"],
+                    HORIZONTAL_LEVEL_COLOR,
+                    first_month_day["candle_time"],
+                ),
+                _level(
+                    "current_month_first_day_low",
+                    "1st Day Low",
+                    first_month_day["low"],
+                    HORIZONTAL_LEVEL_COLOR,
+                    first_month_day["candle_time"],
+                ),
+            ]
+        )
 
     week_start = _week_start(chart_end)
     previous_week = _previous_week_slice(daily, chart_end)
@@ -419,6 +463,42 @@ def _previous_week_slice(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.Dat
     ]
 
 
+def _previous_month_slice(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.DataFrame:
+    current_month_start = _month_start(chart_end)
+    if current_month_start.month == 1:
+        previous_month_start = datetime(
+            current_month_start.year - 1,
+            12,
+            1,
+            tzinfo=UTC,
+        )
+    else:
+        previous_month_start = datetime(
+            current_month_start.year,
+            current_month_start.month - 1,
+            1,
+            tzinfo=UTC,
+        )
+    return daily[
+        (daily["candle_time"] >= previous_month_start)
+        & (daily["candle_time"] < current_month_start)
+    ]
+
+
+def _current_month_first_day(
+    daily: pd.DataFrame,
+    chart_end: pd.Timestamp,
+) -> pd.Series | None:
+    month_start = _month_start(chart_end)
+    month_rows = daily[
+        (daily["candle_time"] >= month_start)
+        & (daily["candle_time"] <= chart_end)
+    ]
+    if month_rows.empty:
+        return None
+    return month_rows.iloc[0]
+
+
 def _latest_friday(daily: pd.DataFrame, chart_end: pd.Timestamp) -> pd.Series | None:
     friday_rows = daily[
         (daily["candle_time"] <= chart_end)
@@ -444,3 +524,7 @@ def _week_start(value: pd.Timestamp) -> datetime:
     as_datetime = value.to_pydatetime()
     start = as_datetime - timedelta(days=as_datetime.weekday())
     return datetime(start.year, start.month, start.day, tzinfo=UTC)
+
+
+def _month_start(value: pd.Timestamp) -> datetime:
+    return datetime(value.year, value.month, 1, tzinfo=UTC)
