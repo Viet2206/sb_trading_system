@@ -115,6 +115,20 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
             </label>
           ))}
         </div>
+        <label className="setting-row range-row">
+          <span>Previous Day Pipe Corner Radius</span>
+          <input
+            data-testid="setting-previousRangePipeCornerRadius"
+            type="number"
+            min={0}
+            max={16}
+            step={1}
+            value={settings.previousRangePipeCornerRadius}
+            onChange={(event) =>
+              update("previousRangePipeCornerRadius", Number(event.target.value))
+            }
+          />
+        </label>
       </section>
 
       <section className="settings-section">

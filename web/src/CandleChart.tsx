@@ -66,6 +66,8 @@ type SvgDayRangePipe = {
   yLow: number;
   previousYHigh?: number;
   previousYLow?: number;
+  nextYHigh?: number;
+  nextYLow?: number;
   color: string;
 };
 
@@ -364,11 +366,13 @@ export function CandleChart({
       .sort((left, right) => left.x1 - right.x1)
       .map((pipe, index, pipes) => {
         const previous = pipes[index - 1];
-        if (!previous) return pipe;
+        const next = pipes[index + 1];
         return {
           ...pipe,
-          previousYHigh: previous.yHigh,
-          previousYLow: previous.yLow,
+          previousYHigh: previous?.yHigh,
+          previousYLow: previous?.yLow,
+          nextYHigh: next?.yHigh,
+          nextYLow: next?.yLow,
         };
       });
 
@@ -486,45 +490,33 @@ export function CandleChart({
         ))}
         {svgDayRangePipes.map((pipe) => (
           <g key={pipe.id} className="day-range-pipe">
-            {pipe.previousYHigh != null ? (
-              <line
-                x1={pipe.x1}
-                y1={pipe.previousYHigh}
-                x2={pipe.x1}
-                y2={pipe.yHigh}
-                stroke={pipe.color}
-                className="day-range-pipe-connector"
-                strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
-              />
-            ) : null}
-            {pipe.previousYLow != null ? (
-              <line
-                x1={pipe.x1}
-                y1={pipe.previousYLow}
-                x2={pipe.x1}
-                y2={pipe.yLow}
-                stroke={pipe.color}
-                className="day-range-pipe-connector"
-                strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
-              />
-            ) : null}
-            <line
-              x1={pipe.x1}
-              y1={pipe.yHigh}
-              x2={pipe.x2}
-              y2={pipe.yHigh}
+            <path
+              d={roundedPipePath(
+                pipe.x1,
+                pipe.x2,
+                pipe.previousYHigh,
+                pipe.yHigh,
+                pipe.nextYHigh,
+                settings.previousRangePipeCornerRadius,
+              )}
               stroke={pipe.color}
               className="day-range-pipe-line"
               strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
+              fill="none"
             />
-            <line
-              x1={pipe.x1}
-              y1={pipe.yLow}
-              x2={pipe.x2}
-              y2={pipe.yLow}
+            <path
+              d={roundedPipePath(
+                pipe.x1,
+                pipe.x2,
+                pipe.previousYLow,
+                pipe.yLow,
+                pipe.nextYLow,
+                settings.previousRangePipeCornerRadius,
+              )}
               stroke={pipe.color}
               className="day-range-pipe-line"
               strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
+              fill="none"
             />
           </g>
         ))}
@@ -599,4 +591,44 @@ function coordinateForTime(
 
   const coordinate = chart.timeScale().timeToCoordinate(nextCandle.time);
   return coordinate == null ? null : Number(coordinate);
+}
+
+function roundedPipePath(
+  x1: number,
+  x2: number,
+  previousY: number | undefined,
+  y: number,
+  nextY: number | undefined,
+  requestedRadius: number,
+) {
+  const startRadius = pipeCornerRadius(previousY, y, requestedRadius);
+  const endRadius = pipeCornerRadius(y, nextY, requestedRadius);
+  const commands: string[] = [];
+
+  if (previousY == null || startRadius === 0) {
+    commands.push(`M ${x1} ${previousY ?? y}`);
+    if (previousY != null && previousY !== y) {
+      commands.push(`V ${y}`);
+    }
+  } else {
+    const direction = y > previousY ? 1 : -1;
+    commands.push(`M ${x1 - startRadius} ${previousY}`);
+    commands.push(
+      `Q ${x1} ${previousY} ${x1} ${previousY + direction * startRadius}`,
+    );
+    commands.push(`V ${y - direction * startRadius}`);
+    commands.push(`Q ${x1} ${y} ${x1 + startRadius} ${y}`);
+  }
+
+  commands.push(`H ${Math.max(x1 + startRadius, x2 - endRadius)}`);
+  return commands.join(" ");
+}
+
+function pipeCornerRadius(
+  fromY: number | undefined,
+  toY: number | undefined,
+  requestedRadius: number,
+) {
+  if (fromY == null || toY == null || fromY === toY) return 0;
+  return Math.min(requestedRadius, Math.abs(toY - fromY) / 2);
 }

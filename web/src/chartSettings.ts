@@ -7,6 +7,7 @@ export type ChartSettings = {
   previousCloseStyle: LineStyle;
   previousRangePipeColor: string;
   previousRangePipeStyle: LineStyle;
+  previousRangePipeCornerRadius: number;
   asiaSessionFillColor: string;
   londonSessionFillColor: string;
   newYorkSessionFillColor: string;
@@ -27,6 +28,7 @@ export const defaultChartSettings: ChartSettings = {
   previousCloseStyle: "solid",
   previousRangePipeColor: "#64748b",
   previousRangePipeStyle: "dashed",
+  previousRangePipeCornerRadius: 7,
   asiaSessionFillColor: "#bae6fd",
   londonSessionFillColor: "#bbf7d0",
   newYorkSessionFillColor: "#fed7aa",
@@ -65,6 +67,9 @@ function sanitizeSettings(value: Partial<ChartSettings>): ChartSettings {
     horizontalLevelStyle: sanitizeLineStyle(value.horizontalLevelStyle),
     previousCloseStyle: sanitizeLineStyle(value.previousCloseStyle),
     previousRangePipeStyle: sanitizeLineStyle(value.previousRangePipeStyle),
+    previousRangePipeCornerRadius: sanitizeCornerRadius(
+      value.previousRangePipeCornerRadius,
+    ),
     rightOffsetBars: sanitizeOffset(value.rightOffsetBars),
     updateIntervalMinutes: sanitizeInterval(value.updateIntervalMinutes),
   };
@@ -80,6 +85,12 @@ function sanitizeOffset(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(40, Math.max(0, Math.round(value)))
     : defaultChartSettings.rightOffsetBars;
+}
+
+function sanitizeCornerRadius(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(16, Math.max(0, Math.round(value)))
+    : defaultChartSettings.previousRangePipeCornerRadius;
 }
 
 function sanitizeInterval(value: unknown) {
