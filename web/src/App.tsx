@@ -60,7 +60,9 @@ export function App() {
     const available = summary
       .filter((item) => item.broker_symbol === symbol)
       .map((item) => item.timeframe);
-    return available.sort((a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b));
+    return Array.from(new Set(["M1", ...available])).sort(
+      (a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b),
+    );
   }, [summary, symbol]);
 
   useEffect(() => {
@@ -157,7 +159,31 @@ export function App() {
       setCandles(candleData.candles);
       setOverlays(overlayData);
     } catch (err) {
+      setCandles([]);
+      setOverlays(null);
       setError(err instanceof Error ? err.message : "Failed to load candles");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function refreshChart() {
+    if (!symbol || !timeframe) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryData, candleData, overlayData] = await Promise.all([
+        fetchSummary(),
+        fetchCandles(symbol, timeframe),
+        fetchOverlays(symbol, timeframe),
+      ]);
+      setSummary(summaryData);
+      setCandles(candleData.candles);
+      setOverlays(overlayData);
+    } catch (err) {
+      setCandles([]);
+      setOverlays(null);
+      setError(err instanceof Error ? err.message : "Failed to refresh chart");
     } finally {
       setLoading(false);
     }
@@ -303,8 +329,8 @@ export function App() {
 
               <button
                 className="chart-refresh-button"
-                onClick={() => void loadCandles()}
-                title="Refresh candles"
+                onClick={() => void refreshChart()}
+                title="Refresh candles and available timeframes"
               >
                 <RefreshCw size={17} />
                 <span>{loading ? "Loading" : "Refresh"}</span>
