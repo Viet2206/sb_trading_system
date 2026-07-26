@@ -27,7 +27,7 @@ export type ChartSettings = {
 const STORAGE_KEY = "sb-system-chart-settings-v1";
 
 export const defaultChartSettings: ChartSettings = {
-  horizontalLevelColor: "#38bdf8",
+  horizontalLevelColor: "#8e8f90",
   horizontalLevelStyle: "solid",
   previousCloseColor: "#16a34a",
   previousCloseStyle: "solid",
@@ -39,14 +39,14 @@ export const defaultChartSettings: ChartSettings = {
   newYorkSessionFillColor: "#fed7aa",
   daySeparatorColor: "#cbd5e1",
   monthSeparatorColor: "#64748b",
-  weekdayLabelColor: "#0f172a",
-  signalLabelColor: "#475569",
+  weekdayLabelColor: "#b30000",
+  signalLabelColor: "#ff0000",
   ema9Color: "#dc2626",
   ema21Color: "#2563eb",
   ema50Color: "#16a34a",
   ema100Color: "#9333ea",
   ema200Color: "#d97706",
-  rightOffsetBars: 14,
+  rightOffsetBars: 20,
   updateIntervalMinutes: 5,
 };
 
