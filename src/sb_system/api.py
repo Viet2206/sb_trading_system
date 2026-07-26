@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
 from sb_system.context import build_sb_overlays
+from sb_system.daily_checklist import build_daily_checklist, save_checklist_state
 from sb_system.file_store import (
     fetch_file_candle_summary,
     fetch_file_candles,
@@ -35,7 +36,7 @@ from sb_system.runtime_settings import (
 app = FastAPI(
     title="SB Trading System API",
     version="0.1.0",
-    description="Research API for imported MT5 candle data.",
+    description="Research API for imported broker candle data.",
 )
 
 app.add_middleware(
@@ -44,6 +45,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:5173",
     ],
+    allow_origin_regex=r"^https?://[A-Za-z0-9_.-]+:5173$|^https?://(?:\d{1,3}\.){3}\d{1,3}:5173$",
     allow_credentials=False,
     allow_methods=["GET", "PUT"],
     allow_headers=["*"],
@@ -172,6 +174,48 @@ def context_overlays(
     )
 
 
+@app.get("/daily-checklist")
+def daily_checklist(
+    config: Annotated[ImportConfig, Depends(get_config)],
+    date_: str | None = Query(None, alias="date", description="Optional target date in YYYY-MM-DD format."),
+) -> dict:
+    target_date = None
+    if date_:
+        try:
+            target_date = datetime.fromisoformat(date_).date()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="date must use YYYY-MM-DD format.") from exc
+
+    if config.storage == "file":
+        summary = fetch_file_candle_summary(config.data_dir, file_format=config.file_format)
+        symbols = _symbols_with_daily(summary)
+        return build_daily_checklist(
+            config.data_dir,
+            symbols=symbols,
+            target_date=target_date,
+            fetcher=lambda data_dir, **kwargs: fetch_file_candles(
+                data_dir,
+                file_format=config.file_format,
+                **kwargs,
+            ),
+        )
+
+    summary = fetch_candle_summary(get_engine())
+    return build_daily_checklist(
+        get_engine(),
+        symbols=_symbols_with_daily(summary),
+        target_date=target_date,
+    )
+
+
+@app.put("/daily-checklist/state")
+def update_daily_checklist_state(payload: Annotated[dict, Body(...)]) -> dict:
+    try:
+        return save_checklist_state(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/runtime/settings")
 def runtime_settings() -> dict:
     return _runtime_settings_payload()
@@ -186,3 +230,12 @@ def update_runtime_settings(payload: Annotated[dict, Body(...)]) -> dict:
 def _runtime_settings_payload(settings: RuntimeSettings | None = None) -> dict:
     current = settings or load_runtime_settings()
     return {"update_interval_minutes": current.update_interval_minutes}
+
+
+def _symbols_with_daily(summary) -> list[str]:
+    if summary.empty:
+        return []
+
+    daily = summary[summary["timeframe"] == "D1"]
+    source = daily if not daily.empty else summary
+    return sorted(set(source["broker_symbol"].dropna().astype(str)))

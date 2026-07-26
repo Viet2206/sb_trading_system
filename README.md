@@ -8,7 +8,7 @@ The current development focus is Phase 1:
 
 - Normalize the project direction.
 - Prepare source documents for later strategy extraction.
-- Build the first lightweight MT5-to-file market data ingestion path.
+- Build the first lightweight cTrader-to-file market data ingestion path.
 - Keep signal detection separate from future auto-trading.
 
 ## Local Setup
@@ -31,6 +31,7 @@ The default setup now uses local file storage, so Docker and PostgreSQL are not 
 
 ```env
 SB_STORAGE=file
+SB_DATA_SOURCE=ctrader
 SB_DATA_DIR=data/market
 SB_FILE_FORMAT=csv.gz
 SB_UPDATE_INTERVAL_MINUTES=5
@@ -57,9 +58,67 @@ Open:
 http://127.0.0.1:5173
 ```
 
-## Windows No-Database MT5 Workflow
+## cTrader No-Database Workflow
 
-This is the recommended path for a small Windows laptop.
+This is the recommended path for 5-minute SB Strategy updates. cTrader Open API writes candles into `data/market`, and the existing API/UI reads those files.
+
+Create a cTrader Open API application at:
+
+```text
+https://openapi.ctrader.com/
+```
+
+Then update `.env`:
+
+```env
+SB_DATA_SOURCE=ctrader
+CTRADER_HOST_TYPE=demo
+CTRADER_CLIENT_ID=your_client_id
+CTRADER_CLIENT_SECRET=your_client_secret
+CTRADER_REDIRECT_URI=http://localhost
+CTRADER_ACCESS_TOKEN=your_access_token
+CTRADER_REFRESH_TOKEN=your_refresh_token
+CTRADER_ACCOUNT_ID=your_account_id
+CTRADER_SYMBOLS=EURUSD,GBPUSD,USDJPY,AUDUSD,XAUUSD,NAS100,SP500
+CTRADER_TIMEFRAMES=M5,M15,H1,H4,D1
+```
+
+Generate the missing OAuth token and account ID:
+
+```bat
+python scripts\ctrader_auth_helper.py --print-url --write-env
+```
+
+Open the printed URL, approve access in cTrader, then copy the `code` value from the redirect URL and run:
+
+```bat
+python scripts\ctrader_auth_helper.py --code YOUR_AUTH_CODE --write-env
+python scripts\ctrader_auth_helper.py --accounts --write-env
+```
+
+If cTrader returns multiple accounts, choose one:
+
+```bat
+python scripts\ctrader_auth_helper.py --accounts --account-id YOUR_ACCOUNT_ID --write-env
+```
+
+After installing Python, Node.js LTS, Git, and Tailscale, you can pull code and start the whole platform with one script:
+
+```bat
+scripts\windows_start_platform.bat
+```
+
+This script opens separate windows for:
+
+- cTrader candle polling
+- Backend API on port `8010`
+- Web UI on port `5173`
+
+If you only want API + Web UI and do not want to poll broker data yet:
+
+```bat
+scripts\windows_start_platform.bat --no-poller
+```
 
 Install Python dependencies:
 
@@ -67,7 +126,7 @@ Install Python dependencies:
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements-win-mt5.txt
+python -m pip install -r requirements-ctrader.txt
 ```
 
 Copy environment settings:
@@ -76,17 +135,17 @@ Copy environment settings:
 copy .env.example .env
 ```
 
-Open MetaTrader 5, log in to your broker account, then run one backfill/update cycle:
+Run one cTrader backfill/update cycle:
 
 ```bat
 .venv\Scripts\activate
-python scripts\poll_mt5_to_files.py --once
+python scripts\poll_ctrader_to_files.py --once
 ```
 
 Run continuous 5-minute polling:
 
 ```bat
-python scripts\poll_mt5_to_files.py
+python scripts\poll_ctrader_to_files.py
 ```
 
 You can change the update interval from the Web UI Setting page. The API writes the interval to:
@@ -95,7 +154,7 @@ You can change the update interval from the Web UI Setting page. The API writes 
 data\runtime\settings.json
 ```
 
-The polling script reads that file between update cycles.
+The cTrader polling script reads that file between update cycles.
 
 If you already have exported CSV/CSV.gz files, import them into the active file store:
 
@@ -112,14 +171,80 @@ python scripts\run_api.py --reload
 
 ```bat
 cd web
-pnpm install
-pnpm run dev
+npm install
+npm run dev
 ```
 
 Open:
 
 ```text
 http://127.0.0.1:5173
+```
+
+## Tailscale Access From Mac
+
+Run the cTrader poller, the API, and the web UI on the host machine. Then open the web UI from your Mac through the host machine's Tailscale address.
+
+Install and log in to Tailscale on both Windows and Mac, then find the Windows Tailscale IP:
+
+```bat
+tailscale ip -4
+```
+
+In Windows `.env`, make sure the API host is not locked to localhost:
+
+```env
+SB_API_HOST=0.0.0.0
+SB_API_PORT=8010
+```
+
+Start the API on Windows:
+
+```bat
+.venv\Scripts\activate
+python scripts\run_api.py --reload
+```
+
+Start the web UI on Windows:
+
+```bat
+cd web
+npm install
+npm run dev
+```
+
+From your Mac, open:
+
+```text
+http://<WINDOWS_TAILSCALE_IP>:5173
+```
+
+For example:
+
+```text
+http://100.x.y.z:5173
+```
+
+The web UI automatically calls the backend API on the same Windows Tailscale host using port `8010`.
+
+## Optional MT5 Workflow
+
+MT5 support remains available if you later switch back to a Windows terminal workflow. Set this in `.env`:
+
+```env
+SB_DATA_SOURCE=mt5
+```
+
+Install MT5 dependencies:
+
+```bat
+python -m pip install -r requirements-win-mt5.txt
+```
+
+Run the MT5 poller:
+
+```bat
+python scripts\poll_mt5_to_files.py
 ```
 
 ## Optional PostgreSQL Setup
@@ -152,14 +277,14 @@ jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
 
 If the notebook shows `connection refused` on port `5432`, PostgreSQL is not running yet. Start it with `docker compose up -d postgres`, then rerun the connection/schema cell.
 
-## MT5 Notes
+## Legacy MT5 Notes
 
-The normal MT5 Python package workflow is intended to run on Windows with an installed MetaTrader 5 terminal. The recommended early workflow is:
+The MT5 Python package workflow is intended to run on Windows with an installed MetaTrader 5 terminal. Keep this only as a fallback workflow:
 
 - Windows laptop/VPS: connect to MT5 and write candles into local files under `data/market`.
 - MacBook: use copied `data/market` files for development, or use PostgreSQL if desired.
 
-This means Windows does not need Docker or PostgreSQL during early development.
+This means Windows does not need Docker or PostgreSQL if you use the MT5 fallback.
 
 Install the Windows/VPS dependencies with:
 
@@ -207,7 +332,7 @@ python scripts\check_mt5_env.py
 
 ## Offline MT5 Data Workflow
 
-If `.env` was copied before broker symbols were updated, edit it manually before export:
+This legacy path is useful only if you still want to export from MetaTrader 5. If `.env` was copied before broker symbols were updated, edit it manually before export:
 
 ```env
 SB_SYMBOLS=EURUSD,GBPUSD,USDJPY,AUDUSD,NZDUSD,USDCAD,AMD,MSFT,XAUUSD.pc,NAS100,BTCUSD.sc,USDCHF.pc,GBPJPY.pc,EURJPY.pc,SP500,AUDCAD.pc,AUDCHF.pc,AUDJPY.pc,CADCHF.pc,CADJPY.pc,CHFJPY.pc,COPPER-C,EURAUD.pc,EURCAD.pc,EURCHF.pc,EURGBP.pc,GBPAUD.pc,GBPCAD.pc,GBPCHF.pc
@@ -308,7 +433,7 @@ The first dashboard supports:
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
-- Settings page controls the update interval used by chart auto-refresh and the Windows MT5 polling script.
+- Settings page controls the update interval used by chart auto-refresh and the cTrader polling script.
 
 ## Project Instructions
 
