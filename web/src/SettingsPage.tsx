@@ -36,9 +36,9 @@ type StyleField = {
 };
 
 const colorFields: ColorField[] = [
-  { key: "horizontalLevelColor", label: "Horizontal Levels" },
-  { key: "previousCloseColor", label: "Previous Close" },
-  { key: "previousRangePipeColor", label: "Previous High/Low Pipe" },
+  { key: "horizontalLevelColor", label: "Context Levels (PWH/PWL/Mon/Fri)" },
+  { key: "previousCloseColor", label: "Previous Day Close Segments" },
+  { key: "previousRangePipeColor", label: "Previous Day High/Low Pipe" },
   { key: "asiaSessionFillColor", label: "Asia Session" },
   { key: "londonSessionFillColor", label: "London Session" },
   { key: "newYorkSessionFillColor", label: "New York Session" },
@@ -49,9 +49,9 @@ const colorFields: ColorField[] = [
 ];
 
 const styleFields: StyleField[] = [
-  { key: "horizontalLevelStyle", label: "Horizontal Levels" },
-  { key: "previousCloseStyle", label: "Previous Close" },
-  { key: "previousRangePipeStyle", label: "Previous High/Low Pipe" },
+  { key: "horizontalLevelStyle", label: "Context Levels (PWH/PWL/Mon/Fri)" },
+  { key: "previousCloseStyle", label: "Previous Day Close Segments" },
+  { key: "previousRangePipeStyle", label: "Previous Day High/Low Pipe" },
 ];
 
 const lineStyles: LineStyle[] = ["solid", "dashed", "dotted"];
@@ -74,7 +74,11 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
               <div className="color-control">
                 <input
                   type="color"
+                  aria-label={`${field.label} color picker`}
                   value={settings[field.key]}
+                  onInput={(event) =>
+                    update(field.key, (event.target as HTMLInputElement).value)
+                  }
                   onChange={(event) => update(field.key, event.target.value)}
                 />
                 <input
