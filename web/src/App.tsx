@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BrainCircuit,
   ClipboardList,
+  Layers3,
   LineChart,
   PanelLeftClose,
   PanelLeftOpen,
@@ -23,6 +24,12 @@ import {
   updateRuntimeSettings,
 } from "./api";
 import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSettings";
+import {
+  loadActiveOverlayTemplates,
+  OverlayTemplateId,
+  overlayTemplates,
+  saveActiveOverlayTemplates,
+} from "./overlayTemplates";
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
@@ -37,6 +44,9 @@ export function App() {
   const [timeframe, setTimeframe] = useState("");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [overlays, setOverlays] = useState<OverlayResponse | null>(null);
+  const [activeOverlayTemplates, setActiveOverlayTemplates] = useState<
+    OverlayTemplateId[]
+  >(() => loadActiveOverlayTemplates());
   const [chartSettings, setChartSettings] = useState<ChartSettings>(() => loadChartSettings());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +71,10 @@ export function App() {
   useEffect(() => {
     saveChartSettings(chartSettings);
   }, [chartSettings]);
+
+  useEffect(() => {
+    saveActiveOverlayTemplates(activeOverlayTemplates);
+  }, [activeOverlayTemplates]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -147,6 +161,14 @@ export function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleOverlayTemplate(templateId: OverlayTemplateId) {
+    setActiveOverlayTemplates((current) =>
+      current.includes(templateId)
+        ? current.filter((id) => id !== templateId)
+        : [...current, templateId],
+    );
   }
 
   return (
@@ -238,6 +260,25 @@ export function App() {
 
           {activePage === "chart" ? (
             <div className="chart-toolbar">
+              <div className="overlay-template-toggles" aria-label="Chart templates">
+                {overlayTemplates.map((template) => {
+                  const active = activeOverlayTemplates.includes(template.id);
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      className={active ? "template-toggle active" : "template-toggle"}
+                      aria-pressed={active}
+                      onClick={() => toggleOverlayTemplate(template.id)}
+                      title={`${active ? "Hide" : "Show"} ${template.label}`}
+                    >
+                      <Layers3 size={16} />
+                      <span>{template.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <label className="chart-control">
                 <span>Symbol</span>
                 <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
@@ -283,7 +324,11 @@ export function App() {
           >
             <CandleChart
               candles={candles}
-              overlays={overlays}
+              overlays={
+                activeOverlayTemplates.includes("weekly_template")
+                  ? overlays
+                  : null
+              }
               defaultViewDays={chartWindowDays(timeframe)}
               settings={chartSettings}
             />
