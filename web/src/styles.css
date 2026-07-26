@@ -206,6 +206,38 @@ select {
   background: #ffffff;
 }
 
+.workspace-alerts {
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-pages {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-page {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.workspace-page.active {
+  z-index: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.workspace-page.chart-page {
+  overflow: hidden;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -305,6 +337,7 @@ select {
 .chart-frame {
   grid-row: 3;
   position: relative;
+  height: calc(100% - 40px);
   min-height: 0;
   margin: 18px 22px 22px;
   overflow: hidden;

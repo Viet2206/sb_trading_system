@@ -272,26 +272,48 @@ export function App() {
           ) : null}
         </div>
 
-        {error ? <div className="error-banner">{error}</div> : null}
+        <div className="workspace-alerts">
+          {error ? <div className="error-banner">{error}</div> : null}
+        </div>
 
-        {activePage === "chart" ? (
-          <CandleChart
-            candles={candles}
-            overlays={overlays}
-            defaultViewDays={chartWindowDays(timeframe)}
-            settings={chartSettings}
-          />
-        ) : activePage === "checklist" ? (
-          <DailyChecklistPage />
-        ) : activePage === "research" ? (
-          <ResearchPage
-            summary={summary}
-            currentSymbol={symbol}
-            currentTimeframe={timeframe}
-          />
-        ) : (
-          <SettingsPage settings={chartSettings} onChange={setChartSettings} />
-        )}
+        <div className="workspace-pages">
+          <section
+            className={activePage === "chart" ? "workspace-page chart-page active" : "workspace-page chart-page"}
+            aria-hidden={activePage !== "chart"}
+          >
+            <CandleChart
+              candles={candles}
+              overlays={overlays}
+              defaultViewDays={chartWindowDays(timeframe)}
+              settings={chartSettings}
+            />
+          </section>
+
+          <section
+            className={activePage === "checklist" ? "workspace-page active" : "workspace-page"}
+            aria-hidden={activePage !== "checklist"}
+          >
+            <DailyChecklistPage />
+          </section>
+
+          <section
+            className={activePage === "research" ? "workspace-page active" : "workspace-page"}
+            aria-hidden={activePage !== "research"}
+          >
+            <ResearchPage
+              summary={summary}
+              currentSymbol={symbol}
+              currentTimeframe={timeframe}
+            />
+          </section>
+
+          <section
+            className={activePage === "settings" ? "workspace-page active" : "workspace-page"}
+            aria-hidden={activePage !== "settings"}
+          >
+            <SettingsPage settings={chartSettings} onChange={setChartSettings} />
+          </section>
+        </div>
       </section>
     </main>
   );
