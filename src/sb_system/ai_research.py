@@ -9,7 +9,7 @@ from sb_system.research import ResearchLibrary
 
 
 DEFAULT_OPENAI_MODEL = "gpt-5.6-terra"
-DEFAULT_ZAI_MODEL = "glm-4.7-flash"
+DEFAULT_ZAI_MODEL = "glm-4.7"
 DEFAULT_ZAI_VISION_MODEL = "glm-4.6v-flash"
 DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/paas/v4"
 

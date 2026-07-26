@@ -164,7 +164,7 @@ class ResearchLibraryTests(unittest.TestCase):
             {
                 "SB_AI_PROVIDER": "zai",
                 "ZAI_API_KEY": "test-key",
-                "ZAI_MODEL": "glm-4.7-flash",
+                "ZAI_MODEL": "glm-4.7",
             },
             clear=False,
         ):
@@ -173,7 +173,7 @@ class ResearchLibraryTests(unittest.TestCase):
             )
 
         self.assertEqual(result["mode"], "ai")
-        self.assertEqual(result["model"], "glm-4.7-flash")
+        self.assertEqual(result["model"], "glm-4.7")
         self.assertIn("[S1]", result["answer"])
 
     @patch("pypdf.PdfReader", _FakeReader)
@@ -185,7 +185,7 @@ class ResearchLibraryTests(unittest.TestCase):
             {
                 "SB_AI_PROVIDER": "zai",
                 "ZAI_API_KEY": "test-key",
-                "ZAI_MODEL": "glm-4.7-flash",
+                "ZAI_MODEL": "glm-4.7",
             },
             clear=False,
         ):
