@@ -39,6 +39,7 @@ type ResearchPageProps = {
 };
 
 const suggestedQuestions = [
+  "Compare the current market setup with the most relevant historical SB examples. Identify similarities, differences, invalidation, and what to wait for.",
   "What evidence defines a First Green Day setup?",
   "Compare Inside Day false break and continuation.",
   "What should I observe during each session hour?",
@@ -50,7 +51,7 @@ export function ResearchPage({
   currentSymbol,
   currentTimeframe,
 }: ResearchPageProps) {
-  const [tab, setTab] = useState<ResearchTab>("search");
+  const [tab, setTab] = useState<ResearchTab>("analyst");
   const [status, setStatus] = useState<ResearchStatus | null>(null);
   const [documents, setDocuments] = useState<ResearchDocument[]>([]);
   const [query, setQuery] = useState("first green day setup");
@@ -87,8 +88,12 @@ export function ResearchPage({
   }, []);
 
   useEffect(() => {
-    if (!agentSymbol && currentSymbol) setAgentSymbol(currentSymbol);
-  }, [agentSymbol, currentSymbol]);
+    if (currentSymbol) setAgentSymbol(currentSymbol);
+  }, [currentSymbol]);
+
+  useEffect(() => {
+    if (currentTimeframe) setAgentTimeframe(currentTimeframe);
+  }, [currentTimeframe]);
 
   useEffect(() => {
     if (agentSymbol && timeframes.length > 0 && !timeframes.includes(agentTimeframe)) {

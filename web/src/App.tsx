@@ -34,7 +34,7 @@ import {
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
-type Page = "chart" | "checklist" | "research" | "settings";
+type Page = "chart" | "checklist" | "settings";
 
 export function App() {
   const [activePage, setActivePage] = useState<Page>("chart");
@@ -225,14 +225,6 @@ export function App() {
             <span>Daily Checklist</span>
           </button>
           <button
-            className={activePage === "research" ? "nav-button active" : "nav-button"}
-            onClick={() => setActivePage("research")}
-            title="Research"
-          >
-            <BrainCircuit size={17} />
-            <span>Research</span>
-          </button>
-          <button
             className={activePage === "settings" ? "nav-button active" : "nav-button"}
             onClick={() => setActivePage("settings")}
             title="Setting"
@@ -270,11 +262,6 @@ export function App() {
               <>
                 <h2>Daily Checklist</h2>
                 <p>Wait until there is money laying in the corner</p>
-              </>
-            ) : activePage === "research" ? (
-              <>
-                <h2>Research</h2>
-                <p>Search the playbook, inspect source pages, and analyze evidence</p>
               </>
             ) : (
               <>
@@ -348,17 +335,34 @@ export function App() {
             className={activePage === "chart" ? "workspace-page chart-page active" : "workspace-page chart-page"}
             aria-hidden={activePage !== "chart"}
           >
-            <CandleChart
-              candles={candles}
-              overlays={
-                activeOverlayTemplates.includes("weekly_template")
-                  ? overlays
-                  : null
-              }
-              showFiveEma={activeOverlayTemplates.includes("five_ema")}
-              defaultViewDays={chartWindowDays(timeframe)}
-              settings={chartSettings}
-            />
+            <div className="chart-stage">
+              <CandleChart
+                candles={candles}
+                overlays={
+                  activeOverlayTemplates.includes("weekly_template")
+                    ? overlays
+                    : null
+                }
+                showFiveEma={activeOverlayTemplates.includes("five_ema")}
+                defaultViewDays={chartWindowDays(timeframe)}
+                settings={chartSettings}
+              />
+            </div>
+
+            <section className="chart-research-section" aria-labelledby="chart-research-title">
+              <header className="chart-research-heading">
+                <BrainCircuit size={20} />
+                <div>
+                  <h3 id="chart-research-title">Research &amp; Pattern Comparison</h3>
+                  <p>{symbol} {timeframe} market context</p>
+                </div>
+              </header>
+              <ResearchPage
+                summary={summary}
+                currentSymbol={symbol}
+                currentTimeframe={timeframe}
+              />
+            </section>
           </section>
 
           <section
@@ -366,17 +370,6 @@ export function App() {
             aria-hidden={activePage !== "checklist"}
           >
             <DailyChecklistPage />
-          </section>
-
-          <section
-            className={activePage === "research" ? "workspace-page active" : "workspace-page"}
-            aria-hidden={activePage !== "research"}
-          >
-            <ResearchPage
-              summary={summary}
-              currentSymbol={symbol}
-              currentTimeframe={timeframe}
-            />
           </section>
 
           <section
