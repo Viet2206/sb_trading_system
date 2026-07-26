@@ -15,6 +15,11 @@ export type ChartSettings = {
   monthSeparatorColor: string;
   weekdayLabelColor: string;
   signalLabelColor: string;
+  ema9Color: string;
+  ema21Color: string;
+  ema50Color: string;
+  ema100Color: string;
+  ema200Color: string;
   rightOffsetBars: number;
   updateIntervalMinutes: number;
 };
@@ -36,6 +41,11 @@ export const defaultChartSettings: ChartSettings = {
   monthSeparatorColor: "#64748b",
   weekdayLabelColor: "#0f172a",
   signalLabelColor: "#475569",
+  ema9Color: "#dc2626",
+  ema21Color: "#2563eb",
+  ema50Color: "#16a34a",
+  ema100Color: "#9333ea",
+  ema200Color: "#d97706",
   rightOffsetBars: 14,
   updateIntervalMinutes: 5,
 };

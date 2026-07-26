@@ -4,11 +4,23 @@ import {
   createChart,
   IChartApi,
   ISeriesApi,
+  LineData,
+  LineSeries,
   UTCTimestamp,
 } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Candle, OverlayResponse } from "./api";
 import { ChartSettings, lineDashArray } from "./chartSettings";
+
+const emaDefinitions = [
+  { period: 9, colorKey: "ema9Color", lineWidth: 2 },
+  { period: 21, colorKey: "ema21Color", lineWidth: 2 },
+  { period: 50, colorKey: "ema50Color", lineWidth: 1 },
+  { period: 100, colorKey: "ema100Color", lineWidth: 1 },
+  { period: 200, colorKey: "ema200Color", lineWidth: 1 },
+] as const;
+
+type EmaPeriod = (typeof emaDefinitions)[number]["period"];
 
 type SvgLevel = {
   key: string;
@@ -82,6 +94,7 @@ type SvgLabel = {
 type CandleChartProps = {
   candles: Candle[];
   overlays: OverlayResponse | null;
+  showFiveEma: boolean;
   defaultViewDays: number;
   settings: ChartSettings;
 };
@@ -89,12 +102,14 @@ type CandleChartProps = {
 export function CandleChart({
   candles,
   overlays,
+  showFiveEma,
   defaultViewDays,
   settings,
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const emaSeriesRef = useRef<Map<EmaPeriod, ISeriesApi<"Line">>>(new Map());
   const overlaysRef = useRef(overlays);
   const chartDataRef = useRef<CandlestickData[]>([]);
   const settingsRef = useRef(settings);
@@ -118,6 +133,16 @@ export function CandleChart({
       close: candle.close,
     }));
   }, [candles]);
+
+  const emaData = useMemo(() => {
+    if (!showFiveEma) return new Map<EmaPeriod, LineData[]>();
+    return new Map<EmaPeriod, LineData[]>(
+      emaDefinitions.map(({ period }) => [
+        period,
+        calculateEma(chartData, period),
+      ]),
+    );
+  }, [chartData, showFiveEma]);
 
   useEffect(() => {
     overlaysRef.current = overlays;
@@ -172,6 +197,18 @@ export function CandleChart({
       wickDownColor: "#111827",
     });
 
+    for (const definition of emaDefinitions) {
+      const emaSeries = chart.addSeries(LineSeries, {
+        color: settings[definition.colorKey],
+        lineWidth: definition.lineWidth,
+        visible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      emaSeriesRef.current.set(definition.period, emaSeries);
+    }
+
     chartRef.current = chart;
     seriesRef.current = series;
 
@@ -192,6 +229,7 @@ export function CandleChart({
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
+      emaSeriesRef.current.clear();
     };
   }, []);
 
@@ -202,6 +240,18 @@ export function CandleChart({
     applyDefaultVisibleRange();
     scheduleOverlayRedraw();
   }, [chartData, defaultViewDays]);
+
+  useEffect(() => {
+    for (const definition of emaDefinitions) {
+      const emaSeries = emaSeriesRef.current.get(definition.period);
+      if (!emaSeries) continue;
+      emaSeries.setData(emaData.get(definition.period) ?? []);
+      emaSeries.applyOptions({
+        color: settings[definition.colorKey],
+        visible: showFiveEma,
+      });
+    }
+  }, [emaData, settings, showFiveEma]);
 
   function scheduleOverlayRedraw() {
     if (redrawFrameRef.current != null) {
@@ -434,6 +484,19 @@ export function CandleChart({
   return (
     <div className="chart-frame">
       <div ref={containerRef} className="chart-container" />
+      {showFiveEma ? (
+        <div className="ema-legend" aria-label="EMA legend">
+          {emaDefinitions.map((definition) => (
+            <span key={definition.period} className="ema-legend-item">
+              <span
+                className="ema-legend-line"
+                style={{ backgroundColor: settings[definition.colorKey] }}
+              />
+              EMA {definition.period}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <svg className="chart-overlay" aria-hidden="true">
         {svgDayPeriods.map((period) => (
           <g key={period.id}>
@@ -631,4 +694,29 @@ function pipeCornerRadius(
 ) {
   if (fromY == null || toY == null || fromY === toY) return 0;
   return Math.min(requestedRadius, Math.abs(toY - fromY) / 2);
+}
+
+function calculateEma(data: CandlestickData[], period: number): LineData[] {
+  if (data.length < period) return [];
+
+  const multiplier = 2 / (period + 1);
+  let ema = data
+    .slice(0, period)
+    .reduce((total, candle) => total + candle.close, 0) / period;
+  const values: LineData[] = [
+    {
+      time: data[period - 1].time,
+      value: ema,
+    },
+  ];
+
+  for (let index = period; index < data.length; index += 1) {
+    ema = (data[index].close - ema) * multiplier + ema;
+    values.push({
+      time: data[index].time,
+      value: ema,
+    });
+  }
+
+  return values;
 }

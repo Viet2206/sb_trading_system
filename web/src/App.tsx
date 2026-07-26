@@ -329,6 +329,7 @@ export function App() {
                   ? overlays
                   : null
               }
+              showFiveEma={activeOverlayTemplates.includes("five_ema")}
               defaultViewDays={chartWindowDays(timeframe)}
               settings={chartSettings}
             />

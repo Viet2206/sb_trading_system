@@ -23,6 +23,11 @@ type ColorField = {
     | "monthSeparatorColor"
     | "weekdayLabelColor"
     | "signalLabelColor"
+    | "ema9Color"
+    | "ema21Color"
+    | "ema50Color"
+    | "ema100Color"
+    | "ema200Color"
   >;
   label: string;
 };
@@ -46,6 +51,11 @@ const colorFields: ColorField[] = [
   { key: "monthSeparatorColor", label: "Month Separators" },
   { key: "weekdayLabelColor", label: "Weekday Labels" },
   { key: "signalLabelColor", label: "Signal Labels" },
+  { key: "ema9Color", label: "EMA 9" },
+  { key: "ema21Color", label: "EMA 21" },
+  { key: "ema50Color", label: "EMA 50" },
+  { key: "ema100Color", label: "EMA 100" },
+  { key: "ema200Color", label: "EMA 200" },
 ];
 
 const styleFields: StyleField[] = [

@@ -275,8 +275,8 @@ Chart overlay should support:
 Current Phase 1 overlay implementation:
 
 - Backend endpoint: `GET /context/overlays`
-- First context levels: previous day high/low, previous week high/low, latest Friday close, current Monday high/low as light blue solid right-extending rays from their relevant start time
-- First intraday range layer: previous-day high and low are drawn as gray dashed connected step pipes, high-to-high and low-to-low, across day periods
+- First context levels: previous day high/low, previous week high/low, previous month high/low, current month first trading-day high/low, latest Friday close, and current Monday high/low as solid right-extending rays from their relevant start time
+- First intraday range layer: previous-day high and low are drawn as gray dashed connected step pipes, high-to-high and low-to-low, across day periods; pipe corner radius is adjustable
 - First day layer: custom chart day-period bands with centered weekday labels; avoid relying on the chart library's default grid
 - First month layer: vertical month separators across the chart
 - First intraday close layer: previous-day-close is drawn as a green horizontal segment that spans only the current day period
@@ -285,6 +285,7 @@ Current Phase 1 overlay implementation:
 - Default visible chart view is 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1; do not restrict the loaded candle history for this behavior
 - First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
 - Sidebar navigation has Chart, Daily Checklist, Research, and Setting pages; symbol/timeframe/refresh controls live in the chart header
+- Chart overlays are registered as independently toggleable templates. `weekly_template` contains the SB context overlay; `five_ema` contains native EMA 9, 21, 50, 100, and 200 series. Template selections persist in browser local storage.
 - Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
 - Web UI Setting page also controls the update interval in minutes; this is saved to the backend runtime settings file for the cTrader poller and used by the chart auto-refresh
 - These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.

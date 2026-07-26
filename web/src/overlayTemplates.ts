@@ -3,6 +3,10 @@ export const overlayTemplates = [
     id: "weekly_template",
     label: "Weekly Template",
   },
+  {
+    id: "five_ema",
+    label: "5 EMA",
+  },
 ] as const;
 
 export type OverlayTemplateId = (typeof overlayTemplates)[number]["id"];
