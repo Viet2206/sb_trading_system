@@ -20,7 +20,7 @@ def test_closing_inside_breakout_requires_range_break_and_inside_close() -> None
     assert not _is_closing_inside_breakout(daily, 3)
 
 
-def test_cib_marker_uses_previous_daily_body_at_next_day_boundary() -> None:
+def test_previous_day_cib_creates_marker_for_current_day_boundary() -> None:
     daily = pd.DataFrame(
         [
             _candle("2026-07-13", open_price=100, high=110, low=90, close=105),

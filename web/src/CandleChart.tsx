@@ -418,7 +418,7 @@ export function CandleChart({
         const width = 12;
         return {
           id: marker.id,
-          x: Number(boundaryX) - width,
+          x: Number(boundaryX) + 1,
           y: marker.direction === "green"
             ? Number(yClose)
             : Number(yClose) - height,

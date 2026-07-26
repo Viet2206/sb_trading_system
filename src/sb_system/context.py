@@ -100,7 +100,7 @@ def build_sb_overlays(
             "Horizontal context levels are solid right-extending rays from their relevant start time.",
             "Monthly context includes previous-month high/low and current-month first trading-day high/low.",
             "Intraday previous-day high/low levels are drawn as connected range pipes.",
-            "A compact candle-body marker at each day boundary identifies a previous-day Closing Inside Breakout.",
+            "A compact marker at the start of the current day identifies a previous-day Closing Inside Breakout.",
         ],
     }
 
