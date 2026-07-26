@@ -1503,9 +1503,8 @@ select {
   color: #0f172a;
 }
 
-.vision-output p {
-  margin: 5px 0 0;
-  white-space: pre-wrap;
+.vision-answer {
+  margin-top: 5px;
 }
 
 .research-empty {
@@ -1725,7 +1724,101 @@ select {
   color: #334155;
   font-size: 13px;
   line-height: 1.65;
-  white-space: pre-wrap;
+}
+
+.analysis-answer > :first-child,
+.vision-answer > :first-child {
+  margin-top: 0;
+}
+
+.analysis-answer > :last-child,
+.vision-answer > :last-child {
+  margin-bottom: 0;
+}
+
+.analysis-answer h2,
+.analysis-answer h3,
+.vision-answer h2,
+.vision-answer h3 {
+  margin: 17px 0 7px;
+  color: #0f172a;
+  letter-spacing: 0;
+}
+
+.analysis-answer h2,
+.vision-answer h2 {
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.analysis-answer h3,
+.vision-answer h3 {
+  font-size: 13px;
+}
+
+.analysis-answer p,
+.vision-answer p {
+  margin: 0 0 9px;
+}
+
+.analysis-answer ul,
+.analysis-answer ol,
+.vision-answer ul,
+.vision-answer ol {
+  margin: 0 0 11px;
+  padding-left: 20px;
+}
+
+.analysis-answer li,
+.vision-answer li {
+  margin: 4px 0;
+  padding-left: 2px;
+}
+
+.analysis-answer strong,
+.vision-answer strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.analysis-answer a,
+.vision-answer a {
+  color: #0f766e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.analysis-answer code,
+.vision-answer code {
+  padding: 1px 4px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+
+.analysis-answer blockquote,
+.vision-answer blockquote {
+  margin: 10px 0;
+  padding-left: 11px;
+  color: #475569;
+  border-left: 3px solid #94a3b8;
+}
+
+.analysis-answer table,
+.vision-answer table {
+  width: 100%;
+  margin: 10px 0;
+  border-collapse: collapse;
+}
+
+.analysis-answer th,
+.analysis-answer td,
+.vision-answer th,
+.vision-answer td {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  text-align: left;
 }
 
 .tool-trace {

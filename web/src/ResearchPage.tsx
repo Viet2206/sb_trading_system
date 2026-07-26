@@ -1,4 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   BookOpen,
   BrainCircuit,
@@ -544,7 +546,9 @@ function AnalystWorkspace({
           </div>
           {analysis ? (
             <>
-              <div className="analysis-answer">{analysis.answer}</div>
+              <MarkdownAnswer className="analysis-answer">
+                {analysis.answer}
+              </MarkdownAnswer>
               <div className="tool-trace">
                 {analysis.tools.map((tool) => (
                   <div key={tool.name}>
@@ -637,7 +641,9 @@ function SourceInspector({
           {vision ? (
             <div className="vision-output">
               <strong>{vision.mode === "ai" ? "Visual Analysis" : "Vision Status"}</strong>
-              <p>{vision.answer}</p>
+              <MarkdownAnswer className="vision-answer">
+                {vision.answer}
+              </MarkdownAnswer>
             </div>
           ) : null}
         </>
@@ -645,6 +651,31 @@ function SourceInspector({
         <EmptyState text="Choose evidence to inspect the original page." />
       )}
     </aside>
+  );
+}
+
+function MarkdownAnswer({
+  children,
+  className,
+}: {
+  children: string;
+  className: string;
+}) {
+  return (
+    <div className={className}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children: linkChildren }) => (
+            <a href={href} target="_blank" rel="noreferrer">
+              {linkChildren}
+            </a>
+          ),
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
   );
 }
 
