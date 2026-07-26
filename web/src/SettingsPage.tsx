@@ -30,6 +30,7 @@ type ColorField = {
     | "ema50Color"
     | "ema100Color"
     | "ema200Color"
+    | "majorRoundNumberColor"
   >;
   label: string;
 };
@@ -37,7 +38,10 @@ type ColorField = {
 type StyleField = {
   key: keyof Pick<
     ChartSettings,
-    "horizontalLevelStyle" | "previousCloseStyle" | "previousRangePipeStyle"
+    | "horizontalLevelStyle"
+    | "previousCloseStyle"
+    | "previousRangePipeStyle"
+    | "majorRoundNumberStyle"
   >;
   label: string;
 };
@@ -60,12 +64,14 @@ const colorFields: ColorField[] = [
   { key: "ema50Color", label: "EMA 50" },
   { key: "ema100Color", label: "EMA 100" },
   { key: "ema200Color", label: "EMA 200" },
+  { key: "majorRoundNumberColor", label: "Major Round Numbers" },
 ];
 
 const styleFields: StyleField[] = [
   { key: "horizontalLevelStyle", label: "Context Levels (PWH/PWL/Mon/Fri)" },
   { key: "previousCloseStyle", label: "Previous Day Close Segments" },
   { key: "previousRangePipeStyle", label: "Previous Day High/Low Pipe" },
+  { key: "majorRoundNumberStyle", label: "Major Round Numbers" },
 ];
 
 const lineStyles: LineStyle[] = ["solid", "dashed", "dotted"];
@@ -73,6 +79,23 @@ const lineStyles: LineStyle[] = ["solid", "dashed", "dotted"];
 export function SettingsPage({ settings, onChange }: SettingsPageProps) {
   function update<K extends keyof ChartSettings>(key: K, value: ChartSettings[K]) {
     onChange({ ...settings, [key]: value });
+  }
+
+  function updatePositiveNumber(
+    key: keyof Pick<
+      ChartSettings,
+      | "majorRoundFxInterval"
+      | "majorRoundJpyInterval"
+      | "majorRoundGoldInterval"
+      | "majorRoundNas100Interval"
+      | "majorRoundSp500Interval"
+      | "majorRoundDefaultInterval"
+    >,
+    value: number,
+  ) {
+    if (Number.isFinite(value) && value > 0) {
+      update(key, value);
+    }
   }
 
   return (
@@ -104,6 +127,50 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
               </div>
             </label>
           ))}
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-section-title">
+          <h3>Major Round Number Intervals</h3>
+        </div>
+        <div className="settings-grid compact">
+          <RoundNumberInterval
+            label="Non-JPY FX"
+            testId="setting-majorRoundFxInterval"
+            value={settings.majorRoundFxInterval}
+            onChange={(value) => updatePositiveNumber("majorRoundFxInterval", value)}
+          />
+          <RoundNumberInterval
+            label="JPY FX"
+            testId="setting-majorRoundJpyInterval"
+            value={settings.majorRoundJpyInterval}
+            onChange={(value) => updatePositiveNumber("majorRoundJpyInterval", value)}
+          />
+          <RoundNumberInterval
+            label="Gold"
+            testId="setting-majorRoundGoldInterval"
+            value={settings.majorRoundGoldInterval}
+            onChange={(value) => updatePositiveNumber("majorRoundGoldInterval", value)}
+          />
+          <RoundNumberInterval
+            label="NAS100"
+            testId="setting-majorRoundNas100Interval"
+            value={settings.majorRoundNas100Interval}
+            onChange={(value) => updatePositiveNumber("majorRoundNas100Interval", value)}
+          />
+          <RoundNumberInterval
+            label="SP500"
+            testId="setting-majorRoundSp500Interval"
+            value={settings.majorRoundSp500Interval}
+            onChange={(value) => updatePositiveNumber("majorRoundSp500Interval", value)}
+          />
+          <RoundNumberInterval
+            label="Other Markets"
+            testId="setting-majorRoundDefaultInterval"
+            value={settings.majorRoundDefaultInterval}
+            onChange={(value) => updatePositiveNumber("majorRoundDefaultInterval", value)}
+          />
         </div>
       </section>
 
@@ -190,5 +257,33 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
         <span>Reset Defaults</span>
       </button>
     </div>
+  );
+}
+
+type RoundNumberIntervalProps = {
+  label: string;
+  testId: string;
+  value: number;
+  onChange: (value: number) => void;
+};
+
+function RoundNumberInterval({
+  label,
+  testId,
+  value,
+  onChange,
+}: RoundNumberIntervalProps) {
+  return (
+    <label className="setting-row">
+      <span>{label}</span>
+      <input
+        data-testid={testId}
+        type="number"
+        min="0.00001"
+        step="any"
+        value={value}
+        onChange={(event) => onChange(event.target.valueAsNumber)}
+      />
+    </label>
   );
 }

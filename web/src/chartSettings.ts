@@ -22,6 +22,14 @@ export type ChartSettings = {
   ema50Color: string;
   ema100Color: string;
   ema200Color: string;
+  majorRoundNumberColor: string;
+  majorRoundNumberStyle: LineStyle;
+  majorRoundFxInterval: number;
+  majorRoundJpyInterval: number;
+  majorRoundGoldInterval: number;
+  majorRoundNas100Interval: number;
+  majorRoundSp500Interval: number;
+  majorRoundDefaultInterval: number;
   rightOffsetBars: number;
   updateIntervalMinutes: number;
 };
@@ -50,6 +58,14 @@ export const defaultChartSettings: ChartSettings = {
   ema50Color: "#16a34a",
   ema100Color: "#9333ea",
   ema200Color: "#d97706",
+  majorRoundNumberColor: "#64748b",
+  majorRoundNumberStyle: "solid",
+  majorRoundFxInterval: 0.01,
+  majorRoundJpyInterval: 1,
+  majorRoundGoldInterval: 100,
+  majorRoundNas100Interval: 100,
+  majorRoundSp500Interval: 100,
+  majorRoundDefaultInterval: 100,
   rightOffsetBars: 20,
   updateIntervalMinutes: 5,
 };
@@ -81,8 +97,33 @@ function sanitizeSettings(value: Partial<ChartSettings>): ChartSettings {
     horizontalLevelStyle: sanitizeLineStyle(value.horizontalLevelStyle),
     previousCloseStyle: sanitizeLineStyle(value.previousCloseStyle),
     previousRangePipeStyle: sanitizeLineStyle(value.previousRangePipeStyle),
+    majorRoundNumberStyle: sanitizeLineStyle(value.majorRoundNumberStyle),
     previousRangePipeCornerRadius: sanitizeCornerRadius(
       value.previousRangePipeCornerRadius,
+    ),
+    majorRoundFxInterval: sanitizePositiveNumber(
+      value.majorRoundFxInterval,
+      defaultChartSettings.majorRoundFxInterval,
+    ),
+    majorRoundJpyInterval: sanitizePositiveNumber(
+      value.majorRoundJpyInterval,
+      defaultChartSettings.majorRoundJpyInterval,
+    ),
+    majorRoundGoldInterval: sanitizePositiveNumber(
+      value.majorRoundGoldInterval,
+      defaultChartSettings.majorRoundGoldInterval,
+    ),
+    majorRoundNas100Interval: sanitizePositiveNumber(
+      value.majorRoundNas100Interval,
+      defaultChartSettings.majorRoundNas100Interval,
+    ),
+    majorRoundSp500Interval: sanitizePositiveNumber(
+      value.majorRoundSp500Interval,
+      defaultChartSettings.majorRoundSp500Interval,
+    ),
+    majorRoundDefaultInterval: sanitizePositiveNumber(
+      value.majorRoundDefaultInterval,
+      defaultChartSettings.majorRoundDefaultInterval,
     ),
     rightOffsetBars: sanitizeOffset(value.rightOffsetBars),
     updateIntervalMinutes: sanitizeInterval(value.updateIntervalMinutes),
@@ -111,4 +152,10 @@ function sanitizeInterval(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(60, Math.max(1, Math.round(value)))
     : defaultChartSettings.updateIntervalMinutes;
+}
+
+function sanitizePositiveNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : fallback;
 }

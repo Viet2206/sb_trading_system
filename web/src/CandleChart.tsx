@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Candle, OverlayResponse } from "./api";
 import { ChartSettings, lineDashArray } from "./chartSettings";
+import { buildMajorRoundNumbers } from "./majorRoundNumbers";
 
 const emaDefinitions = [
   { period: 9, colorKey: "ema9Color", lineWidth: 2 },
@@ -29,6 +30,14 @@ type SvgLevel = {
   y: number;
   labelX: number;
   price: number;
+  color: string;
+};
+
+type SvgRoundNumber = {
+  key: string;
+  label: string;
+  y: number;
+  labelX: number;
   color: string;
 };
 
@@ -101,17 +110,21 @@ type SvgLabel = {
 };
 
 type CandleChartProps = {
+  symbol: string;
   candles: Candle[];
   overlays: OverlayResponse | null;
   showFiveEma: boolean;
+  showMajorRoundNumbers: boolean;
   defaultViewDays: number;
   settings: ChartSettings;
 };
 
 export function CandleChart({
+  symbol,
   candles,
   overlays,
   showFiveEma,
+  showMajorRoundNumbers,
   defaultViewDays,
   settings,
 }: CandleChartProps) {
@@ -122,9 +135,12 @@ export function CandleChart({
   const overlaysRef = useRef(overlays);
   const chartDataRef = useRef<CandlestickData[]>([]);
   const settingsRef = useRef(settings);
+  const symbolRef = useRef(symbol);
+  const showMajorRoundNumbersRef = useRef(showMajorRoundNumbers);
   const redrawFrameRef = useRef<number | null>(null);
   const followupRedrawFrameRef = useRef<number | null>(null);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
+  const [svgRoundNumbers, setSvgRoundNumbers] = useState<SvgRoundNumber[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
   const [svgDaySeparators, setSvgDaySeparators] = useState<SvgDaySeparator[]>([]);
@@ -158,6 +174,12 @@ export function CandleChart({
     overlaysRef.current = overlays;
     scheduleOverlayRedraw();
   }, [overlays]);
+
+  useEffect(() => {
+    symbolRef.current = symbol;
+    showMajorRoundNumbersRef.current = showMajorRoundNumbers;
+    scheduleOverlayRedraw();
+  }, [showMajorRoundNumbers, symbol]);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -325,6 +347,26 @@ export function CandleChart({
       })
       .filter((level): level is SvgLevel => level !== null);
 
+    const nextRoundNumbers = showMajorRoundNumbersRef.current
+      ? buildMajorRoundNumbers(
+        chartDataRef.current,
+        symbolRef.current,
+        currentSettings,
+      )
+        .map((level) => {
+          const y = series.priceToCoordinate(level.price);
+          if (y == null) return null;
+          return {
+            key: level.key,
+            label: level.label,
+            y: Number(y),
+            labelX: Math.max(12, paneWidth - 82),
+            color: currentSettings.majorRoundNumberColor,
+          };
+        })
+        .filter((level): level is SvgRoundNumber => level !== null)
+      : [];
+
     const nextSessions = (overlaysRef.current?.sessions ?? [])
       .map((session) => {
         const x1 = chart.timeScale().timeToCoordinate(toTimestamp(session.start_time));
@@ -488,8 +530,10 @@ export function CandleChart({
 
     if (paneWidth <= 0) {
       setSvgLevels([]);
+      setSvgRoundNumbers([]);
     } else {
       setSvgLevels(nextLevels);
+      setSvgRoundNumbers(nextRoundNumbers);
     }
     setSvgSessions(nextSessions);
     setSvgDayPeriods(nextDayPeriods);
@@ -634,6 +678,27 @@ export function CandleChart({
               className="day-close-segment"
               strokeDasharray={lineDashArray(settings.previousCloseStyle)}
             />
+          </g>
+        ))}
+        {svgRoundNumbers.map((level) => (
+          <g key={level.key}>
+            <line
+              x1={0}
+              y1={level.y}
+              x2="100%"
+              y2={level.y}
+              stroke={level.color}
+              className="round-number-line"
+              strokeDasharray={lineDashArray(settings.majorRoundNumberStyle)}
+            />
+            <text
+              x={level.labelX}
+              y={level.y}
+              fill={level.color}
+              className="round-number-label"
+            >
+              {level.label}
+            </text>
           </g>
         ))}
         {svgLevels.map((level) => (

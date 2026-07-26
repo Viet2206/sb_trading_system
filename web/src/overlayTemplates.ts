@@ -7,6 +7,10 @@ export const overlayTemplates = [
     id: "five_ema",
     label: "5 EMA",
   },
+  {
+    id: "major_round_number",
+    label: "Major Round Number",
+  },
 ] as const;
 
 export type OverlayTemplateId = (typeof overlayTemplates)[number]["id"];

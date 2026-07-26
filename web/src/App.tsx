@@ -337,6 +337,7 @@ export function App() {
           >
             <div className="chart-stage">
               <CandleChart
+                symbol={symbol}
                 candles={candles}
                 overlays={
                   activeOverlayTemplates.includes("weekly_template")
@@ -344,6 +345,9 @@ export function App() {
                     : null
                 }
                 showFiveEma={activeOverlayTemplates.includes("five_ema")}
+                showMajorRoundNumbers={activeOverlayTemplates.includes(
+                  "major_round_number",
+                )}
                 defaultViewDays={chartWindowDays(timeframe)}
                 settings={chartSettings}
               />
