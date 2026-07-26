@@ -41,6 +41,28 @@ class _FakeOpenAI:
         self.responses = _FakeResponses()
 
 
+class _FakeChatCompletions:
+    def create(self, **_kwargs):
+        message = type("Message", (), {"content": "GLM supports the setup [S1]."})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice]})()
+
+
+class _FakeZAI:
+    def __init__(self, *_args, **_kwargs) -> None:
+        self.chat = type("Chat", (), {"completions": _FakeChatCompletions()})()
+
+
+class _FailingChatCompletions:
+    def create(self, **_kwargs):
+        raise RuntimeError("provider overloaded")
+
+
+class _FailingZAI:
+    def __init__(self, *_args, **_kwargs) -> None:
+        self.chat = type("Chat", (), {"completions": _FailingChatCompletions()})()
+
+
 class ResearchLibraryTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -132,6 +154,49 @@ class ResearchLibraryTests(unittest.TestCase):
             [tool["name"] for tool in result["tools"]],
             ["search_sb_library", "synthesize_evidence"],
         )
+
+    @patch("pypdf.PdfReader", _FakeReader)
+    @patch("openai.OpenAI", _FakeZAI)
+    def test_agent_supports_zai_chat_completions(self) -> None:
+        self.library.index_documents()
+        with patch.dict(
+            os.environ,
+            {
+                "SB_AI_PROVIDER": "zai",
+                "ZAI_API_KEY": "test-key",
+                "ZAI_MODEL": "glm-4.7-flash",
+            },
+            clear=False,
+        ):
+            result = SBResearchAgent(self.library).analyze(
+                question="What supports a First Green Day?"
+            )
+
+        self.assertEqual(result["mode"], "ai")
+        self.assertEqual(result["model"], "glm-4.7-flash")
+        self.assertIn("[S1]", result["answer"])
+
+    @patch("pypdf.PdfReader", _FakeReader)
+    @patch("openai.OpenAI", _FailingZAI)
+    def test_agent_falls_back_to_cited_retrieval_when_zai_is_busy(self) -> None:
+        self.library.index_documents()
+        with patch.dict(
+            os.environ,
+            {
+                "SB_AI_PROVIDER": "zai",
+                "ZAI_API_KEY": "test-key",
+                "ZAI_MODEL": "glm-4.7-flash",
+            },
+            clear=False,
+        ):
+            result = SBResearchAgent(self.library).analyze(
+                question="What supports a First Green Day?"
+            )
+
+        self.assertEqual(result["mode"], "retrieval")
+        self.assertIn("[S1]", result["answer"])
+        self.assertIn("temporarily unavailable", result["warning"])
+        self.assertEqual(result["tools"][-1]["status"], "unavailable")
 
 
 if __name__ == "__main__":

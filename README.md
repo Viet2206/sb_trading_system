@@ -39,8 +39,8 @@ python scripts/index_research_library.py
 ```
 
 The local index supports search and RAG retrieval without an API key. To enable AI
-synthesis and visual page analysis, set `OPENAI_API_KEY` in `.env`. Keep credentials
-out of Git and do not enter them in the browser UI.
+synthesis and visual page analysis, configure either Z.AI or OpenAI in `.env`. Keep
+credentials out of Git and do not enter them in the browser UI.
 
 The default setup now uses local file storage, so Docker and PostgreSQL are not required for the lightweight Windows workflow:
 
@@ -462,7 +462,7 @@ The dashboard supports:
   and page-level citations.
 - Research Library inventories every indexed document and opens the original PDF.
 - Research Analyst combines deterministic market context with retrieved evidence. It
-  operates in retrieval-only mode until an OpenAI API key is configured.
+  operates in retrieval-only mode until a supported AI provider is configured.
 - Source Inspector renders the original PDF page and optionally sends that page to the
   configured multimodal model for visual analysis.
 
@@ -478,6 +478,10 @@ Default configuration:
 SB_RESEARCH_DOCS_DIR=docs
 SB_RESEARCH_INDEX=data/research/research.sqlite3
 SB_EMBEDDING_PROVIDER=local
+SB_AI_PROVIDER=zai
+ZAI_BASE_URL=https://api.z.ai/api/paas/v4
+ZAI_MODEL=glm-4.7-flash
+ZAI_VISION_MODEL=glm-4.6v-flash
 OPENAI_MODEL=gpt-5.6-terra
 OPENAI_REASONING_EFFORT=low
 ```

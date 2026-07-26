@@ -15,7 +15,7 @@ PDF corpus
   -> local SQLite research index
   -> hybrid search and citations
   -> deterministic market-context packet
-  -> retrieval-only answer or OpenAI Responses API synthesis
+  -> retrieval-only answer or configured-provider synthesis
   -> Research UI with original source pages
 ```
 
@@ -35,9 +35,9 @@ PDF corpus
 - Retrieves evidence before generating any analysis.
 - Adds deterministic D1 market context when a symbol is available.
 - Uses citation IDs such as `[S1]` in the evidence packet.
-- Runs in retrieval-only mode when `OPENAI_API_KEY` is absent.
-- Uses the Responses API for evidence synthesis and multimodal page analysis when
-  configured.
+- Runs in retrieval-only mode when the selected provider has no API key.
+- Supports Z.AI Chat Completions and the OpenAI Responses API.
+- Uses a separately configurable vision model for rendered source-page analysis.
 
 `web/src/ResearchPage.tsx`
 
@@ -94,18 +94,23 @@ SB_RESEARCH_DOCS_DIR=docs
 SB_RESEARCH_INDEX=data/research/research.sqlite3
 SB_RESEARCH_PAGE_CACHE=data/research/pages
 SB_EMBEDDING_PROVIDER=local
+SB_AI_PROVIDER=zai
+ZAI_API_KEY=
+ZAI_BASE_URL=https://api.z.ai/api/paas/v4
+ZAI_MODEL=glm-4.7-flash
+ZAI_VISION_MODEL=glm-4.6v-flash
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.6-terra
 OPENAI_REASONING_EFFORT=low
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-Keep `OPENAI_API_KEY` in `.env`; never commit it.
+Keep provider API keys in `.env`; never commit them.
 
 When AI is enabled, the selected evidence excerpts and deterministic market-context
-packet are sent to OpenAI for synthesis. Visual analysis also sends the selected
-rendered PDF page. Keep `SB_EMBEDDING_PROVIDER=local` if the document corpus must not
-be sent for remote embedding.
+packet are sent to the selected provider for synthesis. Visual analysis also sends
+the selected rendered PDF page. Keep `SB_EMBEDDING_PROVIDER=local` if the document
+corpus must not be sent for remote embedding.
 
 ## Validation Boundary
 

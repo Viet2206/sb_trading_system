@@ -8,7 +8,10 @@ from typing import Any
 from sb_system.research import ResearchLibrary
 
 
-DEFAULT_MODEL = "gpt-5.6-terra"
+DEFAULT_OPENAI_MODEL = "gpt-5.6-terra"
+DEFAULT_ZAI_MODEL = "glm-4.7-flash"
+DEFAULT_ZAI_VISION_MODEL = "glm-4.6v-flash"
+DEFAULT_ZAI_BASE_URL = "https://api.z.ai/api/paas/v4"
 
 
 class SBResearchAgent:
@@ -16,15 +19,30 @@ class SBResearchAgent:
         self.library = library or ResearchLibrary()
 
     def status(self) -> dict[str, Any]:
-        configured = bool(os.getenv("OPENAI_API_KEY", "").strip())
+        provider = _selected_provider()
+        api_key_name = "ZAI_API_KEY" if provider == "zai" else "OPENAI_API_KEY"
+        configured = bool(os.getenv(api_key_name, "").strip())
+        if provider == "zai":
+            model = (
+                os.getenv("ZAI_MODEL", DEFAULT_ZAI_MODEL).strip()
+                or DEFAULT_ZAI_MODEL
+            )
+            provider_name = "Z.AI"
+        else:
+            model = (
+                os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL).strip()
+                or DEFAULT_OPENAI_MODEL
+            )
+            provider_name = "OpenAI"
         return {
             "configured": configured,
             "mode": "ai" if configured else "retrieval",
-            "model": os.getenv("OPENAI_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL,
+            "provider": provider,
+            "model": model,
             "message": (
-                "AI synthesis is ready."
+                f"{provider_name} synthesis is ready."
                 if configured
-                else "Search works locally. Add OPENAI_API_KEY to enable AI synthesis and vision."
+                else f"Search works locally. Add {api_key_name} to enable AI synthesis and vision."
             ),
         }
 
@@ -96,20 +114,50 @@ class SBResearchAgent:
             f"Retrieved SB evidence:\n{evidence}"
         )
 
-        from openai import OpenAI
-
-        client = OpenAI(timeout=60.0, max_retries=2)
+        provider = agent_status["provider"]
+        client = _ai_client(provider)
         model = agent_status["model"]
         try:
-            response = client.responses.create(
-                model=model,
-                instructions=instructions,
-                input=user_input,
-                reasoning={"effort": os.getenv("OPENAI_REASONING_EFFORT", "low")},
-                max_output_tokens=1800,
+            if provider == "zai":
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": instructions},
+                        {"role": "user", "content": user_input},
+                    ],
+                    max_tokens=1800,
+                    temperature=0.2,
+                    extra_body={"thinking": {"type": "disabled"}},
+                )
+                answer = response.choices[0].message.content or ""
+            else:
+                response = client.responses.create(
+                    model=model,
+                    instructions=instructions,
+                    input=user_input,
+                    reasoning={"effort": os.getenv("OPENAI_REASONING_EFFORT", "low")},
+                    max_output_tokens=1800,
+                )
+                answer = response.output_text
+        except Exception:
+            tools.append(
+                {
+                    "name": "synthesize_evidence",
+                    "status": "unavailable",
+                    "detail": f"{model} was busy; returned cited local evidence instead.",
+                }
             )
-        except Exception as exc:
-            raise RuntimeError(f"AI synthesis is temporarily unavailable: {exc}") from exc
+            return {
+                "mode": "retrieval",
+                "model": model,
+                "answer": _retrieval_answer(clean_question, sources, market_context),
+                "sources": sources,
+                "tools": tools,
+                "warning": (
+                    "The AI provider is temporarily unavailable. "
+                    "Showing the cited local retrieval result."
+                ),
+            }
         tools.append(
             {
                 "name": "synthesize_evidence",
@@ -120,7 +168,7 @@ class SBResearchAgent:
         return {
             "mode": "ai",
             "model": model,
-            "answer": response.output_text,
+            "answer": answer,
             "sources": sources,
             "tools": tools,
             "warning": None,
@@ -151,7 +199,7 @@ class SBResearchAgent:
                 "mode": "preview",
                 "model": None,
                 "answer": (
-                    "The page preview is ready. Add OPENAI_API_KEY to analyze chart structure, "
+                    "The page preview is ready. Configure an AI provider to analyze chart structure, "
                     "annotations, sessions, and visual similarities."
                 ),
                 "document": document,
@@ -165,38 +213,101 @@ class SBResearchAgent:
             "Describe only what is visible. Distinguish printed source annotations from your inference. "
             "Do not provide a trade order."
         )
-        from openai import OpenAI
-
-        client = OpenAI(timeout=60.0, max_retries=2)
-        model = agent_status["model"]
-        try:
-            response = client.responses.create(
-                model=model,
-                input=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "input_text", "text": prompt},
-                            {
-                                "type": "input_image",
-                                "image_url": f"data:image/png;base64,{image_base64}",
-                                "detail": "original",
-                            },
-                        ],
-                    }
-                ],
-                reasoning={"effort": os.getenv("OPENAI_REASONING_EFFORT", "low")},
-                max_output_tokens=1400,
+        provider = agent_status["provider"]
+        client = _ai_client(provider)
+        if provider == "zai":
+            model = (
+                os.getenv("ZAI_VISION_MODEL", DEFAULT_ZAI_VISION_MODEL).strip()
+                or DEFAULT_ZAI_VISION_MODEL
             )
-        except Exception as exc:
-            raise RuntimeError(f"Visual analysis is temporarily unavailable: {exc}") from exc
+        else:
+            model = agent_status["model"]
+        try:
+            if provider == "zai":
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{image_base64}"
+                                    },
+                                },
+                                {"type": "text", "text": prompt},
+                            ],
+                        }
+                    ],
+                    max_tokens=1400,
+                    temperature=0.2,
+                    extra_body={"thinking": {"type": "disabled"}},
+                )
+                answer = response.choices[0].message.content or ""
+            else:
+                response = client.responses.create(
+                    model=model,
+                    input=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": prompt},
+                                {
+                                    "type": "input_image",
+                                    "image_url": f"data:image/png;base64,{image_base64}",
+                                    "detail": "original",
+                                },
+                            ],
+                        }
+                    ],
+                    reasoning={"effort": os.getenv("OPENAI_REASONING_EFFORT", "low")},
+                    max_output_tokens=1400,
+                )
+                answer = response.output_text
+        except Exception:
+            return {
+                "mode": "preview",
+                "model": model,
+                "answer": (
+                    "The visual model is temporarily unavailable. "
+                    "The original rendered source page remains available for inspection."
+                ),
+                "document": document,
+                "page": page,
+            }
         return {
             "mode": "ai",
             "model": model,
-            "answer": response.output_text,
+            "answer": answer,
             "document": document,
             "page": page,
         }
+
+
+def _selected_provider() -> str:
+    configured = os.getenv("SB_AI_PROVIDER", "").strip().lower()
+    if configured in {"openai", "zai"}:
+        return configured
+    if os.getenv("ZAI_API_KEY", "").strip():
+        return "zai"
+    return "openai"
+
+
+def _ai_client(provider: str):
+    from openai import OpenAI
+
+    if provider == "zai":
+        return OpenAI(
+            api_key=os.getenv("ZAI_API_KEY", "").strip(),
+            base_url=(
+                os.getenv("ZAI_BASE_URL", DEFAULT_ZAI_BASE_URL).strip()
+                or DEFAULT_ZAI_BASE_URL
+            ),
+            timeout=60.0,
+            max_retries=2,
+        )
+    return OpenAI(timeout=60.0, max_retries=2)
 
 
 def _retrieval_answer(

@@ -240,7 +240,7 @@ Risk:
 Current implementation:
 
 - PDF pages can be rendered on demand with PyMuPDF and inspected in the Research UI.
-- When `OPENAI_API_KEY` is configured, the selected source page can be submitted as an
+- When Z.AI or OpenAI is configured, the selected source page can be submitted as an
   image input for annotation and setup analysis.
 - Vision output is supporting evidence only. It cannot create or override a
   deterministic signal.
