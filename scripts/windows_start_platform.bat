@@ -60,6 +60,15 @@ if errorlevel 1 (
 )
 
 echo.
+echo === Prepare SB research index ===
+python scripts\index_research_library.py
+if errorlevel 1 (
+    echo Research indexing failed. Review the PDF errors above and run this script again.
+    pause
+    exit /b 1
+)
+
+echo.
 echo === Prepare Web UI dependencies ===
 where npm >nul 2>nul
 if errorlevel 1 (

@@ -183,6 +183,77 @@ export type DailyChecklistResponse = {
   state: DailyChecklistState;
 };
 
+export type ResearchAIStatus = {
+  configured: boolean;
+  mode: "ai" | "retrieval";
+  model: string;
+  message: string;
+};
+
+export type ResearchStatus = {
+  ready: boolean;
+  documents: number;
+  pages: number;
+  chunks: number;
+  indexed_at: string | null;
+  embedding_provider: string;
+  embedding_model: string;
+  docs_dir: string;
+  setup_types: string[];
+  ai: ResearchAIStatus;
+};
+
+export type ResearchDocument = {
+  id: string;
+  path: string;
+  title: string;
+  category: string;
+  pages: number;
+  setup_types: string[];
+  indexed_at: string;
+};
+
+export type ResearchResult = {
+  citation: string;
+  score: number;
+  document_id: string;
+  document_title: string;
+  category: string;
+  page: number;
+  setup_types: string[];
+  excerpt: string;
+  visual_only: boolean;
+};
+
+export type ResearchSearchResponse = {
+  query: string;
+  count: number;
+  results: ResearchResult[];
+};
+
+export type ResearchToolTrace = {
+  name: string;
+  status: string;
+  detail: string;
+};
+
+export type ResearchAnalysisResponse = {
+  mode: "ai" | "retrieval";
+  model: string | null;
+  answer: string;
+  sources: ResearchResult[];
+  tools: ResearchToolTrace[];
+  warning: string | null;
+};
+
+export type VisionAnalysisResponse = {
+  mode: "ai" | "preview";
+  model: string | null;
+  answer: string;
+  document: ResearchDocument;
+  page: number;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl();
 
 export async function fetchSummary(): Promise<CandleSummary[]> {
@@ -250,6 +321,79 @@ export async function updateDailyChecklistState(
     },
     body: JSON.stringify(state),
   });
+}
+
+export async function fetchResearchStatus(): Promise<ResearchStatus> {
+  return fetchJson<ResearchStatus>("/research/status");
+}
+
+export async function indexResearchLibrary(rebuild = false): Promise<ResearchStatus> {
+  return fetchJson<ResearchStatus>("/research/index", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ rebuild }),
+  });
+}
+
+export async function fetchResearchDocuments(
+  options: { category?: string; setup?: string } = {},
+): Promise<ResearchDocument[]> {
+  const params = new URLSearchParams();
+  if (options.category) params.set("category", options.category);
+  if (options.setup) params.set("setup", options.setup);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return fetchJson<ResearchDocument[]>(`/research/documents${suffix}`);
+}
+
+export async function searchResearch(
+  query: string,
+  options: { category?: string; setup?: string; limit?: number } = {},
+): Promise<ResearchSearchResponse> {
+  const params = new URLSearchParams({ query });
+  if (options.category) params.set("category", options.category);
+  if (options.setup) params.set("setup", options.setup);
+  if (options.limit) params.set("limit", String(options.limit));
+  return fetchJson<ResearchSearchResponse>(`/research/search?${params.toString()}`);
+}
+
+export async function analyzeResearch(payload: {
+  question: string;
+  symbol?: string;
+  timeframe?: string;
+  setup?: string;
+}): Promise<ResearchAnalysisResponse> {
+  return fetchJson<ResearchAnalysisResponse>("/research/analyze", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function analyzeResearchPage(payload: {
+  document_id: string;
+  page: number;
+  question?: string;
+}): Promise<VisionAnalysisResponse> {
+  return fetchJson<VisionAnalysisResponse>("/research/vision", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function researchDocumentUrl(documentId: string, page?: number) {
+  const suffix = page ? `#page=${page}` : "";
+  return `${API_BASE_URL}/research/documents/${encodeURIComponent(documentId)}/file${suffix}`;
+}
+
+export function researchPageImageUrl(documentId: string, page: number) {
+  return `${API_BASE_URL}/research/documents/${encodeURIComponent(documentId)}/pages/${page}.png`;
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {

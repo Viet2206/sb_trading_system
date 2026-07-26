@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  BrainCircuit,
   ClipboardList,
   LineChart,
   PanelLeftClose,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import { CandleChart } from "./CandleChart";
 import { DailyChecklistPage } from "./DailyChecklistPage";
+import { ResearchPage } from "./ResearchPage";
 import { SettingsPage } from "./SettingsPage";
 import {
   Candle,
@@ -25,7 +27,7 @@ import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSett
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
-type Page = "chart" | "checklist" | "settings";
+type Page = "chart" | "checklist" | "research" | "settings";
 
 export function App() {
   const [activePage, setActivePage] = useState<Page>("chart");
@@ -175,6 +177,14 @@ export function App() {
             <span>Daily Checklist</span>
           </button>
           <button
+            className={activePage === "research" ? "nav-button active" : "nav-button"}
+            onClick={() => setActivePage("research")}
+            title="Research"
+          >
+            <BrainCircuit size={17} />
+            <span>Research</span>
+          </button>
+          <button
             className={activePage === "settings" ? "nav-button active" : "nav-button"}
             onClick={() => setActivePage("settings")}
             title="Setting"
@@ -212,6 +222,11 @@ export function App() {
               <>
                 <h2>Daily Checklist</h2>
                 <p>Wait until there is money laying in the corner</p>
+              </>
+            ) : activePage === "research" ? (
+              <>
+                <h2>Research</h2>
+                <p>Search the playbook, inspect source pages, and analyze evidence</p>
               </>
             ) : (
               <>
@@ -268,6 +283,12 @@ export function App() {
           />
         ) : activePage === "checklist" ? (
           <DailyChecklistPage />
+        ) : activePage === "research" ? (
+          <ResearchPage
+            summary={summary}
+            currentSymbol={symbol}
+            currentTimeframe={timeframe}
+          />
         ) : (
           <SettingsPage settings={chartSettings} onChange={setChartSettings} />
         )}
