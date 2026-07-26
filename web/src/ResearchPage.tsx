@@ -770,6 +770,7 @@ function EmptyState({ text }: { text: string }) {
 }
 
 function humanize(value: string) {
+  if (value === "closing-inside-breakout") return "Close In Breakout";
   return value
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (letter: string) => letter.toUpperCase());

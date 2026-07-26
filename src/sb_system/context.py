@@ -363,14 +363,11 @@ def _build_cib_markers(chart: pd.DataFrame, daily: pd.DataFrame) -> list[dict[st
             continue
 
         previous_index = int(previous_days.index[-1])
-        if not _is_closing_inside_breakout(daily, previous_index):
-            continue
-
-        previous_day = daily.loc[previous_index]
-        direction = _candle_direction(previous_day)
+        direction = _closing_breakout_direction(daily, previous_index)
         if direction is None:
             continue
 
+        previous_day = daily.loc[previous_index]
         boundary_time = day_slice.iloc[0]["candle_time"].to_pydatetime()
         markers.append(
             {
@@ -474,22 +471,17 @@ def _candle_direction(row: pd.Series) -> str | None:
     return None
 
 
-def _is_closing_inside_breakout(daily: pd.DataFrame, index: int) -> bool:
+def _closing_breakout_direction(daily: pd.DataFrame, index: int) -> str | None:
     if index <= 0:
-        return False
+        return None
 
     row = daily.loc[index]
     previous = daily.loc[index - 1]
-    closes_inside = (
-        float(previous["low"])
-        < float(row["close"])
-        < float(previous["high"])
-    )
-    breaks_range = (
-        float(row["high"]) > float(previous["high"])
-        or float(row["low"]) < float(previous["low"])
-    )
-    return closes_inside and breaks_range
+    if float(row["close"]) > float(previous["high"]):
+        return "green"
+    if float(row["close"]) < float(previous["low"]):
+        return "red"
+    return None
 
 
 def _previous_direction_count(daily: pd.DataFrame, index: int, direction: str) -> int:

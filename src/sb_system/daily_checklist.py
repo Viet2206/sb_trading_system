@@ -11,7 +11,7 @@ import pandas as pd
 from sb_system.context import (
     _classify_day,
     _candle_direction,
-    _is_closing_inside_breakout,
+    _closing_breakout_direction,
     _week_start,
 )
 from sb_system.market_data import PROJECT_ROOT, fetch_candles
@@ -455,11 +455,11 @@ def _cib_label(daily: pd.DataFrame, index: int) -> str | None:
     if index <= 0:
         return None
 
-    if not _is_closing_inside_breakout(daily, index):
+    if _closing_breakout_direction(daily, index) is None:
         return None
 
     previous_is_cib = (
-        _is_closing_inside_breakout(daily, index - 1)
+        _closing_breakout_direction(daily, index - 1) is not None
         if index >= 2
         else False
     )
