@@ -95,6 +95,9 @@ export function CandleChart({
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const overlaysRef = useRef(overlays);
   const chartDataRef = useRef<CandlestickData[]>([]);
+  const settingsRef = useRef(settings);
+  const redrawFrameRef = useRef<number | null>(null);
+  const followupRedrawFrameRef = useRef<number | null>(null);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
@@ -116,17 +119,18 @@ export function CandleChart({
 
   useEffect(() => {
     overlaysRef.current = overlays;
-    redrawOverlays();
+    scheduleOverlayRedraw();
   }, [overlays]);
 
   useEffect(() => {
+    settingsRef.current = settings;
     chartRef.current?.applyOptions({
       timeScale: {
         rightOffset: settings.rightOffsetBars,
       },
     });
     applyDefaultVisibleRange();
-    redrawOverlays();
+    scheduleOverlayRedraw();
   }, [settings]);
 
   useEffect(() => {
@@ -169,9 +173,20 @@ export function CandleChart({
     chartRef.current = chart;
     seriesRef.current = series;
 
-    chart.timeScale().subscribeVisibleTimeRangeChange(() => redrawOverlays());
+    const handleRangeChange = () => scheduleOverlayRedraw();
+    const handleSizeChange = () => scheduleOverlayRedraw();
+    chart.timeScale().subscribeVisibleTimeRangeChange(handleRangeChange);
+    chart.timeScale().subscribeSizeChange(handleSizeChange);
+
+    const resizeObserver = new ResizeObserver(() => scheduleOverlayRedraw());
+    resizeObserver.observe(containerRef.current);
+    scheduleOverlayRedraw();
 
     return () => {
+      resizeObserver.disconnect();
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(handleRangeChange);
+      chart.timeScale().unsubscribeSizeChange(handleSizeChange);
+      cancelScheduledOverlayRedraw();
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
@@ -183,13 +198,47 @@ export function CandleChart({
     chartDataRef.current = chartData;
     seriesRef.current.setData(chartData);
     applyDefaultVisibleRange();
-    redrawOverlays();
+    scheduleOverlayRedraw();
   }, [chartData, defaultViewDays]);
+
+  function scheduleOverlayRedraw() {
+    if (redrawFrameRef.current != null) {
+      window.cancelAnimationFrame(redrawFrameRef.current);
+    }
+    if (followupRedrawFrameRef.current != null) {
+      window.cancelAnimationFrame(followupRedrawFrameRef.current);
+      followupRedrawFrameRef.current = null;
+    }
+
+    redrawFrameRef.current = window.requestAnimationFrame(() => {
+      redrawFrameRef.current = null;
+      redrawOverlays();
+
+      // Lightweight Charts completes autoscaling during its own animation frame.
+      // A follow-up pass keeps SVG coordinates aligned with the settled scales.
+      followupRedrawFrameRef.current = window.requestAnimationFrame(() => {
+        followupRedrawFrameRef.current = null;
+        redrawOverlays();
+      });
+    });
+  }
+
+  function cancelScheduledOverlayRedraw() {
+    if (redrawFrameRef.current != null) {
+      window.cancelAnimationFrame(redrawFrameRef.current);
+      redrawFrameRef.current = null;
+    }
+    if (followupRedrawFrameRef.current != null) {
+      window.cancelAnimationFrame(followupRedrawFrameRef.current);
+      followupRedrawFrameRef.current = null;
+    }
+  }
 
   function redrawOverlays() {
     const chart = chartRef.current;
     const series = seriesRef.current;
     if (!chart || !series) return;
+    const currentSettings = settingsRef.current;
 
     const pane = containerRef.current?.getBoundingClientRect();
     const paneWidth = pane?.width ?? 0;
@@ -209,7 +258,7 @@ export function CandleChart({
           y: Number(y),
           labelX: Math.max(12, paneWidth - 112),
           price: level.price,
-          color: settings.horizontalLevelColor,
+          color: currentSettings.horizontalLevelColor,
         };
       })
       .filter((level): level is SvgLevel => level !== null);
@@ -231,7 +280,7 @@ export function CandleChart({
           y: top,
           width: Math.max(2, right - left),
           height: Math.max(2, bottom - top),
-          color: sessionColor(session.id, settings),
+          color: sessionColor(session.id, currentSettings),
         };
       })
       .filter((session): session is SvgSession => session !== null);
@@ -286,7 +335,7 @@ export function CandleChart({
           x1: left,
           x2: right,
           y: Number(y),
-          color: settings.previousCloseColor,
+          color: currentSettings.previousCloseColor,
         };
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
@@ -307,7 +356,7 @@ export function CandleChart({
           x2: right,
           yHigh: Number(yHigh),
           yLow: Number(yLow),
-          color: settings.previousRangePipeColor,
+          color: currentSettings.previousRangePipeColor,
         };
       })
       .filter((pipe): pipe is SvgDayRangePipe => pipe !== null);
