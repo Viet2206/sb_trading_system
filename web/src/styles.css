@@ -1164,7 +1164,7 @@ select {
   pointer-events: none;
   stroke: #ffffff;
   stroke-width: 3px;
-  text-anchor: end;
+  text-anchor: start;
 }
 
 .setup-label {

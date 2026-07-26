@@ -360,7 +360,7 @@ export function CandleChart({
             key: level.key,
             label: level.label,
             y: Number(y),
-            labelX: Math.max(12, paneWidth - 82),
+            labelX: 12,
             color: currentSettings.majorRoundNumberColor,
           };
         })
