@@ -52,10 +52,10 @@ def load_config(env_path: str | Path | None = None, *, require_database_url: boo
 
     symbols = _split_env(
         "SB_SYMBOLS",
-        "EURUSD,GBPUSD,USDJPY,AUDUSD,NZDUSD,USDCAD,AMD,MSFT,XAUUSD.pc,NAS100,"
+        "EURUSD,GBPUSD,USDJPY,AUDUSD,NZDUSD,USDCAD,XAUUSD.pc,NAS100,"
         "BTCUSD.sc,USDCHF.pc,GBPJPY.pc,EURJPY.pc,SP500,AUDCAD.pc,AUDCHF.pc,"
         "AUDJPY.pc,CADCHF.pc,CADJPY.pc,CHFJPY.pc,COPPER-C,EURAUD.pc,EURCAD.pc,"
-        "EURCHF.pc,EURGBP.pc,GBPAUD.pc,GBPCAD.pc,GBPCHF.pc",
+        "EURCHF.pc,EURGBP.pc,GBPAUD.pc,GBPCAD.pc,GBPCHF.pc,USOUSD.pc",
     )
     timeframes = _split_env("SB_TIMEFRAMES", "M1,M5,M15,H1,H4,D1")
     import_start = date.fromisoformat(os.getenv("SB_IMPORT_START", "2026-01-01"))
