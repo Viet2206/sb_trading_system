@@ -409,6 +409,9 @@ Implementation status:
 - Complete: document inventory, text extraction, page citations, local hybrid search,
   source-page rendering, RAG evidence packets, retrieval-only fallback, AI synthesis,
   and optional visual source-page analysis.
+- Complete first matching slice: deterministic current-chart fingerprints, page-level
+  historical example ranking, source-diverse thumbnails below the chart, transparent
+  score components, and persistent Relevant/Unsure/Not Relevant review feedback.
 - Pending validation data: calibrated visual similarity between the current chart and
   labelled historical examples. Page/title/setup retrieval is available now, but a
   meaningful image-similarity confidence score requires user-reviewed example labels.

@@ -245,6 +245,321 @@ select {
   overflow: hidden;
 }
 
+.historical-matches {
+  display: grid;
+  min-width: 0;
+  padding: 18px 22px 22px;
+  background: #ffffff;
+  border-top: 1px solid #94a3b8;
+  gap: 14px;
+}
+
+.historical-matches-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 16px;
+}
+
+.historical-matches-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.historical-matches-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.historical-refresh,
+.open-source-button,
+.match-review-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.historical-refresh {
+  min-height: 36px;
+  padding: 0 12px;
+  gap: 7px;
+}
+
+.historical-refresh:hover,
+.open-source-button:hover,
+.match-review-button:hover,
+.match-review-button.active {
+  color: #0f766e;
+  border-color: #14b8a6;
+}
+
+.historical-refresh:disabled,
+.match-review-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.fingerprint-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fingerprint-item {
+  display: grid;
+  min-width: 0;
+  padding: 10px 12px;
+  border-right: 1px solid #e2e8f0;
+  gap: 3px;
+}
+
+.fingerprint-item:first-child {
+  padding-left: 0;
+}
+
+.fingerprint-item:last-child {
+  border-right: 0;
+}
+
+.fingerprint-item span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fingerprint-item strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historical-match-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  min-width: 0;
+  gap: 10px;
+}
+
+.historical-match-card {
+  display: grid;
+  grid-template-rows: 155px minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.historical-match-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.historical-match-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.match-score {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  min-width: 52px;
+  min-height: 44px;
+  padding: 3px 7px;
+  color: #334155;
+  background: rgb(255 255 255 / 94%);
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+}
+
+.match-score.strong {
+  color: #047857;
+  border-color: #6ee7b7;
+}
+
+.match-score.moderate {
+  color: #a16207;
+  border-color: #fde047;
+}
+
+.match-score strong {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.match-score small {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.historical-match-copy {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  padding: 11px;
+  gap: 10px;
+}
+
+.historical-match-title {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+
+.historical-match-title > span {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.historical-match-title strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historical-match-title small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.historical-match-tags {
+  display: flex;
+  min-height: 43px;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 4px;
+}
+
+.historical-match-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 19px;
+  padding: 0 6px;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.match-component-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.match-component {
+  display: grid;
+  gap: 4px;
+}
+
+.match-component > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #64748b;
+  font-size: 9px;
+  gap: 4px;
+}
+
+.match-component > div strong {
+  color: #334155;
+}
+
+.match-component-track {
+  position: relative;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+.match-component-track > span {
+  display: block;
+  height: 100%;
+  background: #0f766e;
+}
+
+.historical-match-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.open-source-button {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 11px;
+  gap: 6px;
+}
+
+.match-review-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.match-review-button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.historical-match-error,
+.historical-match-empty {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.historical-match-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-left: 3px solid #dc2626;
+}
+
+.historical-match-empty {
+  justify-content: center;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
 .chart-research-section {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -2136,6 +2451,31 @@ select {
 
   .chart-container {
     min-height: 460px;
+  }
+
+  .historical-matches {
+    padding: 14px 12px 18px;
+  }
+
+  .historical-matches-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fingerprint-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fingerprint-item:nth-child(2) {
+    border-right: 0;
+  }
+
+  .fingerprint-item:nth-child(-n + 2) {
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .historical-match-grid {
+    grid-template-columns: 1fr;
   }
 
   .checklist-page {

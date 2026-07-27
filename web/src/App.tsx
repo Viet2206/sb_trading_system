@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { CandleChart } from "./CandleChart";
 import { DailyChecklistPage } from "./DailyChecklistPage";
+import { HistoricalMatches } from "./HistoricalMatches";
 import { ResearchPage } from "./ResearchPage";
 import { SettingsPage } from "./SettingsPage";
 import {
@@ -49,6 +50,7 @@ export function App() {
   >(() => loadActiveOverlayTemplates());
   const [chartSettings, setChartSettings] = useState<ChartSettings>(() => loadChartSettings());
   const [loading, setLoading] = useState(true);
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const symbols = useMemo(
@@ -158,6 +160,7 @@ export function App() {
       ]);
       setCandles(candleData.candles);
       setOverlays(overlayData);
+      setChartRefreshKey((current) => current + 1);
     } catch (err) {
       setCandles([]);
       setOverlays(null);
@@ -180,6 +183,7 @@ export function App() {
       setSummary(summaryData);
       setCandles(candleData.candles);
       setOverlays(overlayData);
+      setChartRefreshKey((current) => current + 1);
     } catch (err) {
       setCandles([]);
       setOverlays(null);
@@ -352,6 +356,12 @@ export function App() {
                 settings={chartSettings}
               />
             </div>
+
+            <HistoricalMatches
+              symbol={symbol}
+              timeframe={timeframe}
+              refreshKey={chartRefreshKey}
+            />
 
             <section className="chart-research-section" aria-labelledby="chart-research-title">
               <header className="chart-research-heading">

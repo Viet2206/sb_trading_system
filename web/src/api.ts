@@ -251,6 +251,57 @@ export type ResearchSearchResponse = {
   results: ResearchResult[];
 };
 
+export type ChartFingerprint = {
+  id: string;
+  symbol: string;
+  timeframe: string;
+  last_candle_time: string;
+  setup_types: string[];
+  signal_labels: string[];
+  current_signal_labels: string[];
+  previous_signal_labels: string[];
+  candidate_direction: string;
+  weekly_state: string;
+  price_location: string[];
+  daily_direction: string;
+  day_count: number;
+  query: string;
+};
+
+export type HistoricalExampleMatch = ResearchResult & {
+  rank: number;
+  match_score: number;
+  match_band: "strong" | "moderate" | "exploratory";
+  components: {
+    research_relevance: number;
+    setup_alignment: number;
+    direction_alignment: number;
+    source_quality: number;
+  };
+  basis: string[];
+  source_direction: "long" | "short" | "unknown";
+  is_historical_example: boolean;
+  review_verdict: "relevant" | "not_relevant" | "unsure" | null;
+};
+
+export type HistoricalExampleMatchResponse = {
+  method: "context-v1";
+  calibrated: boolean;
+  score_meaning: string;
+  fingerprint: ChartFingerprint;
+  count: number;
+  matches: HistoricalExampleMatch[];
+};
+
+export type HistoricalExampleFeedback = {
+  fingerprint_id: string;
+  document_id: string;
+  page: number;
+  verdict: "relevant" | "not_relevant" | "unsure";
+  symbol: string;
+  timeframe: string;
+};
+
 export type ResearchToolTrace = {
   name: string;
   status: string;
@@ -386,6 +437,36 @@ export async function searchResearch(
   if (options.setup) params.set("setup", options.setup);
   if (options.limit) params.set("limit", String(options.limit));
   return fetchJson<ResearchSearchResponse>(`/research/search?${params.toString()}`);
+}
+
+export async function fetchHistoricalExampleMatches(
+  symbol: string,
+  timeframe: string,
+  limit = 8,
+): Promise<HistoricalExampleMatchResponse> {
+  const params = new URLSearchParams({
+    symbol,
+    timeframe,
+    limit: String(limit),
+  });
+  return fetchJson<HistoricalExampleMatchResponse>(
+    `/research/matches?${params.toString()}`,
+  );
+}
+
+export async function saveHistoricalExampleFeedback(
+  feedback: HistoricalExampleFeedback,
+): Promise<HistoricalExampleFeedback & { reviewed_at: string }> {
+  return fetchJson<HistoricalExampleFeedback & { reviewed_at: string }>(
+    "/research/matches/feedback",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(feedback),
+    },
+  );
 }
 
 export async function analyzeResearch(payload: {

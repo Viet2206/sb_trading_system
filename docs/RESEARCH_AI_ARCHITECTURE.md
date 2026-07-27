@@ -14,6 +14,9 @@ PDF corpus
   -> page-aware chunks and setup tags
   -> local SQLite research index
   -> hybrid search and citations
+  -> deterministic current-chart fingerprint
+  -> ranked historical example pages
+  -> user relevance feedback
   -> deterministic market-context packet
   -> retrieval-only answer or configured-provider synthesis
   -> Research UI with original source pages
@@ -45,6 +48,22 @@ PDF corpus
 - Library: document inventory, categories, tags, page counts, and original PDFs.
 - Analyst: market/setup context, evidence answer, source list, and tool trace.
 
+`src/sb_system/example_matching.py`
+
+- Builds a stable current-chart fingerprint from deterministic daily context.
+- Preserves current-day versus previous-day signal timing.
+- Ranks unique PDF pages using setup, direction, retrieval, and source-quality
+  components.
+- Alternates pages across source documents to avoid repetitive result shelves.
+- Stores Relevant, Unsure, and Not Relevant feedback for the exact chart fingerprint.
+
+`web/src/HistoricalMatches.tsx`
+
+- Shows ranked source-page thumbnails directly beneath the active chart.
+- Displays the fingerprint and transparent score components.
+- Opens the cited PDF at the matched page.
+- Captures user relevance feedback for later calibration.
+
 ## Evidence Contract
 
 Every retrieved result includes:
@@ -73,6 +92,12 @@ Rendered page cache:
 
 ```text
 data/research/pages/
+```
+
+Historical example feedback:
+
+```text
+data/research/historical_example_feedback.json
 ```
 
 Both are generated, ignored by Git, and rebuilt on each machine:
@@ -124,3 +149,8 @@ require user-labelled examples before they can be considered validated:
 
 Until that validation is complete, UI scores are research-ranking values, not trade
 probabilities.
+
+Historical matching currently uses method `context-v1`. It does not compare pixels
+between the live chart and the PDF page. A future calibrated visual model should be
+trained and evaluated from user-reviewed matches rather than introduced as an
+unverified confidence score.
