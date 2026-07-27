@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
 import {
   BookOpen,
-  Check,
-  CircleHelp,
-  RefreshCw,
-  SearchX,
-  X,
+  Images,
+  LoaderCircle,
+  Search,
 } from "lucide-react";
 import {
-  HistoricalExampleMatch,
-  HistoricalExampleMatchResponse,
-  fetchHistoricalExampleMatches,
+  buildChartImageIndex,
+  chartImageUrl,
+  ChartImageIndexStatus,
+  ChartImageMatchResponse,
+  fetchChartImageIndexStatus,
   researchDocumentUrl,
-  researchPageImageUrl,
-  saveHistoricalExampleFeedback,
+  searchChartImages,
 } from "./api";
 
 type HistoricalMatchesProps = {
@@ -23,69 +21,49 @@ type HistoricalMatchesProps = {
   refreshKey: number;
 };
 
-type Verdict = "relevant" | "not_relevant" | "unsure";
-
 export function HistoricalMatches({
   symbol,
   timeframe,
   refreshKey,
 }: HistoricalMatchesProps) {
-  const [data, setData] = useState<HistoricalExampleMatchResponse | null>(null);
+  const [status, setStatus] = useState<ChartImageIndexStatus | null>(null);
+  const [data, setData] = useState<ChartImageMatchResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [reviewing, setReviewing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (symbol && timeframe) void loadMatches();
+    void loadStatus();
+  }, []);
+
+  useEffect(() => {
+    setData(null);
+    setError(null);
   }, [symbol, timeframe, refreshKey]);
 
-  async function loadMatches() {
-    setLoading(true);
-    setError(null);
+  async function loadStatus() {
     try {
-      setData(await fetchHistoricalExampleMatches(symbol, timeframe, 8));
+      setStatus(await fetchChartImageIndexStatus());
     } catch (requestError) {
-      setData(null);
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Historical examples are unavailable.",
-      );
-    } finally {
-      setLoading(false);
+      setError(cleanApiError(requestError));
     }
   }
 
-  async function review(match: HistoricalExampleMatch, verdict: Verdict) {
-    if (!data) return;
-    const key = `${match.document_id}-${match.page}`;
-    setReviewing(key);
+  async function findMatches() {
+    setLoading(true);
     setError(null);
     try {
-      await saveHistoricalExampleFeedback({
-        fingerprint_id: data.fingerprint.id,
-        document_id: match.document_id,
-        page: match.page,
-        verdict,
-        symbol,
-        timeframe,
-      });
-      setData((current) => current && ({
-        ...current,
-        matches: current.matches.map((item) =>
-          item.document_id === match.document_id && item.page === match.page
-            ? { ...item, review_verdict: verdict }
-            : item
-        ),
-      }));
+      let currentStatus = status;
+      if (!currentStatus?.ready) {
+        currentStatus = await buildChartImageIndex(false);
+        setStatus(currentStatus);
+      }
+      const imageData = captureCurrentChart();
+      setData(await searchChartImages(imageData, 5));
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Could not save example review.",
-      );
+      setData(null);
+      setError(cleanApiError(requestError));
     } finally {
-      setReviewing(null);
+      setLoading(false);
     }
   }
 
@@ -93,220 +71,142 @@ export function HistoricalMatches({
     <section className="historical-matches" aria-labelledby="historical-matches-title">
       <header className="historical-matches-header">
         <div>
-          <h3 id="historical-matches-title">Historical Matches</h3>
+          <h3 id="historical-matches-title">Historical Image Matches</h3>
           <p>
-            {data
-              ? `${symbol} ${timeframe} · ${data.score_meaning}`
-              : `${symbol} ${timeframe} · Context-ranked SB source examples`}
+            {status?.ready
+              ? `${status.images.toLocaleString()} example charts · local visual comparison · no LLM`
+              : "The chart-image library will be prepared on first search"}
           </p>
         </div>
         <button
           type="button"
           className="historical-refresh"
-          onClick={() => void loadMatches()}
-          disabled={loading || !symbol || !timeframe}
-          title="Refresh historical matches"
+          onClick={() => void findMatches()}
+          disabled={loading}
+          title="Find the five example charts most visually similar to the current chart"
         >
-          <RefreshCw size={16} />
-          <span>{loading ? "Matching" : "Refresh"}</span>
+          {loading
+            ? <LoaderCircle className="spin" size={16} />
+            : <Search size={16} />}
+          <span>{loading ? "Comparing" : "Search"}</span>
         </button>
       </header>
 
+      {error ? <div className="historical-match-error">{error}</div> : null}
+
       {data ? (
-        <div className="fingerprint-strip">
-          <FingerprintItem
-            label="Signal"
-            value={signalSummary(data.fingerprint)}
-          />
-          <FingerprintItem label="Direction" value={data.fingerprint.candidate_direction} />
-          <FingerprintItem label="Week" value={data.fingerprint.weekly_state} />
-          <FingerprintItem label="Location" value={joinOrWatch(data.fingerprint.price_location)} />
-        </div>
-      ) : null}
-
-      {error ? <div className="historical-match-error">{cleanApiError(error)}</div> : null}
-
-      <div className="historical-match-grid">
-        {data?.matches.map((match) => {
-          const reviewKey = `${match.document_id}-${match.page}`;
-          return (
-            <article className="historical-match-card" key={reviewKey}>
+        <div className="historical-match-grid">
+          {data.matches.map((match) => (
+            <article className="historical-match-card" key={match.example_id}>
               <button
                 type="button"
                 className="historical-match-preview"
-                onClick={() =>
-                  window.open(
-                    researchDocumentUrl(match.document_id, match.page),
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
+                onClick={() => openSource(match.document_id, match.page)}
                 title={`Open ${match.document_title}, page ${match.page}`}
               >
                 <img
-                  src={researchPageImageUrl(match.document_id, match.page)}
+                  src={chartImageUrl(match.example_id)}
                   alt={`${match.document_title}, page ${match.page}`}
                   loading="lazy"
                 />
-                <span className={`match-score ${match.match_band}`}>
-                  <strong>{match.match_score}</strong>
-                  <small>match</small>
+                <span className="match-score">
+                  <strong>{match.similarity_percent}%</strong>
+                  <small>visual</small>
                 </span>
               </button>
 
               <div className="historical-match-copy">
                 <div className="historical-match-title">
                   <span>#{match.rank}</span>
-                  <strong>{match.document_title}</strong>
+                  <strong title={match.document_title}>{match.document_title}</strong>
                   <small>p. {match.page}</small>
                 </div>
 
                 <div className="historical-match-tags">
-                  {match.basis.slice(0, 3).map((item) => <span key={item}>{item}</span>)}
-                </div>
-
-                <div className="match-component-row">
-                  <MatchComponent
-                    label="Evidence"
-                    value={match.components.research_relevance}
-                  />
-                  <MatchComponent
-                    label="Setup"
-                    value={match.components.setup_alignment}
-                  />
-                  <MatchComponent
-                    label="Direction"
-                    value={match.components.direction_alignment}
-                  />
+                  {match.setup_types.length
+                    ? match.setup_types.slice(0, 3).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))
+                    : <span>Chart example</span>}
                 </div>
 
                 <div className="historical-match-actions">
+                  <span className="visual-method">Cosine image similarity</span>
                   <button
                     type="button"
                     className="open-source-button"
-                    onClick={() =>
-                      window.open(
-                        researchDocumentUrl(match.document_id, match.page),
-                        "_blank",
-                        "noopener,noreferrer",
-                      )
-                    }
+                    onClick={() => openSource(match.document_id, match.page)}
                   >
                     <BookOpen size={14} />
                     <span>Source</span>
                   </button>
-                  <div className="match-review-actions" aria-label="Review this match">
-                    <ReviewButton
-                      active={match.review_verdict === "relevant"}
-                      disabled={reviewing === reviewKey}
-                      title="Mark as relevant"
-                      onClick={() => void review(match, "relevant")}
-                      icon={<Check size={15} />}
-                    />
-                    <ReviewButton
-                      active={match.review_verdict === "unsure"}
-                      disabled={reviewing === reviewKey}
-                      title="Mark as unsure"
-                      onClick={() => void review(match, "unsure")}
-                      icon={<CircleHelp size={15} />}
-                    />
-                    <ReviewButton
-                      active={match.review_verdict === "not_relevant"}
-                      disabled={reviewing === reviewKey}
-                      title="Mark as not relevant"
-                      onClick={() => void review(match, "not_relevant")}
-                      icon={<X size={15} />}
-                    />
-                  </div>
                 </div>
               </div>
             </article>
-          );
-        })}
-      </div>
-
-      {!loading && data?.count === 0 ? (
-        <div className="historical-match-empty">
-          <SearchX size={20} />
-          <span>No source examples matched the current context.</span>
+          ))}
         </div>
-      ) : null}
-      {loading && !data ? (
+      ) : (
         <div className="historical-match-empty">
-          <RefreshCw size={20} />
-          <span>Ranking historical examples</span>
+          <Images size={20} />
+          <span>
+            Search compares the visible {symbol} {timeframe} chart with every indexed example image.
+          </span>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }
 
-function FingerprintItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="fingerprint-item">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function MatchComponent({ label, value }: { label: string; value: number }) {
-  const percentage = Math.round(value * 100);
-  return (
-    <div className="match-component">
-      <div>
-        <span>{label}</span>
-        <strong>{percentage}</strong>
-      </div>
-      <span className="match-component-track">
-        <span style={{ width: `${percentage}%` }} />
-      </span>
-    </div>
-  );
-}
-
-function ReviewButton({
-  active,
-  disabled,
-  title,
-  onClick,
-  icon,
-}: {
-  active: boolean;
-  disabled: boolean;
-  title: string;
-  onClick: () => void;
-  icon: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={active ? "match-review-button active" : "match-review-button"}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      onClick={onClick}
-    >
-      {icon}
-    </button>
-  );
-}
-
-function joinOrWatch(values: string[]) {
-  return values.length ? values.join(", ") : "Watch";
-}
-
-function signalSummary(fingerprint: HistoricalExampleMatchResponse["fingerprint"]) {
-  if (fingerprint.current_signal_labels.length) {
-    return fingerprint.current_signal_labels.join(", ");
+function captureCurrentChart(): string {
+  const container = document.querySelector<HTMLElement>(".chart-container");
+  if (!container) {
+    throw new Error("The current chart is not ready.");
   }
-  if (fingerprint.previous_signal_labels.length) {
-    return `Previous: ${fingerprint.previous_signal_labels.join(", ")}`;
+  const canvases = Array.from(container.querySelectorAll("canvas")).filter(
+    (canvas) => {
+      const style = window.getComputedStyle(canvas);
+      return style.display !== "none" && style.visibility !== "hidden";
+    },
+  );
+  if (!canvases.length) {
+    throw new Error("The current chart has not finished rendering.");
   }
-  return "Watch";
+
+  const bounds = container.getBoundingClientRect();
+  const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+  const output = document.createElement("canvas");
+  output.width = Math.max(1, Math.round(bounds.width * scale));
+  output.height = Math.max(1, Math.round(bounds.height * scale));
+  const context = output.getContext("2d");
+  if (!context) {
+    throw new Error("The current chart could not be captured.");
+  }
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, output.width, output.height);
+
+  for (const canvas of canvases) {
+    const canvasBounds = canvas.getBoundingClientRect();
+    context.drawImage(
+      canvas,
+      (canvasBounds.left - bounds.left) * scale,
+      (canvasBounds.top - bounds.top) * scale,
+      canvasBounds.width * scale,
+      canvasBounds.height * scale,
+    );
+  }
+  return output.toDataURL("image/jpeg", 0.9);
 }
 
-function cleanApiError(message: string) {
+function openSource(documentId: string, page: number) {
+  window.open(
+    researchDocumentUrl(documentId, page),
+    "_blank",
+    "noopener,noreferrer",
+  );
+}
+
+function cleanApiError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
   try {
     const payload = JSON.parse(message) as { detail?: string };
     return payload.detail ?? message;

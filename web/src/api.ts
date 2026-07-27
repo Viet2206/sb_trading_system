@@ -251,55 +251,35 @@ export type ResearchSearchResponse = {
   results: ResearchResult[];
 };
 
-export type ChartFingerprint = {
-  id: string;
-  symbol: string;
-  timeframe: string;
-  last_candle_time: string;
-  setup_types: string[];
-  signal_labels: string[];
-  current_signal_labels: string[];
-  previous_signal_labels: string[];
-  candidate_direction: string;
-  weekly_state: string;
-  price_location: string[];
-  daily_direction: string;
-  day_count: number;
-  query: string;
+export type ChartImageIndexStatus = {
+  ready: boolean;
+  documents: number;
+  images: number;
+  indexed_at: string | null;
+  vectorizer: string;
+  docs_dir: string;
 };
 
-export type HistoricalExampleMatch = ResearchResult & {
+export type ChartImageMatch = {
   rank: number;
-  match_score: number;
-  match_band: "strong" | "moderate" | "exploratory";
-  components: {
-    research_relevance: number;
-    setup_alignment: number;
-    direction_alignment: number;
-    source_quality: number;
-  };
-  basis: string[];
-  source_direction: "long" | "short" | "unknown";
-  is_historical_example: boolean;
-  review_verdict: "relevant" | "not_relevant" | "unsure" | null;
-};
-
-export type HistoricalExampleMatchResponse = {
-  method: "context-v1";
-  calibrated: boolean;
-  score_meaning: string;
-  fingerprint: ChartFingerprint;
-  count: number;
-  matches: HistoricalExampleMatch[];
-};
-
-export type HistoricalExampleFeedback = {
-  fingerprint_id: string;
+  similarity: number;
+  similarity_percent: number;
+  example_id: string;
   document_id: string;
+  document_title: string;
+  source_path: string;
   page: number;
-  verdict: "relevant" | "not_relevant" | "unsure";
-  symbol: string;
-  timeframe: string;
+  chart_index: number;
+  width: number;
+  height: number;
+  setup_types: string[];
+};
+
+export type ChartImageMatchResponse = {
+  method: "visual-structure-v1";
+  count: number;
+  corpus_images: number;
+  matches: ChartImageMatch[];
 };
 
 export type ResearchToolTrace = {
@@ -439,34 +419,37 @@ export async function searchResearch(
   return fetchJson<ResearchSearchResponse>(`/research/search?${params.toString()}`);
 }
 
-export async function fetchHistoricalExampleMatches(
-  symbol: string,
-  timeframe: string,
-  limit = 8,
-): Promise<HistoricalExampleMatchResponse> {
-  const params = new URLSearchParams({
-    symbol,
-    timeframe,
-    limit: String(limit),
-  });
-  return fetchJson<HistoricalExampleMatchResponse>(
-    `/research/matches?${params.toString()}`,
-  );
+export async function fetchChartImageIndexStatus(): Promise<ChartImageIndexStatus> {
+  return fetchJson<ChartImageIndexStatus>("/research/image-matches/status");
 }
 
-export async function saveHistoricalExampleFeedback(
-  feedback: HistoricalExampleFeedback,
-): Promise<HistoricalExampleFeedback & { reviewed_at: string }> {
-  return fetchJson<HistoricalExampleFeedback & { reviewed_at: string }>(
-    "/research/matches/feedback",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(feedback),
+export async function buildChartImageIndex(
+  rebuild = false,
+): Promise<ChartImageIndexStatus> {
+  return fetchJson<ChartImageIndexStatus>("/research/image-matches/index", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({ rebuild }),
+  });
+}
+
+export async function searchChartImages(
+  imageData: string,
+  limit = 5,
+): Promise<ChartImageMatchResponse> {
+  return fetchJson<ChartImageMatchResponse>("/research/image-matches", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ image_data: imageData, limit }),
+  });
+}
+
+export function chartImageUrl(exampleId: string): string {
+  return `${API_BASE_URL}/research/chart-images/${encodeURIComponent(exampleId)}`;
 }
 
 export async function analyzeResearch(payload: {

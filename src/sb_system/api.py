@@ -12,12 +12,12 @@ from sqlalchemy.engine import Engine
 from sb_system.ai_research import SBResearchAgent
 from sb_system.context import build_sb_overlays
 from sb_system.daily_checklist import build_daily_checklist, save_checklist_state
-from sb_system.example_matching import HistoricalExampleMatcher
 from sb_system.file_store import (
     fetch_file_candle_summary,
     fetch_file_candles,
     fetch_file_symbols,
 )
+from sb_system.image_matching import ChartImageIndex
 from sb_system.market_data import (
     ImportConfig,
     check_connection,
@@ -84,8 +84,8 @@ def get_research_agent() -> SBResearchAgent:
 
 
 @lru_cache(maxsize=1)
-def get_example_matcher() -> HistoricalExampleMatcher:
-    return HistoricalExampleMatcher(get_research_library())
+def get_chart_image_index() -> ChartImageIndex:
+    return ChartImageIndex()
 
 
 @lru_cache(maxsize=1)
@@ -295,39 +295,57 @@ def research_search(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/research/matches")
-def research_matches(
-    config: Annotated[ImportConfig, Depends(get_config)],
-    matcher: Annotated[HistoricalExampleMatcher, Depends(get_example_matcher)],
-    symbol: str = Query(..., min_length=1, max_length=80),
-    timeframe: str = Query("M15", min_length=1, max_length=12),
-    limit: int = Query(8, ge=1, le=20),
+@app.get("/research/image-matches/status")
+def research_image_match_status(
+    image_index: Annotated[ChartImageIndex, Depends(get_chart_image_index)],
 ) -> dict:
-    market_context = _research_market_context(config, symbol)
-    if market_context is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Daily market context is unavailable for this symbol.",
-        )
+    return image_index.status()
+
+
+@app.post("/research/image-matches/index")
+def research_image_match_index(
+    payload: Annotated[dict, Body(...)],
+    image_index: Annotated[ChartImageIndex, Depends(get_chart_image_index)],
+) -> dict:
     try:
-        return matcher.match(
-            market_context=market_context,
-            timeframe=timeframe,
+        return image_index.build(rebuild=bool(payload.get("rebuild", False)))
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/research/image-matches")
+def research_image_matches(
+    payload: Annotated[dict, Body(...)],
+    image_index: Annotated[ChartImageIndex, Depends(get_chart_image_index)],
+) -> dict:
+    raw_limit = payload.get("limit", 5)
+    limit = raw_limit if isinstance(raw_limit, int) else 5
+    if limit < 1 or limit > 20:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 20.")
+    try:
+        return image_index.search_data_url(
+            str(payload.get("image_data", "")),
             limit=limit,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.post("/research/matches/feedback")
-def research_match_feedback(
-    payload: Annotated[dict, Body(...)],
-    matcher: Annotated[HistoricalExampleMatcher, Depends(get_example_matcher)],
-) -> dict:
+@app.get("/research/chart-images/{example_id}")
+def research_chart_image(
+    example_id: str,
+    image_index: Annotated[ChartImageIndex, Depends(get_chart_image_index)],
+) -> FileResponse:
     try:
-        return matcher.save_feedback(payload)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        path = image_index.image_path(example_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Historical chart image not found.",
+        ) from exc
+    return FileResponse(path, media_type="image/jpeg")
 
 
 @app.get("/research/documents/{document_id}/file")

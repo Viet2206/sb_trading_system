@@ -409,12 +409,11 @@ Implementation status:
 - Complete: document inventory, text extraction, page citations, local hybrid search,
   source-page rendering, RAG evidence packets, retrieval-only fallback, AI synthesis,
   and optional visual source-page analysis.
-- Complete first matching slice: deterministic current-chart fingerprints, page-level
-  historical example ranking, source-diverse thumbnails below the chart, transparent
-  score components, and persistent Relevant/Unsure/Not Relevant review feedback.
-- Pending validation data: calibrated visual similarity between the current chart and
-  labelled historical examples. Page/title/setup retrieval is available now, but a
-  meaningful image-similarity confidence score requires user-reviewed example labels.
+- Complete first visual matching slice: extract each PDF chart into its own image,
+  compute deterministic local visual vectors, capture the visible chart on demand,
+  rank by cosine similarity, and show the top five images below the chart.
+- Pending validation data: calibrating raw visual similarity against user-labelled
+  SB setup relevance and eventual setup outcomes.
 
 ### Phase 7 - Paper Trading and Validation
 

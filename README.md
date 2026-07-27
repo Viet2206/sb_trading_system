@@ -427,8 +427,10 @@ GET /research/status
 POST /research/index
 GET /research/documents
 GET /research/search?query=first+green+day
-GET /research/matches?symbol=XAUUSD%2B&timeframe=M15
-POST /research/matches/feedback
+GET /research/image-matches/status
+POST /research/image-matches/index
+POST /research/image-matches
+GET /research/chart-images/{example_id}
 POST /research/analyze
 POST /research/vision
 ```
@@ -462,12 +464,11 @@ The dashboard supports:
 - Settings page controls the update interval used by chart auto-refresh and the cTrader polling script.
 - Research Search combines local vector similarity, sparse term matching, setup filters,
   and page-level citations.
-- Historical Matches ranks cited chart-example pages against the active symbol and
-  timeframe. The first version uses deterministic signal timing, candidate direction,
-  weekly state, price location, source relevance, and source quality. Its score is a
-  context-match score, not win probability or calibrated visual identity.
-- Relevant, Unsure, and Not Relevant reviews are saved locally under `data/research`.
-  These reviews are the labelled dataset for later visual-similarity calibration.
+- Historical Image Matches captures the visible chart only when Search is pressed,
+  compares its local visual vector with every extracted example chart, and returns
+  the five highest cosine-similarity results. This path makes no LLM call.
+- Example PDFs are chunked into individual chart images and indexed locally under
+  `data/research`. Similarity is a visual retrieval score, not win probability.
 - Research Library inventories every indexed document and opens the original PDF.
 - Research Analyst combines deterministic market context with retrieved evidence. It
   operates in retrieval-only mode until a supported AI provider is configured.
@@ -479,6 +480,12 @@ The dashboard supports:
 The repository currently contains 27 PDFs and 1,086 pages. Indexing creates a local
 SQLite file under `data/research`; this generated index is deliberately excluded from
 Git and is rebuilt on each machine.
+
+Build the historical chart-image index:
+
+```bash
+python scripts/index_chart_images.py --rebuild
+```
 
 Default configuration:
 

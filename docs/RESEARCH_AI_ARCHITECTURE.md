@@ -14,9 +14,10 @@ PDF corpus
   -> page-aware chunks and setup tags
   -> local SQLite research index
   -> hybrid search and citations
-  -> deterministic current-chart fingerprint
-  -> ranked historical example pages
-  -> user relevance feedback
+  -> one extracted image per example chart
+  -> deterministic local visual vectors
+  -> current rendered chart capture on Search
+  -> cosine similarity and top-five example images
   -> deterministic market-context packet
   -> retrieval-only answer or configured-provider synthesis
   -> Research UI with original source pages
@@ -48,21 +49,20 @@ PDF corpus
 - Library: document inventory, categories, tags, page counts, and original PDFs.
 - Analyst: market/setup context, evidence answer, source list, and tool trace.
 
-`src/sb_system/example_matching.py`
+`src/sb_system/image_matching.py`
 
-- Builds a stable current-chart fingerprint from deterministic daily context.
-- Preserves current-day versus previous-day signal timing.
-- Ranks unique PDF pages using setup, direction, retrieval, and source-quality
-  components.
-- Alternates pages across source documents to avoid repetitive result shelves.
-- Stores Relevant, Unsure, and Not Relevant feedback for the exact chart fingerprint.
+- Extracts each wide chart from the example PDFs into an individual JPEG.
+- Joins adjacent embedded image strips when a PDF page splits one chart.
+- Rejects covers and non-chart images using dimensions, aspect ratio, and ink density.
+- Builds deterministic grayscale structure, edge, projection, and orientation vectors.
+- Ranks current-chart captures with local cosine similarity and makes no LLM call.
 
 `web/src/HistoricalMatches.tsx`
 
-- Shows ranked source-page thumbnails directly beneath the active chart.
-- Displays the fingerprint and transparent score components.
+- Captures the rendered chart canvases only when Search is pressed.
+- Shows the five most visually similar chart images beneath the active chart.
+- Labels scores as visual similarity rather than confidence or win probability.
 - Opens the cited PDF at the matched page.
-- Captures user relevance feedback for later calibration.
 
 ## Evidence Contract
 
@@ -94,16 +94,18 @@ Rendered page cache:
 data/research/pages/
 ```
 
-Historical example feedback:
+Historical chart-image index and extracted images:
 
 ```text
-data/research/historical_example_feedback.json
+data/research/chart_images.sqlite3
+data/research/chart_images/
 ```
 
-Both are generated, ignored by Git, and rebuilt on each machine:
+These artifacts are generated, ignored by Git, and rebuilt on each machine:
 
 ```bash
 python scripts/index_research_library.py
+python scripts/index_chart_images.py --rebuild
 ```
 
 Force a complete rebuild after changing the embedding provider:
@@ -118,6 +120,9 @@ python scripts/index_research_library.py --rebuild
 SB_RESEARCH_DOCS_DIR=docs
 SB_RESEARCH_INDEX=data/research/research.sqlite3
 SB_RESEARCH_PAGE_CACHE=data/research/pages
+SB_CHART_EXAMPLE_DOCS_DIR=docs/chart_template_notes
+SB_CHART_IMAGE_INDEX=data/research/chart_images.sqlite3
+SB_CHART_IMAGE_DIR=data/research/chart_images
 SB_EMBEDDING_PROVIDER=local
 SB_AI_PROVIDER=zai
 ZAI_API_KEY=
@@ -150,7 +155,7 @@ require user-labelled examples before they can be considered validated:
 Until that validation is complete, UI scores are research-ranking values, not trade
 probabilities.
 
-Historical matching currently uses method `context-v1`. It does not compare pixels
-between the live chart and the PDF page. A future calibrated visual model should be
-trained and evaluated from user-reviewed matches rather than introduced as an
-unverified confidence score.
+Historical matching currently uses method `visual-structure-v1`. It compares
+deterministic local vectors derived from the live chart pixels and extracted example
+chart pixels. The score is cosine similarity for retrieval, not a calibrated claim
+that the charts share the same SB setup and not a trading confidence score.
