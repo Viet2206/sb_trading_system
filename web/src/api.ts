@@ -115,6 +115,16 @@ export type RuntimeSettings = {
   update_interval_minutes: number;
 };
 
+export type TelegramStatus = {
+  enabled: boolean;
+  configured: boolean;
+  ready: boolean;
+  token_configured: boolean;
+  chat_id_configured: boolean;
+  sent?: boolean;
+  message_id?: number | null;
+};
+
 export type DailyChecklistRow = {
   symbol: string;
   last_candle_time: string;
@@ -311,6 +321,16 @@ export async function updateRuntimeSettings(settings: RuntimeSettings): Promise<
       "Content-Type": "application/json",
     },
     body: JSON.stringify(settings),
+  });
+}
+
+export async function fetchTelegramStatus(): Promise<TelegramStatus> {
+  return fetchJson<TelegramStatus>("/notifications/telegram/status");
+}
+
+export async function sendTelegramTest(): Promise<TelegramStatus> {
+  return fetchJson<TelegramStatus>("/notifications/telegram/test", {
+    method: "POST",
   });
 }
 

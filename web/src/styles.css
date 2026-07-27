@@ -1048,6 +1048,84 @@ select {
   max-width: 300px;
 }
 
+.telegram-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 220px));
+  gap: 10px;
+}
+
+.telegram-status-item {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.telegram-status-item span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.telegram-status-item strong {
+  font-size: 14px;
+}
+
+.telegram-status-item strong.ready {
+  color: #047857;
+}
+
+.telegram-status-item strong.not-ready {
+  color: #b45309;
+}
+
+.telegram-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.telegram-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  gap: 7px;
+}
+
+.telegram-actions .secondary-button {
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.telegram-actions .primary-button {
+  color: #ffffff;
+  background: #0f766e;
+  border-color: #0f766e;
+}
+
+.telegram-actions button:hover:not(:disabled) {
+  border-color: #38bdf8;
+}
+
+.telegram-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.telegram-feedback {
+  color: #475569;
+  font-size: 13px;
+}
+
 .reset-button {
   display: inline-flex;
   align-items: center;
@@ -2046,6 +2124,10 @@ select {
   .chart-control.compact {
     flex: 1 1 130px;
     width: auto;
+  }
+
+  .telegram-status-grid {
+    grid-template-columns: 1fr;
   }
 
   .chart-frame {

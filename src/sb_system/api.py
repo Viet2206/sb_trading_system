@@ -33,6 +33,7 @@ from sb_system.runtime_settings import (
     runtime_settings_from_payload,
     save_runtime_settings,
 )
+from sb_system.telegram import TelegramNotifier
 from sb_system.research import ResearchLibrary, SETUP_TAXONOMY
 
 
@@ -79,6 +80,11 @@ def get_research_library() -> ResearchLibrary:
 @lru_cache(maxsize=1)
 def get_research_agent() -> SBResearchAgent:
     return SBResearchAgent(get_research_library())
+
+
+@lru_cache(maxsize=1)
+def get_telegram_notifier() -> TelegramNotifier:
+    return TelegramNotifier()
 
 
 @app.get("/health")
@@ -373,6 +379,25 @@ def runtime_settings() -> dict:
 def update_runtime_settings(payload: Annotated[dict, Body(...)]) -> dict:
     settings = save_runtime_settings(runtime_settings_from_payload(payload))
     return _runtime_settings_payload(settings)
+
+
+@app.get("/notifications/telegram/status")
+def telegram_status(
+    notifier: Annotated[TelegramNotifier, Depends(get_telegram_notifier)],
+) -> dict:
+    return notifier.status()
+
+
+@app.post("/notifications/telegram/test")
+def telegram_test(
+    notifier: Annotated[TelegramNotifier, Depends(get_telegram_notifier)],
+) -> dict:
+    try:
+        return notifier.send_test()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 def _runtime_settings_payload(settings: RuntimeSettings | None = None) -> dict:

@@ -1,4 +1,10 @@
-import { RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { RefreshCw, RotateCcw, Send } from "lucide-react";
+import type { TelegramStatus } from "./api";
+import {
+  fetchTelegramStatus,
+  sendTelegramTest,
+} from "./api";
 import {
   ChartSettings,
   LineStyle,
@@ -77,6 +83,14 @@ const styleFields: StyleField[] = [
 const lineStyles: LineStyle[] = ["solid", "dashed", "dotted"];
 
 export function SettingsPage({ settings, onChange }: SettingsPageProps) {
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
+  const [telegramBusy, setTelegramBusy] = useState(false);
+  const [telegramMessage, setTelegramMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    void refreshTelegramStatus();
+  }, []);
+
   function update<K extends keyof ChartSettings>(key: K, value: ChartSettings[K]) {
     onChange({ ...settings, [key]: value });
   }
@@ -95,6 +109,36 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
   ) {
     if (Number.isFinite(value) && value > 0) {
       update(key, value);
+    }
+  }
+
+  async function refreshTelegramStatus() {
+    setTelegramBusy(true);
+    setTelegramMessage(null);
+    try {
+      setTelegramStatus(await fetchTelegramStatus());
+    } catch (error) {
+      setTelegramMessage(
+        error instanceof Error ? error.message : "Unable to load Telegram status.",
+      );
+    } finally {
+      setTelegramBusy(false);
+    }
+  }
+
+  async function testTelegramDelivery() {
+    setTelegramBusy(true);
+    setTelegramMessage(null);
+    try {
+      const status = await sendTelegramTest();
+      setTelegramStatus(status);
+      setTelegramMessage("Test message sent.");
+    } catch (error) {
+      setTelegramMessage(
+        error instanceof Error ? error.message : "Unable to send Telegram test.",
+      );
+    } finally {
+      setTelegramBusy(false);
     }
   }
 
@@ -232,6 +276,55 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
 
       <section className="settings-section">
         <div className="settings-section-title">
+          <h3>Telegram Notifications</h3>
+        </div>
+        <div className="telegram-status-grid">
+          <TelegramStatusItem
+            label="Bot Token"
+            active={telegramStatus?.token_configured ?? false}
+          />
+          <TelegramStatusItem
+            label="Chat ID"
+            active={telegramStatus?.chat_id_configured ?? false}
+          />
+          <TelegramStatusItem
+            label="Delivery"
+            active={telegramStatus?.ready ?? false}
+            activeText="Ready"
+            inactiveText={telegramStatus?.enabled ? "Incomplete" : "Disabled"}
+          />
+        </div>
+        <div className="telegram-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void refreshTelegramStatus()}
+            disabled={telegramBusy}
+            title="Refresh Telegram configuration status"
+          >
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => void testTelegramDelivery()}
+            disabled={telegramBusy || !telegramStatus?.configured}
+            title="Send a fixed Telegram test message"
+          >
+            <Send size={16} />
+            <span>Send Test</span>
+          </button>
+          {telegramMessage ? (
+            <span className="telegram-feedback" role="status">
+              {telegramMessage}
+            </span>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-section-title">
           <h3>Chart Space</h3>
         </div>
         <label className="setting-row range-row">
@@ -285,5 +378,28 @@ function RoundNumberInterval({
         onChange={(event) => onChange(event.target.valueAsNumber)}
       />
     </label>
+  );
+}
+
+type TelegramStatusItemProps = {
+  label: string;
+  active: boolean;
+  activeText?: string;
+  inactiveText?: string;
+};
+
+function TelegramStatusItem({
+  label,
+  active,
+  activeText = "Configured",
+  inactiveText = "Missing",
+}: TelegramStatusItemProps) {
+  return (
+    <div className="telegram-status-item">
+      <span>{label}</span>
+      <strong className={active ? "ready" : "not-ready"}>
+        {active ? activeText : inactiveText}
+      </strong>
+    </div>
   );
 }
