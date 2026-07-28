@@ -16,6 +16,11 @@ The current development focus is a complete non-trading research workflow:
 Trading execution and risk automation remain out of scope until the signal rules are
 validated against labelled examples.
 
+Native chart versions of the current `weekly_template` are available for
+[MetaTrader 5 and cTrader](indicators/README.md). They include the SB context,
+session, previous-day pipe/close, CIB, and provisional daily-label layers, but
+intentionally exclude the separate 5 EMA and Major Round Number templates.
+
 ## Local Setup
 
 Create a virtual environment:

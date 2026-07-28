@@ -286,6 +286,10 @@ Current Phase 1 overlay implementation:
 - First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
 - Sidebar navigation has Chart, Daily Checklist, Research, and Setting pages; symbol/timeframe/refresh controls live in the chart header
 - Chart overlays are registered as independently toggleable templates. `weekly_template` contains the SB context overlay; `five_ema` contains native EMA 9, 21, 50, 100, and 200 series. Template selections persist in browser local storage.
+- Native indicator ports live under `indicators/mt5` and `indicators/ctrader`. They
+  implement only `weekly_template`; keep 5 EMA and Major Round Number as separate
+  templates. cTrader runs in UTC. MT5 session/day rendering uses a configurable
+  server-to-UTC offset, while native D1 candles retain the broker's daily boundary.
 - Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
 - Web UI Setting page also controls the update interval in minutes; this is saved to the backend runtime settings file for the cTrader poller and used by the chart auto-refresh
 - These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.
