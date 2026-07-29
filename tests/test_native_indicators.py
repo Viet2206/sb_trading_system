@@ -89,7 +89,9 @@ def test_mt5_context_labels_are_aligned_near_the_visible_right_edge() -> None:
 
     assert "InpLevelLabelRightMarginPixels = 58" in content
     assert "InpLevelLabelBackgroundColor = clrWhite" in content
-    assert "DrawLevelLabel(" in content
+    assert "InpLevelLabelMergeDistancePixels = 16" in content
+    assert "DrawQueuedLevelLabels()" in content
+    assert "DrawLevelLabelAtY(" in content
     assert 'OBJ_RECTANGLE_LABEL' in content
     assert '"LEVEL_LABEL_BG_"' in content
 

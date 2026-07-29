@@ -90,7 +90,7 @@ Both indicators default to:
   12 pixels wide with height clamped between 4 and 24 pixels
 - context-level labels aligned near the visible right edge with a configurable
   price-scale margin and a compact background that masks the line beneath the
-  text
+  text; nearby levels are combined into one label row to avoid collisions
 
 Every layer, color, line style, and session time can be adjusted in the indicator
 parameters.

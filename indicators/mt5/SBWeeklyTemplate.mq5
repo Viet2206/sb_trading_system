@@ -51,6 +51,7 @@ input int InpPreviousCloseLineWidth = 1;
 input int InpLabelFontSize = 8;
 input int InpLevelLabelRightMarginPixels = 58;
 input int InpLevelLabelPaddingPixels = 3;
+input int InpLevelLabelMergeDistancePixels = 16;
 input int InpCibWidthPixels = 12;
 input int InpCibMinimumHeightPixels = 4;
 input int InpCibMaximumHeightPixels = 24;
@@ -65,9 +66,18 @@ struct PriceRange
    double   low;
 };
 
+struct LevelLabelItem
+{
+   string key;
+   string label;
+   double price;
+   int    y;
+};
+
 string   g_prefix;
 ulong    g_last_refresh_ms = 0;
 datetime g_last_bar_time = 0;
+LevelLabelItem g_level_labels[];
 
 int OnInit()
 {
@@ -115,6 +125,7 @@ int OnCalculate(
 void RedrawTemplate()
 {
    ObjectsDeleteAll(0, g_prefix, 0, -1);
+   ArrayResize(g_level_labels, 0);
 
    datetime chart_end = iTime(_Symbol, _Period, 0);
    if(chart_end <= 0)
@@ -145,7 +156,10 @@ void RedrawTemplate()
       return;
 
    if(InpShowContextLevels)
+   {
       DrawContextLevels(daily_rates, chart_end);
+      DrawQueuedLevelLabels();
+   }
 
    const bool intraday = IsIntradayTemplate();
    if(InpShowMonthSeparators)
@@ -765,18 +779,110 @@ void DrawRay(
       ObjectSetInteger(0, line_name, OBJPROP_BACK, true);
       ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
    }
-   DrawLevelLabel(
-      key,
-      label,
-      price,
-      InpContextLevelColor
-   );
+   QueueLevelLabel(key, label, price);
 }
 
-void DrawLevelLabel(
+void QueueLevelLabel(
    const string key,
    const string label,
-   const double price,
+   const double price
+)
+{
+   const int size = ArraySize(g_level_labels);
+   ArrayResize(g_level_labels, size + 1);
+   g_level_labels[size].key = key;
+   g_level_labels[size].label = label;
+   g_level_labels[size].price = price;
+   g_level_labels[size].y = 0;
+}
+
+void DrawQueuedLevelLabels()
+{
+   const int queued_count = ArraySize(g_level_labels);
+   if(queued_count == 0)
+      return;
+
+   long chart_height = 0;
+   if(!ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0, chart_height))
+      return;
+
+   LevelLabelItem visible[];
+   ArrayResize(visible, 0);
+   const datetime probe_time = iTime(_Symbol, _Period, 0);
+   if(probe_time <= 0)
+      return;
+
+   for(int index = 0; index < queued_count; index++)
+   {
+      int probe_x, price_y;
+      if(!ChartTimePriceToXY(
+         0,
+         0,
+         probe_time,
+         g_level_labels[index].price,
+         probe_x,
+         price_y
+      ))
+         continue;
+      if(price_y < 0 || price_y > chart_height)
+         continue;
+
+      const int visible_count = ArraySize(visible);
+      ArrayResize(visible, visible_count + 1);
+      visible[visible_count] = g_level_labels[index];
+      visible[visible_count].y = price_y;
+   }
+
+   const int visible_count = ArraySize(visible);
+   for(int index = 1; index < visible_count; index++)
+   {
+      LevelLabelItem current = visible[index];
+      int previous = index - 1;
+      while(previous >= 0 && visible[previous].y > current.y)
+      {
+         visible[previous + 1] = visible[previous];
+         previous--;
+      }
+      visible[previous + 1] = current;
+   }
+
+   const int merge_distance = MathMax(
+      0,
+      InpLevelLabelMergeDistancePixels
+   );
+   int group_index = 0;
+   int start = 0;
+   while(start < visible_count)
+   {
+      int end = start + 1;
+      long y_total = visible[start].y;
+      string combined_label = visible[start].label;
+      while(end < visible_count &&
+            visible[end].y - visible[start].y <= merge_distance)
+      {
+         combined_label += " / " + visible[end].label;
+         y_total += visible[end].y;
+         end++;
+      }
+
+      const int group_size = end - start;
+      const int group_y = (int)(y_total / group_size);
+      DrawLevelLabelAtY(
+         "GROUP_" + IntegerToString(group_index),
+         combined_label,
+         group_y,
+         InpContextLevelColor
+      );
+
+      group_index++;
+      start = end;
+   }
+}
+
+void DrawLevelLabelAtY(
+   const string key,
+   const string label,
+   const int price_y,
    const color text_color
 )
 {
@@ -784,12 +890,6 @@ void DrawLevelLabel(
    long chart_height = 0;
    if(!ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0, chart_width) ||
       !ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0, chart_height))
-      return;
-
-   int probe_x, price_y;
-   const datetime probe_time = iTime(_Symbol, _Period, 0);
-   if(probe_time <= 0 ||
-      !ChartTimePriceToXY(0, 0, probe_time, price, probe_x, price_y))
       return;
    if(price_y < 0 || price_y > chart_height)
       return;
