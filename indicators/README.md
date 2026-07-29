@@ -40,6 +40,21 @@ them as trading signals.
 4. Open the file in MetaEditor and press **F7** to compile.
 5. Refresh the Navigator, then attach **SB Weekly Template** to a chart.
 
+To copy and verify the complete source automatically on Windows, close any existing
+`SBWeeklyTemplate.mq5` editor tab without saving and run this from the repository:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install_mt5_indicator.ps1
+```
+
+If more than one MT5 terminal is installed, pass the `MQL5` folder shown by
+**MT5 > File > Open Data Folder**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install_mt5_indicator.ps1 `
+  -Mql5Root "C:\...\MetaQuotes\Terminal\<terminal-id>\MQL5"
+```
+
 The session inputs are expressed in UTC. MT5 chart objects use broker server time,
 so set **Server UTC Offset Hours** to the broker server offset. For example, use `2`
 when the broker server is UTC+2.

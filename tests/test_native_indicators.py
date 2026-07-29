@@ -6,6 +6,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MT5 = PROJECT_ROOT / "indicators" / "mt5" / "SBWeeklyTemplate.mq5"
 CTRADER = PROJECT_ROOT / "indicators" / "ctrader" / "SBWeeklyTemplate.cs"
+MT5_INSTALLER = PROJECT_ROOT / "scripts" / "install_mt5_indicator.ps1"
 
 
 def test_native_weekly_templates_cover_current_overlay_rules() -> None:
@@ -67,3 +68,11 @@ def test_mt5_indicator_source_is_complete_and_uses_mql5_conversions() -> None:
     assert "int OnCalculate(" in content
     assert "IntegerToString(ChartID())" in content
     assert "LongToString" not in content
+
+
+def test_mt5_installer_verifies_the_copied_source() -> None:
+    content = MT5_INSTALLER.read_text(encoding="utf-8")
+
+    assert "Get-FileHash" in content
+    assert "$sourceLines -lt 800" in content
+    assert "$sourceHash -ne $destinationHash" in content
