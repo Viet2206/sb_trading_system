@@ -48,8 +48,9 @@ input int InpContextLineWidth = 1;
 input int InpPipeLineWidth = 1;
 input int InpPreviousCloseLineWidth = 1;
 input int InpLabelFontSize = 8;
-input int InpCibWidthBars = 2;
-input int InpCibMinimumWidthMinutes = 120;
+input int InpCibWidthPixels = 12;
+input int InpCibMinimumHeightPixels = 4;
+input int InpCibMaximumHeightPixels = 24;
 input int InpRefreshSeconds = 5;
 
 struct PriceRange
@@ -882,20 +883,50 @@ void DrawCibMarker(
    const color marker_color
 )
 {
-   const int bar_seconds = MathMax(60, PeriodSeconds(_Period));
-   const int width_seconds = MathMax(
-      MathMax(1, InpCibWidthBars) * bar_seconds,
-      MathMax(1, InpCibMinimumWidthMinutes) * 60
-   );
-   DrawRectangle(
-      key,
-      boundary_time,
-      MathMax(open_price, close_price),
-      boundary_time + width_seconds,
-      MathMin(open_price, close_price),
-      marker_color,
-      false
-   );
+   int x_open, y_open, x_close, y_close;
+   if(!ChartTimePriceToXY(0, 0, boundary_time, open_price, x_open, y_open) ||
+      !ChartTimePriceToXY(0, 0, boundary_time, close_price, x_close, y_close))
+      return;
+
+   long chart_width = 0;
+   long chart_height = 0;
+   if(!ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0, chart_width) ||
+      !ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0, chart_height))
+      return;
+   if(x_close < 0 || x_close > chart_width ||
+      y_close < 0 || y_close > chart_height)
+      return;
+
+   const int minimum_height = MathMax(1, InpCibMinimumHeightPixels);
+   const int maximum_height = MathMax(minimum_height, InpCibMaximumHeightPixels);
+   int marker_height = y_close >= y_open
+      ? y_close - y_open
+      : y_open - y_close;
+   if(marker_height < minimum_height)
+      marker_height = minimum_height;
+   if(marker_height > maximum_height)
+      marker_height = maximum_height;
+
+   const int marker_width = MathMax(1, InpCibWidthPixels);
+   const int marker_y = close_price >= open_price
+      ? y_close
+      : y_close - marker_height;
+   const string name = g_prefix + key;
+   if(ObjectCreate(0, name, OBJ_RECTANGLE_LABEL, 0, 0, 0))
+   {
+      ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x_close + 1);
+      ObjectSetInteger(0, name, OBJPROP_YDISTANCE, marker_y);
+      ObjectSetInteger(0, name, OBJPROP_XSIZE, marker_width);
+      ObjectSetInteger(0, name, OBJPROP_YSIZE, marker_height);
+      ObjectSetInteger(0, name, OBJPROP_BGCOLOR, marker_color);
+      ObjectSetInteger(0, name, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+      ObjectSetInteger(0, name, OBJPROP_COLOR, marker_color);
+      ObjectSetInteger(0, name, OBJPROP_BACK, false);
+      ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, name, OBJPROP_ZORDER, 100);
+   }
 }
 
 void DrawText(

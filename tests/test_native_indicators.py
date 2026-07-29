@@ -77,7 +77,9 @@ def test_native_cib_markers_start_at_first_current_day_candle() -> None:
     ctrader = CTRADER.read_text(encoding="utf-8")
 
     assert "day_range.first_time" in mt5
-    assert "InpCibMinimumWidthMinutes = 120" in mt5
+    assert "InpCibWidthPixels = 12" in mt5
+    assert "InpCibMaximumHeightPixels = 24" in mt5
+    assert "OBJ_RECTANGLE_LABEL" in mt5
     assert "dayRange.FirstTime" in ctrader
     assert "CibMinimumWidthMinutes" in ctrader
 

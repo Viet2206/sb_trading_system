@@ -86,8 +86,8 @@ Both indicators default to:
 - green previous-day close segments
 - lightly filled session ranges without text labels
 - red weekday/setup labels
-- CIB markers placed at the current day's first candle, using the previous breakout
-  day's body and a minimum two-hour width for visibility
+- compact CIB markers placed at the current day's first candle; MT5 defaults to
+  12 pixels wide with height clamped between 4 and 24 pixels
 
 Every layer, color, line style, and session time can be adjusted in the indicator
 parameters.
