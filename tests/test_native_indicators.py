@@ -68,6 +68,17 @@ def test_mt5_indicator_source_is_complete_and_uses_mql5_conversions() -> None:
     assert "int OnCalculate(" in content
     assert "IntegerToString(ChartID())" in content
     assert "LongToString" not in content
+    assert "ColorToARGB" not in content
+
+
+def test_native_cib_markers_start_at_first_current_day_candle() -> None:
+    mt5 = MT5.read_text(encoding="utf-8")
+    ctrader = CTRADER.read_text(encoding="utf-8")
+
+    assert "day_range.first_time" in mt5
+    assert "InpCibMinimumWidthMinutes = 120" in mt5
+    assert "dayRange.FirstTime" in ctrader
+    assert "CibMinimumWidthMinutes" in ctrader
 
 
 def test_mt5_installer_verifies_the_copied_source() -> None:

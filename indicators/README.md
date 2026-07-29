@@ -85,7 +85,8 @@ Both indicators default to:
 - green previous-day close segments
 - lightly filled session ranges without text labels
 - red weekday/setup labels
-- two-bar-wide CIB markers
+- CIB markers placed at the current day's first candle, using the previous breakout
+  day's body and a minimum two-hour width for visibility
 
 Every layer, color, line style, and session time can be adjusted in the indicator
 parameters.

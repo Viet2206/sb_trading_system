@@ -121,6 +121,9 @@ namespace cAlgo
         [Parameter("CIB Width Bars", Group = "Line Styles", DefaultValue = 2, MinValue = 1, MaxValue = 10)]
         public int CibWidthBars { get; set; }
 
+        [Parameter("CIB Minimum Width Minutes", Group = "Line Styles", DefaultValue = 120, MinValue = 1, MaxValue = 1440)]
+        public int CibMinimumWidthMinutes { get; set; }
+
         [Parameter("Refresh Seconds", Group = "Line Styles", DefaultValue = 10, MinValue = 1, MaxValue = 300)]
         public int RefreshSeconds { get; set; }
 
@@ -390,7 +393,7 @@ namespace cAlgo
                     {
                         DrawCibMarker(
                             "CIB_" + dayKey,
-                            dayStart,
+                            dayRange.FirstTime,
                             _dailyBars.OpenPrices[previousIndex],
                             _dailyBars.ClosePrices[previousIndex],
                             direction > 0 ? CibBullishColor : CibBearishColor
@@ -753,13 +756,15 @@ namespace cAlgo
             Color color
         )
         {
+            var width = TimeSpan.FromTicks(Math.Max(
+                BarDuration().Ticks * Math.Max(1, CibWidthBars),
+                TimeSpan.FromMinutes(Math.Max(1, CibMinimumWidthMinutes)).Ticks
+            ));
             var rectangle = Chart.DrawRectangle(
                 Name(key),
                 boundaryTime,
                 Math.Max(openPrice, closePrice),
-                boundaryTime + TimeSpan.FromTicks(
-                    BarDuration().Ticks * Math.Max(1, CibWidthBars)
-                ),
+                boundaryTime + width,
                 Math.Min(openPrice, closePrice),
                 color,
                 1,

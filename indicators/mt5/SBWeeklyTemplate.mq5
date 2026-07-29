@@ -49,6 +49,7 @@ input int InpPipeLineWidth = 1;
 input int InpPreviousCloseLineWidth = 1;
 input int InpLabelFontSize = 8;
 input int InpCibWidthBars = 2;
+input int InpCibMinimumWidthMinutes = 120;
 input int InpRefreshSeconds = 5;
 
 struct PriceRange
@@ -399,7 +400,7 @@ void DrawIntradayTemplate(MqlRates &chart[], MqlRates &daily[])
          {
             DrawCibMarker(
                "CIB_" + day_key,
-               day_start,
+               day_range.first_time,
                daily[previous_index].open,
                daily[previous_index].close,
                direction > 0 ? InpCibBullishColor : InpCibBearishColor
@@ -555,8 +556,7 @@ void DrawSession(
       range.last_time + MathMax(60, PeriodSeconds(_Period)),
       range.low,
       fill_color,
-      true,
-      40
+      true
    );
 }
 
@@ -844,8 +844,7 @@ void DrawRectangle(
    const datetime second_time,
    const double second_price,
    const color fill_color,
-   const bool in_background,
-   const uchar alpha
+   const bool in_background
 )
 {
    const string name = g_prefix + key;
@@ -860,7 +859,7 @@ void DrawRectangle(
       second_price
    ))
    {
-      ObjectSetInteger(0, name, OBJPROP_COLOR, ColorToARGB(fill_color, alpha));
+      ObjectSetInteger(0, name, OBJPROP_COLOR, fill_color);
       ObjectSetInteger(0, name, OBJPROP_FILL, true);
       ObjectSetInteger(0, name, OBJPROP_BACK, in_background);
       ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
@@ -877,15 +876,18 @@ void DrawCibMarker(
 )
 {
    const int bar_seconds = MathMax(60, PeriodSeconds(_Period));
+   const int width_seconds = MathMax(
+      MathMax(1, InpCibWidthBars) * bar_seconds,
+      MathMax(1, InpCibMinimumWidthMinutes) * 60
+   );
    DrawRectangle(
       key,
       boundary_time,
       MathMax(open_price, close_price),
-      boundary_time + MathMax(1, InpCibWidthBars) * bar_seconds,
+      boundary_time + width_seconds,
       MathMin(open_price, close_price),
       marker_color,
-      false,
-      255
+      false
    );
 }
 
