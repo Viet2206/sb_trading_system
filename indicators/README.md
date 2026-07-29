@@ -34,7 +34,9 @@ them as trading signals.
 
 1. In MT5, choose **File > Open Data Folder**.
 2. Open `MQL5/Indicators`.
-3. Copy `SBWeeklyTemplate.mq5` into that folder.
+3. Copy the complete `SBWeeklyTemplate.mq5` file into that folder. Copy the file
+   itself instead of pasting a browser/editor selection; the source is over 900
+   lines and an incomplete paste produces `unexpected end of program`.
 4. Open the file in MetaEditor and press **F7** to compile.
 5. Refresh the Navigator, then attach **SB Weekly Template** to a chart.
 

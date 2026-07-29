@@ -66,7 +66,7 @@ datetime g_last_bar_time = 0;
 
 int OnInit()
 {
-   g_prefix = "SBWT_" + LongToString(ChartID()) + "_";
+   g_prefix = "SBWT_" + IntegerToString(ChartID()) + "_";
    IndicatorSetString(INDICATOR_SHORTNAME, "SB Weekly Template");
    return INIT_SUCCEEDED;
 }

@@ -57,3 +57,13 @@ def test_native_weekly_templates_exclude_other_templates() -> None:
         content = path.read_text(encoding="utf-8").lower()
         assert "exponential moving average" not in content
         assert "major round number" not in content
+
+
+def test_mt5_indicator_source_is_complete_and_uses_mql5_conversions() -> None:
+    content = MT5.read_text(encoding="utf-8")
+
+    assert len(content.splitlines()) > 800
+    assert content.rstrip().endswith("}")
+    assert "int OnCalculate(" in content
+    assert "IntegerToString(ChartID())" in content
+    assert "LongToString" not in content
