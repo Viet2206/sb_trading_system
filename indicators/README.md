@@ -21,7 +21,8 @@ They do not include the separate **5 EMA** or **Major Round Number** templates.
 - UTC weekday labels
 - Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00 session fills
 - Previous-day Closing Inside Breakout markers
-- Provisional `Inside Day`, `FGD`, `FRD`, `3DL`, and `3DS` daily labels
+- Provisional `Inside Day`, `FGD`, `FRD`, `CIB`, `2CIB`, `3DL`, and `3DS`
+  daily labels
 
 The intraday day/session/pipe/CIB layers are hidden on H4 and D1, matching the web
 platform. Context levels and setup labels remain available.

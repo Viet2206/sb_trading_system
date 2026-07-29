@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from sb_system.context import _build_cib_markers, _closing_breakout_direction
+from sb_system.context import (
+    _build_cib_markers,
+    _classify_day,
+    _closing_breakout_direction,
+)
 
 
 def test_close_in_breakout_requires_close_outside_previous_range() -> None:
@@ -18,6 +22,22 @@ def test_close_in_breakout_requires_close_outside_previous_range() -> None:
     assert _closing_breakout_direction(daily, 1) == "green"
     assert _closing_breakout_direction(daily, 2) == "red"
     assert _closing_breakout_direction(daily, 3) is None
+
+
+def test_close_in_breakout_is_included_in_daily_signal_labels() -> None:
+    daily = pd.DataFrame(
+        [
+            _candle("2026-07-13", open_price=100, high=110, low=90, close=105),
+            _candle("2026-07-14", open_price=108, high=115, low=95, close=111),
+            _candle("2026-07-15", open_price=111, high=113, low=85, close=94),
+            _candle("2026-07-16", open_price=94, high=112, low=92, close=100),
+        ]
+    )
+
+    assert "CIB" in _classify_day(daily, 1)
+    assert "2CIB" in _classify_day(daily, 2)
+    assert "CIB" not in _classify_day(daily, 3)
+    assert "2CIB" not in _classify_day(daily, 3)
 
 
 def test_xauusd_markers_match_reviewed_current_days() -> None:

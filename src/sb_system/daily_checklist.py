@@ -444,26 +444,7 @@ def _matrix_signal_labels(daily: pd.DataFrame, index: int) -> list[str]:
         if label != "Inside Day":
             matrix_labels.append(label)
 
-    cib_label = _cib_label(daily, index)
-    if cib_label and "ID" not in matrix_labels:
-        matrix_labels.append(cib_label)
-
     return matrix_labels
-
-
-def _cib_label(daily: pd.DataFrame, index: int) -> str | None:
-    if index <= 0:
-        return None
-
-    if _closing_breakout_direction(daily, index) is None:
-        return None
-
-    previous_is_cib = (
-        _closing_breakout_direction(daily, index - 1) is not None
-        if index >= 2
-        else False
-    )
-    return "2CIB" if previous_is_cib else "CIB"
 
 
 def _matrix_text(labels: list[str], direction: str) -> str:

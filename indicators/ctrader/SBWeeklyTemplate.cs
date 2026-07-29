@@ -447,6 +447,13 @@ namespace cAlgo
             if (direction < 0 && PreviousDirectionCount(index, 1) >= 2)
                 labels.Add("FRD");
 
+            if (ClosingBreakoutDirection(index) != 0)
+            {
+                var previousIsCib =
+                    index >= 2 && ClosingBreakoutDirection(index - 1) != 0;
+                labels.Add(previousIsCib ? "2CIB" : "CIB");
+            }
+
             if (index >= 2 && direction != 0)
             {
                 var previousDirection = CandleDirection(index - 1);

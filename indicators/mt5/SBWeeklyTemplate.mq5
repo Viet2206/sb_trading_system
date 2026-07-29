@@ -460,6 +460,13 @@ void ClassifyDay(MqlRates &daily[], const int index, string &labels[])
    if(direction < 0 && PreviousDirectionCount(daily, index, 1) >= 2)
       AppendLabel(labels, "FRD");
 
+   if(ClosingBreakoutDirection(daily, index) != 0)
+   {
+      const bool previous_is_cib =
+         index >= 2 && ClosingBreakoutDirection(daily, index - 1) != 0;
+      AppendLabel(labels, previous_is_cib ? "2CIB" : "CIB");
+   }
+
    if(index >= 2 && direction != 0)
    {
       const int prior_direction = CandleDirection(daily[index - 1]);

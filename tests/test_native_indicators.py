@@ -25,6 +25,7 @@ def test_native_weekly_templates_cover_current_overlay_rules() -> None:
         "FRD",
         "3DL",
         "3DS",
+        "2CIB",
         "CIB_",
         "PDH_LINK_",
         "PDL_LINK_",

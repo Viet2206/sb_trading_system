@@ -446,6 +446,14 @@ def _classify_day(daily: pd.DataFrame, index: int) -> list[str]:
     if direction == "red" and _previous_direction_count(daily, index, "green") >= 2:
         labels.append("FRD")
 
+    if _closing_breakout_direction(daily, index) is not None:
+        previous_is_cib = (
+            _closing_breakout_direction(daily, index - 1) is not None
+            if index >= 2
+            else False
+        )
+        labels.append("2CIB" if previous_is_cib else "CIB")
+
     if index >= 2 and direction is not None:
         previous_direction = _candle_direction(previous)
         two_back_direction = _candle_direction(daily.loc[index - 2])
