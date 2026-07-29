@@ -88,8 +88,10 @@ def test_mt5_context_labels_are_aligned_near_the_visible_right_edge() -> None:
     content = MT5.read_text(encoding="utf-8")
 
     assert "InpLevelLabelRightMarginPixels = 58" in content
-    assert "RightEdgeLabelTime(chart_end, price)" in content
-    assert "ChartXYToTimePrice(" in content
+    assert "InpLevelLabelBackgroundColor = clrWhite" in content
+    assert "DrawLevelLabel(" in content
+    assert 'OBJ_RECTANGLE_LABEL' in content
+    assert '"LEVEL_LABEL_BG_"' in content
 
 
 def test_mt5_installer_verifies_the_copied_source() -> None:

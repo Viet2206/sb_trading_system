@@ -39,6 +39,7 @@ input color InpWeekdayLabelColor = C'179,0,0';
 input color InpSetupLabelColor = C'255,0,0';
 input color InpCibBullishColor = C'22,163,74';
 input color InpCibBearishColor = C'239,68,68';
+input color InpLevelLabelBackgroundColor = clrWhite;
 
 input group "Line Styles"
 input ENUM_LINE_STYLE InpContextLevelStyle = STYLE_SOLID;
@@ -49,6 +50,7 @@ input int InpPipeLineWidth = 1;
 input int InpPreviousCloseLineWidth = 1;
 input int InpLabelFontSize = 8;
 input int InpLevelLabelRightMarginPixels = 58;
+input int InpLevelLabelPaddingPixels = 3;
 input int InpCibWidthPixels = 12;
 input int InpCibMinimumHeightPixels = 4;
 input int InpCibMaximumHeightPixels = 24;
@@ -763,51 +765,101 @@ void DrawRay(
       ObjectSetInteger(0, line_name, OBJPROP_BACK, true);
       ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
    }
-   const datetime label_time = RightEdgeLabelTime(chart_end, price);
-   DrawText(
-      "LEVEL_LABEL_" + key,
+   DrawLevelLabel(
+      key,
       label,
-      label_time,
       price,
-      InpContextLevelColor,
-      ANCHOR_RIGHT
+      InpContextLevelColor
    );
 }
 
-datetime RightEdgeLabelTime(
-   const datetime fallback_time,
-   const double price
+void DrawLevelLabel(
+   const string key,
+   const string label,
+   const double price,
+   const color text_color
 )
 {
    long chart_width = 0;
-   if(!ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0, chart_width))
-      return fallback_time;
+   long chart_height = 0;
+   if(!ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0, chart_width) ||
+      !ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0, chart_height))
+      return;
 
    int probe_x, price_y;
    const datetime probe_time = iTime(_Symbol, _Period, 0);
    if(probe_time <= 0 ||
       !ChartTimePriceToXY(0, 0, probe_time, price, probe_x, price_y))
-      return fallback_time;
+      return;
+   if(price_y < 0 || price_y > chart_height)
+      return;
 
    const int margin = MathMax(20, InpLevelLabelRightMarginPixels);
-   const int target_x = (int)chart_width - margin;
-   if(target_x <= 0)
-      return fallback_time;
+   const int right_x = (int)chart_width - margin;
+   if(right_x <= 0)
+      return;
 
-   int sub_window = 0;
-   datetime label_time = fallback_time;
-   double converted_price = price;
-   if(!ChartXYToTimePrice(
+   const int padding = MathMax(1, InpLevelLabelPaddingPixels);
+   const int font_size = MathMax(7, InpLabelFontSize);
+   const int text_width = (int)MathCeil(
+      StringLen(label) * font_size * 0.62
+   );
+   const int box_width = MathMax(12, text_width + padding * 2);
+   const int box_height = font_size + padding * 2;
+   const int box_x = MathMax(0, right_x - box_width);
+   const int box_y = MathMax(0, price_y - box_height / 2);
+
+   const string background_name =
+      g_prefix + "LEVEL_LABEL_BG_" + key;
+   if(ObjectCreate(
       0,
-      target_x,
-      price_y,
-      sub_window,
-      label_time,
-      converted_price
-   ) || sub_window != 0)
-      return fallback_time;
+      background_name,
+      OBJ_RECTANGLE_LABEL,
+      0,
+      0,
+      0
+   ))
+   {
+      ObjectSetInteger(0, background_name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, background_name, OBJPROP_XDISTANCE, box_x);
+      ObjectSetInteger(0, background_name, OBJPROP_YDISTANCE, box_y);
+      ObjectSetInteger(0, background_name, OBJPROP_XSIZE, box_width);
+      ObjectSetInteger(0, background_name, OBJPROP_YSIZE, box_height);
+      ObjectSetInteger(
+         0,
+         background_name,
+         OBJPROP_BGCOLOR,
+         InpLevelLabelBackgroundColor
+      );
+      ObjectSetInteger(
+         0,
+         background_name,
+         OBJPROP_COLOR,
+         InpLevelLabelBackgroundColor
+      );
+      ObjectSetInteger(0, background_name, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+      ObjectSetInteger(0, background_name, OBJPROP_BACK, false);
+      ObjectSetInteger(0, background_name, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, background_name, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, background_name, OBJPROP_ZORDER, 90);
+   }
 
-   return label_time;
+   const string text_name = g_prefix + "LEVEL_LABEL_" + key;
+   if(ObjectCreate(0, text_name, OBJ_LABEL, 0, 0, 0))
+   {
+      ObjectSetInteger(0, text_name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, text_name, OBJPROP_ANCHOR, ANCHOR_RIGHT);
+      ObjectSetInteger(0, text_name, OBJPROP_XDISTANCE, right_x - padding);
+      ObjectSetInteger(0, text_name, OBJPROP_YDISTANCE, price_y);
+      ObjectSetString(0, text_name, OBJPROP_TEXT, label);
+      ObjectSetString(0, text_name, OBJPROP_FONT, "Arial");
+      ObjectSetInteger(0, text_name, OBJPROP_FONTSIZE, font_size);
+      ObjectSetInteger(0, text_name, OBJPROP_COLOR, text_color);
+      ObjectSetInteger(0, text_name, OBJPROP_BACK, false);
+      ObjectSetInteger(0, text_name, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, text_name, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, text_name, OBJPROP_ZORDER, 100);
+   }
 }
 
 void DrawSegment(
