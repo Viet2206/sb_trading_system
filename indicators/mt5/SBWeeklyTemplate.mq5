@@ -48,6 +48,7 @@ input int InpContextLineWidth = 1;
 input int InpPipeLineWidth = 1;
 input int InpPreviousCloseLineWidth = 1;
 input int InpLabelFontSize = 8;
+input int InpLevelLabelRightMarginPixels = 58;
 input int InpCibWidthPixels = 12;
 input int InpCibMinimumHeightPixels = 4;
 input int InpCibMaximumHeightPixels = 24;
@@ -762,14 +763,51 @@ void DrawRay(
       ObjectSetInteger(0, line_name, OBJPROP_BACK, true);
       ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
    }
+   const datetime label_time = RightEdgeLabelTime(chart_end, price);
    DrawText(
       "LEVEL_LABEL_" + key,
       label,
-      chart_end,
+      label_time,
       price,
       InpContextLevelColor,
       ANCHOR_RIGHT
    );
+}
+
+datetime RightEdgeLabelTime(
+   const datetime fallback_time,
+   const double price
+)
+{
+   long chart_width = 0;
+   if(!ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0, chart_width))
+      return fallback_time;
+
+   int probe_x, price_y;
+   const datetime probe_time = iTime(_Symbol, _Period, 0);
+   if(probe_time <= 0 ||
+      !ChartTimePriceToXY(0, 0, probe_time, price, probe_x, price_y))
+      return fallback_time;
+
+   const int margin = MathMax(20, InpLevelLabelRightMarginPixels);
+   const int target_x = (int)chart_width - margin;
+   if(target_x <= 0)
+      return fallback_time;
+
+   int sub_window = 0;
+   datetime label_time = fallback_time;
+   double converted_price = price;
+   if(!ChartXYToTimePrice(
+      0,
+      target_x,
+      price_y,
+      sub_window,
+      label_time,
+      converted_price
+   ) || sub_window != 0)
+      return fallback_time;
+
+   return label_time;
 }
 
 void DrawSegment(

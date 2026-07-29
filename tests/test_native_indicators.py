@@ -84,6 +84,14 @@ def test_native_cib_markers_start_at_first_current_day_candle() -> None:
     assert "CibMinimumWidthMinutes" in ctrader
 
 
+def test_mt5_context_labels_are_aligned_near_the_visible_right_edge() -> None:
+    content = MT5.read_text(encoding="utf-8")
+
+    assert "InpLevelLabelRightMarginPixels = 58" in content
+    assert "RightEdgeLabelTime(chart_end, price)" in content
+    assert "ChartXYToTimePrice(" in content
+
+
 def test_mt5_installer_verifies_the_copied_source() -> None:
     content = MT5_INSTALLER.read_text(encoding="utf-8")
 
