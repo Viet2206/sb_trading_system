@@ -99,3 +99,7 @@ Label visibility is independent from line visibility. Set **Show All Labels** to
 `false` to hide every text label while retaining enabled lines, pipes, session
 fills, and CIB markers. Alternatively, keep it enabled and switch off only
 **Context Level Labels**, **Weekday Labels**, **Setup Labels**, or **CIB Labels**.
+
+On each redraw, the MT5 indicator removes all objects beginning with `SBWT_` from
+the current chart. This also clears orphaned objects left by an older build or by
+a copied MT5 chart template whose embedded chart ID no longer matches.

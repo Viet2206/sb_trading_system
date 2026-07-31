@@ -115,6 +115,14 @@ def test_native_indicators_expose_independent_label_visibility_controls() -> Non
     assert "ShowAllLabels && ShowContextLevelLabels" in ctrader
 
 
+def test_mt5_redraw_removes_orphaned_objects_from_older_chart_ids() -> None:
+    content = MT5.read_text(encoding="utf-8")
+
+    assert 'g_object_root = "SBWT_"' in content
+    assert "ObjectsDeleteAll(0, g_object_root, 0, -1)" in content
+    assert content.count("DeleteTemplateObjects();") >= 2
+
+
 def test_mt5_installer_verifies_the_copied_source() -> None:
     content = MT5_INSTALLER.read_text(encoding="utf-8")
 

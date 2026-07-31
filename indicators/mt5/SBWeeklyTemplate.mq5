@@ -1,6 +1,6 @@
 #property copyright "SB Trading System"
 #property link      "https://github.com/Viet2206/sb_trading_system"
-#property version   "1.01"
+#property version   "1.02"
 #property strict
 #property indicator_chart_window
 #property indicator_plots 0
@@ -79,6 +79,7 @@ struct LevelLabelItem
    int    y;
 };
 
+string   g_object_root = "SBWT_";
 string   g_prefix;
 ulong    g_last_refresh_ms = 0;
 datetime g_last_bar_time = 0;
@@ -86,14 +87,14 @@ LevelLabelItem g_level_labels[];
 
 int OnInit()
 {
-   g_prefix = "SBWT_" + IntegerToString(ChartID()) + "_";
+   g_prefix = g_object_root + IntegerToString(ChartID()) + "_";
    IndicatorSetString(INDICATOR_SHORTNAME, "SB Weekly Template");
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason)
 {
-   ObjectsDeleteAll(0, g_prefix, 0, -1);
+   DeleteTemplateObjects();
    ChartRedraw();
 }
 
@@ -129,7 +130,7 @@ int OnCalculate(
 
 void RedrawTemplate()
 {
-   ObjectsDeleteAll(0, g_prefix, 0, -1);
+   DeleteTemplateObjects();
    ArrayResize(g_level_labels, 0);
 
    datetime chart_end = iTime(_Symbol, _Period, 0);
@@ -176,6 +177,12 @@ void RedrawTemplate()
       DrawDailyLabels(daily_rates, chart_start, chart_end);
 
    ChartRedraw();
+}
+
+void DeleteTemplateObjects()
+{
+   // Remove orphaned objects created by older builds or copied chart templates.
+   ObjectsDeleteAll(0, g_object_root, 0, -1);
 }
 
 bool IsIntradayTemplate()
