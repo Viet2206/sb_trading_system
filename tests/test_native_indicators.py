@@ -96,6 +96,25 @@ def test_mt5_context_labels_are_aligned_near_the_visible_right_edge() -> None:
     assert '"LEVEL_LABEL_BG_"' in content
 
 
+def test_native_indicators_expose_independent_label_visibility_controls() -> None:
+    mt5 = MT5.read_text(encoding="utf-8")
+    ctrader = CTRADER.read_text(encoding="utf-8")
+
+    assert "InpShowAllLabels = true" in mt5
+    assert "InpShowContextLevelLabels = true" in mt5
+    assert "InpShowWeekdayLabels = true" in mt5
+    assert "InpShowSetupLabels = true" in mt5
+    assert "InpShowCibLabels = true" in mt5
+    assert "InpShowAllLabels && InpShowContextLevelLabels" in mt5
+
+    assert 'Parameter("Show All Labels"' in ctrader
+    assert 'Parameter("Context Level Labels"' in ctrader
+    assert 'Parameter("Weekday Labels"' in ctrader
+    assert 'Parameter("Setup Labels"' in ctrader
+    assert 'Parameter("CIB Labels"' in ctrader
+    assert "ShowAllLabels && ShowContextLevelLabels" in ctrader
+
+
 def test_mt5_installer_verifies_the_copied_source() -> None:
     content = MT5_INSTALLER.read_text(encoding="utf-8")
 

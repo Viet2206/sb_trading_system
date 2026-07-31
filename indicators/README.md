@@ -94,3 +94,8 @@ Both indicators default to:
 
 Every layer, color, line style, and session time can be adjusted in the indicator
 parameters.
+
+Label visibility is independent from line visibility. Set **Show All Labels** to
+`false` to hide every text label while retaining enabled lines, pipes, session
+fills, and CIB markers. Alternatively, keep it enabled and switch off only
+**Context Level Labels**, **Weekday Labels**, **Setup Labels**, or **CIB Labels**.

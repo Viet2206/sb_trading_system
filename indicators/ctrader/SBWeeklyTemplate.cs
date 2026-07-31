@@ -16,8 +16,14 @@ namespace cAlgo
         [Parameter("Lookback Days", Group = "Template", DefaultValue = 45, MinValue = 5)]
         public int LookbackDays { get; set; }
 
+        [Parameter("Show All Labels", Group = "Template", DefaultValue = true)]
+        public bool ShowAllLabels { get; set; }
+
         [Parameter("Context Levels", Group = "Template", DefaultValue = true)]
         public bool ShowContextLevels { get; set; }
+
+        [Parameter("Context Level Labels", Group = "Template", DefaultValue = true)]
+        public bool ShowContextLevelLabels { get; set; }
 
         [Parameter("Previous-Day Pipe", Group = "Template", DefaultValue = true)]
         public bool ShowPreviousDayPipe { get; set; }
@@ -39,6 +45,9 @@ namespace cAlgo
 
         [Parameter("Setup Labels", Group = "Template", DefaultValue = true)]
         public bool ShowSetupLabels { get; set; }
+
+        [Parameter("CIB Labels", Group = "Template", DefaultValue = true)]
+        public bool ShowCibLabels { get; set; }
 
         [Parameter("CIB Markers", Group = "Template", DefaultValue = true)]
         public bool ShowCibMarkers { get; set; }
@@ -169,7 +178,7 @@ namespace cAlgo
             if (IsIntradayTemplate())
                 DrawIntradayTemplate(chartStart, chartEnd);
 
-            if (ShowSetupLabels)
+            if (ShowAllLabels && ShowSetupLabels)
                 DrawDailyLabels(chartStart, chartEnd);
         }
 
@@ -289,7 +298,7 @@ namespace cAlgo
                     separator.IsInteractive = false;
                 }
 
-                if (ShowWeekdayLabels)
+                if (ShowAllLabels && ShowWeekdayLabels)
                 {
                     var distance = Math.Max(
                         Symbol.PipSize * 2,
@@ -418,6 +427,9 @@ namespace cAlgo
                 );
                 for (var labelIndex = 0; labelIndex < labels.Count; labelIndex++)
                 {
+                    if (!ShowCibLabels &&
+                        (labels[labelIndex] == "CIB" || labels[labelIndex] == "2CIB"))
+                        continue;
                     DrawText(
                         "SETUP_" + index + "_" + labelIndex,
                         labels[labelIndex],
@@ -696,15 +708,18 @@ namespace cAlgo
             );
             line.ExtendToInfinity = true;
             line.IsInteractive = false;
-            DrawText(
-                "LEVEL_LABEL_" + key,
-                label,
-                chartEnd,
-                price,
-                ContextLevelColor,
-                VerticalAlignment.Center,
-                HorizontalAlignment.Right
-            );
+            if (ShowAllLabels && ShowContextLevelLabels)
+            {
+                DrawText(
+                    "LEVEL_LABEL_" + key,
+                    label,
+                    chartEnd,
+                    price,
+                    ContextLevelColor,
+                    VerticalAlignment.Center,
+                    HorizontalAlignment.Right
+                );
+            }
         }
 
         private void DrawSegment(

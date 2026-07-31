@@ -1,11 +1,18 @@
 #property copyright "SB Trading System"
 #property link      "https://github.com/Viet2206/sb_trading_system"
-#property version   "1.00"
+#property version   "1.01"
 #property strict
 #property indicator_chart_window
 #property indicator_plots 0
 
-input group "Template"
+input group "Label Visibility"
+input bool InpShowAllLabels = true;          // Show all labels
+input bool InpShowContextLevelLabels = true; // Context level labels
+input bool InpShowWeekdayLabels = true;      // Weekday labels
+input bool InpShowSetupLabels = true;        // Setup labels
+input bool InpShowCibLabels = true;          // CIB and 2CIB labels
+
+input group "Template Layers"
 input int  InpLookbackDays = 45;
 input bool InpShowContextLevels = true;
 input bool InpShowPreviousDayPipe = true;
@@ -13,8 +20,6 @@ input bool InpShowPreviousDayClose = true;
 input bool InpShowSessions = true;
 input bool InpShowDaySeparators = true;
 input bool InpShowMonthSeparators = true;
-input bool InpShowWeekdayLabels = true;
-input bool InpShowSetupLabels = true;
 input bool InpShowCibMarkers = true;
 
 input group "UTC Sessions"
@@ -158,7 +163,8 @@ void RedrawTemplate()
    if(InpShowContextLevels)
    {
       DrawContextLevels(daily_rates, chart_end);
-      DrawQueuedLevelLabels();
+      if(InpShowAllLabels && InpShowContextLevelLabels)
+         DrawQueuedLevelLabels();
    }
 
    const bool intraday = IsIntradayTemplate();
@@ -166,7 +172,7 @@ void RedrawTemplate()
       DrawMonthSeparators(chart_rates);
    if(intraday)
       DrawIntradayTemplate(chart_rates, daily_rates);
-   if(InpShowSetupLabels)
+   if(InpShowAllLabels && InpShowSetupLabels)
       DrawDailyLabels(daily_rates, chart_start, chart_end);
 
    ChartRedraw();
@@ -305,7 +311,7 @@ void DrawIntradayTemplate(MqlRates &chart[], MqlRates &daily[])
       if(InpShowDaySeparators)
          DrawVertical("DAY_" + day_key, day_start, InpDaySeparatorColor, STYLE_SOLID);
 
-      if(InpShowWeekdayLabels)
+      if(InpShowAllLabels && InpShowWeekdayLabels)
       {
          const double label_price = day_range.low -
             MathMax(SymbolInfoDouble(_Symbol, SYMBOL_POINT) * 20,
@@ -450,6 +456,9 @@ void DrawDailyLabels(
       );
       for(int label_index = 0; label_index < label_count; label_index++)
       {
+         if(!InpShowCibLabels &&
+            (labels[label_index] == "CIB" || labels[label_index] == "2CIB"))
+            continue;
          DrawText(
             "SETUP_" + IntegerToString(index) + "_" + IntegerToString(label_index),
             labels[label_index],
