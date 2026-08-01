@@ -1,6 +1,6 @@
 #property copyright "SB Trading System"
 #property link      "https://github.com/Viet2206/sb_trading_system"
-#property version   "1.02"
+#property version   "1.03"
 #property strict
 #property indicator_chart_window
 #property indicator_plots 0
@@ -1089,45 +1089,61 @@ void DrawCibMarker(
    const color marker_color
 )
 {
-   int x_open, y_open, x_close, y_close;
-   if(!ChartTimePriceToXY(0, 0, boundary_time, open_price, x_open, y_open) ||
-      !ChartTimePriceToXY(0, 0, boundary_time, close_price, x_close, y_close))
-      return;
-
    long chart_width = 0;
    long chart_height = 0;
+   long visible_bars = 0;
+   double visible_high = 0.0;
+   double visible_low = 0.0;
    if(!ChartGetInteger(0, CHART_WIDTH_IN_PIXELS, 0, chart_width) ||
-      !ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0, chart_height))
+      !ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS, 0, chart_height) ||
+      !ChartGetInteger(0, CHART_VISIBLE_BARS, 0, visible_bars) ||
+      !ChartGetDouble(0, CHART_PRICE_MAX, 0, visible_high) ||
+      !ChartGetDouble(0, CHART_PRICE_MIN, 0, visible_low))
       return;
-   if(x_close < 0 || x_close > chart_width ||
-      y_close < 0 || y_close > chart_height)
+   if(chart_width <= 0 || chart_height <= 0 || visible_bars <= 0 ||
+      visible_high <= visible_low)
       return;
 
    const int minimum_height = MathMax(1, InpCibMinimumHeightPixels);
    const int maximum_height = MathMax(minimum_height, InpCibMaximumHeightPixels);
-   int marker_height = y_close >= y_open
-      ? y_close - y_open
-      : y_open - y_close;
-   if(marker_height < minimum_height)
-      marker_height = minimum_height;
-   if(marker_height > maximum_height)
-      marker_height = maximum_height;
+   const double price_per_pixel =
+      (visible_high - visible_low) / (double)chart_height;
+   const double minimum_price_height = price_per_pixel * minimum_height;
+   const double maximum_price_height = price_per_pixel * maximum_height;
+   double marker_price_height = MathAbs(close_price - open_price);
+   marker_price_height = MathMax(marker_price_height, minimum_price_height);
+   marker_price_height = MathMin(marker_price_height, maximum_price_height);
 
-   const int marker_width = MathMax(1, InpCibWidthPixels);
-   const int marker_y = close_price >= open_price
-      ? y_close
-      : y_close - marker_height;
+   const double pixels_per_bar =
+      (double)chart_width / (double)visible_bars;
+   const int marker_bars = MathMax(
+      1,
+      (int)MathCeil(MathMax(1, InpCibWidthPixels) / pixels_per_bar)
+   );
+   const datetime marker_end = boundary_time +
+      (datetime)(marker_bars * MathMax(1, PeriodSeconds(_Period)));
+   const double marker_high = close_price >= open_price
+      ? close_price
+      : close_price + marker_price_height;
+   const double marker_low = close_price >= open_price
+      ? close_price - marker_price_height
+      : close_price;
+
    const string name = g_prefix + key;
-   if(ObjectCreate(0, name, OBJ_RECTANGLE_LABEL, 0, 0, 0))
+   if(ObjectCreate(
+      0,
+      name,
+      OBJ_RECTANGLE,
+      0,
+      boundary_time,
+      marker_high,
+      marker_end,
+      marker_low
+   ))
    {
-      ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
-      ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x_close + 1);
-      ObjectSetInteger(0, name, OBJPROP_YDISTANCE, marker_y);
-      ObjectSetInteger(0, name, OBJPROP_XSIZE, marker_width);
-      ObjectSetInteger(0, name, OBJPROP_YSIZE, marker_height);
-      ObjectSetInteger(0, name, OBJPROP_BGCOLOR, marker_color);
-      ObjectSetInteger(0, name, OBJPROP_BORDER_TYPE, BORDER_FLAT);
       ObjectSetInteger(0, name, OBJPROP_COLOR, marker_color);
+      ObjectSetInteger(0, name, OBJPROP_FILL, true);
+      ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
       ObjectSetInteger(0, name, OBJPROP_BACK, false);
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);

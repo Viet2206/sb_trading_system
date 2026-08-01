@@ -79,7 +79,13 @@ def test_native_cib_markers_start_at_first_current_day_candle() -> None:
     assert "day_range.first_time" in mt5
     assert "InpCibWidthPixels = 12" in mt5
     assert "InpCibMaximumHeightPixels = 24" in mt5
-    assert "OBJ_RECTANGLE_LABEL" in mt5
+    cib_start = mt5.index("void DrawCibMarker(")
+    cib_end = mt5.index("void DrawText(", cib_start)
+    cib_function = mt5[cib_start:cib_end]
+    assert "OBJ_RECTANGLE" in cib_function
+    assert "OBJ_RECTANGLE_LABEL" not in cib_function
+    assert "CHART_VISIBLE_BARS" in cib_function
+    assert "CHART_PRICE_MAX" in cib_function
     assert "dayRange.FirstTime" in ctrader
     assert "CibMinimumWidthMinutes" in ctrader
 

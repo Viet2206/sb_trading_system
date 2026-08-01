@@ -87,7 +87,8 @@ Both indicators default to:
 - lightly filled session ranges without text labels
 - red weekday/setup labels
 - compact CIB markers placed at the current day's first candle; MT5 defaults to
-  12 pixels wide with height clamped between 4 and 24 pixels
+  roughly 12 pixels wide with height clamped between 4 and 24 pixels; the MT5
+  marker uses chart time/price anchors so it moves with its candle while panning
 - context-level labels aligned near the visible right edge with a configurable
   price-scale margin and a compact background that masks the line beneath the
   text; nearby levels are combined into one label row to avoid collisions
