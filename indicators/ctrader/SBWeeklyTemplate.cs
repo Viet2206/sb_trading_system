@@ -28,6 +28,9 @@ namespace cAlgo
         [Parameter("Previous-Day Pipe", Group = "Template", DefaultValue = true)]
         public bool ShowPreviousDayPipe { get; set; }
 
+        [Parameter("Previous-Week Pipe", Group = "Template", DefaultValue = true)]
+        public bool ShowPreviousWeekPipe { get; set; }
+
         [Parameter("Previous-Day Close", Group = "Template", DefaultValue = true)]
         public bool ShowPreviousDayClose { get; set; }
 
@@ -76,6 +79,9 @@ namespace cAlgo
         [Parameter("Previous-Day Pipe", Group = "Colors", DefaultValue = "#64748B")]
         public Color PreviousDayPipeColor { get; set; }
 
+        [Parameter("Previous-Week Pipe", Group = "Colors", DefaultValue = "#475569")]
+        public Color PreviousWeekPipeColor { get; set; }
+
         [Parameter("Previous-Day Close", Group = "Colors", DefaultValue = "#16A34A")]
         public Color PreviousDayCloseColor { get; set; }
 
@@ -112,6 +118,9 @@ namespace cAlgo
         [Parameter("Pipe Style", Group = "Line Styles", DefaultValue = LineStyle.Lines)]
         public LineStyle PreviousDayPipeStyle { get; set; }
 
+        [Parameter("Week Pipe Style", Group = "Line Styles", DefaultValue = LineStyle.Lines)]
+        public LineStyle PreviousWeekPipeStyle { get; set; }
+
         [Parameter("Close Style", Group = "Line Styles", DefaultValue = LineStyle.Solid)]
         public LineStyle PreviousDayCloseStyle { get; set; }
 
@@ -120,6 +129,9 @@ namespace cAlgo
 
         [Parameter("Pipe Width", Group = "Line Styles", DefaultValue = 1, MinValue = 1, MaxValue = 5)]
         public int PipeLineWidth { get; set; }
+
+        [Parameter("Week Pipe Width", Group = "Line Styles", DefaultValue = 1, MinValue = 1, MaxValue = 5)]
+        public int WeekPipeLineWidth { get; set; }
 
         [Parameter("Close Width", Group = "Line Styles", DefaultValue = 1, MinValue = 1, MaxValue = 5)]
         public int PreviousCloseLineWidth { get; set; }
@@ -274,6 +286,9 @@ namespace cAlgo
         {
             var firstDay = chartStart.Date;
             var lastDay = chartEnd.Date;
+            if (ShowPreviousWeekPipe)
+                DrawPreviousWeekPipe(firstDay, lastDay);
+
             var hasPreviousPipe = false;
             var previousPipeHigh = 0.0;
             var previousPipeLow = 0.0;
@@ -368,13 +383,19 @@ namespace cAlgo
                             "PDH_LINK_" + dayKey,
                             dayStart,
                             previousPipeHigh,
-                            pdh
+                            pdh,
+                            PreviousDayPipeColor,
+                            PreviousDayPipeStyle,
+                            PipeLineWidth
                         );
                         DrawConnector(
                             "PDL_LINK_" + dayKey,
                             dayStart,
                             previousPipeLow,
-                            pdl
+                            pdl,
+                            PreviousDayPipeColor,
+                            PreviousDayPipeStyle,
+                            PipeLineWidth
                         );
                     }
                     hasPreviousPipe = true;
@@ -409,6 +430,74 @@ namespace cAlgo
                         );
                     }
                 }
+            }
+        }
+
+        private void DrawPreviousWeekPipe(DateTime firstDay, DateTime lastDay)
+        {
+            var firstWeek = StartOfWeek(firstDay);
+            var lastWeek = StartOfWeek(lastDay);
+            var hasPreviousPipe = false;
+            var previousPipeHigh = 0.0;
+            var previousPipeLow = 0.0;
+
+            for (var weekStart = firstWeek;
+                 weekStart <= lastWeek;
+                 weekStart = weekStart.AddDays(7))
+            {
+                var weekEnd = weekStart.AddDays(7);
+                var previousWeekStart = weekStart.AddDays(-7);
+                if (!DailyHighLow(previousWeekStart, weekStart, out var pwh, out var pwl))
+                {
+                    hasPreviousPipe = false;
+                    continue;
+                }
+
+                var weekKey = weekStart.ToString("yyyyMMdd");
+                DrawSegment(
+                    "PWH_PIPE_" + weekKey,
+                    weekStart,
+                    weekEnd,
+                    pwh,
+                    PreviousWeekPipeColor,
+                    PreviousWeekPipeStyle,
+                    WeekPipeLineWidth
+                );
+                DrawSegment(
+                    "PWL_PIPE_" + weekKey,
+                    weekStart,
+                    weekEnd,
+                    pwl,
+                    PreviousWeekPipeColor,
+                    PreviousWeekPipeStyle,
+                    WeekPipeLineWidth
+                );
+
+                if (hasPreviousPipe)
+                {
+                    DrawConnector(
+                        "PWH_PIPE_LINK_" + weekKey,
+                        weekStart,
+                        previousPipeHigh,
+                        pwh,
+                        PreviousWeekPipeColor,
+                        PreviousWeekPipeStyle,
+                        WeekPipeLineWidth
+                    );
+                    DrawConnector(
+                        "PWL_PIPE_LINK_" + weekKey,
+                        weekStart,
+                        previousPipeLow,
+                        pwl,
+                        PreviousWeekPipeColor,
+                        PreviousWeekPipeStyle,
+                        WeekPipeLineWidth
+                    );
+                }
+
+                hasPreviousPipe = true;
+                previousPipeHigh = pwh;
+                previousPipeLow = pwl;
             }
         }
 
@@ -750,7 +839,10 @@ namespace cAlgo
             string key,
             DateTime atTime,
             double firstPrice,
-            double secondPrice
+            double secondPrice,
+            Color color,
+            LineStyle style,
+            int width
         )
         {
             if (Math.Abs(firstPrice - secondPrice) < Symbol.TickSize)
@@ -762,9 +854,9 @@ namespace cAlgo
                 firstPrice,
                 atTime.AddSeconds(1),
                 secondPrice,
-                PreviousDayPipeColor,
-                PipeLineWidth,
-                PreviousDayPipeStyle
+                color,
+                width,
+                style
             );
             line.ExtendToInfinity = false;
             line.IsInteractive = false;

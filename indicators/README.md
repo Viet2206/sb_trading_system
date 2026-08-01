@@ -16,6 +16,8 @@ They do not include the separate **5 EMA** or **Major Round Number** templates.
 - Latest Friday close
 - Current Monday high/low
 - Previous-day high/low pipes with high-to-high and low-to-low connectors
+- Previous-week high/low pipes spanning each current week, with high-to-high and
+  low-to-low connectors between weeks
 - Previous-day close segments within each current day
 - UTC day and month separators
 - UTC weekday labels
@@ -83,6 +85,7 @@ Both indicators default to:
 - 45 visible-history days
 - gray solid context levels
 - gray dashed previous-day pipes
+- darker gray dashed previous-week pipes
 - green previous-day close segments
 - lightly filled session ranges without text labels
 - red weekday/setup labels

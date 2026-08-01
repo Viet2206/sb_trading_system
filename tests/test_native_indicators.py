@@ -29,6 +29,10 @@ def test_native_weekly_templates_cover_current_overlay_rules() -> None:
         "CIB_",
         "PDH_LINK_",
         "PDL_LINK_",
+        "PWH_PIPE_",
+        "PWL_PIPE_",
+        "PWH_PIPE_LINK_",
+        "PWL_PIPE_LINK_",
     ]
 
     for marker in required_markers:
@@ -52,6 +56,23 @@ def test_native_weekly_templates_keep_current_session_defaults() -> None:
     assert "DefaultValue = 12" in ctrader
     assert "DefaultValue = 15" in ctrader
     assert "DefaultValue = 18" in ctrader
+
+
+def test_native_weekly_templates_include_configurable_previous_week_pipe() -> None:
+    mt5 = MT5.read_text(encoding="utf-8")
+    ctrader = CTRADER.read_text(encoding="utf-8")
+
+    assert "InpShowPreviousWeekPipe = true" in mt5
+    assert "InpPreviousWeekPipeColor" in mt5
+    assert "InpPreviousWeekPipeStyle" in mt5
+    assert "InpWeekPipeLineWidth" in mt5
+    assert "DrawPreviousWeekPipe(daily, first_day, last_day)" in mt5
+
+    assert 'Parameter("Previous-Week Pipe"' in ctrader
+    assert "PreviousWeekPipeColor" in ctrader
+    assert "PreviousWeekPipeStyle" in ctrader
+    assert "WeekPipeLineWidth" in ctrader
+    assert "DrawPreviousWeekPipe(firstDay, lastDay)" in ctrader
 
 
 def test_native_weekly_templates_exclude_other_templates() -> None:

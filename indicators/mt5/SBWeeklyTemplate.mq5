@@ -1,6 +1,6 @@
 #property copyright "SB Trading System"
 #property link      "https://github.com/Viet2206/sb_trading_system"
-#property version   "1.03"
+#property version   "1.04"
 #property strict
 #property indicator_chart_window
 #property indicator_plots 0
@@ -16,6 +16,7 @@ input group "Template Layers"
 input int  InpLookbackDays = 45;
 input bool InpShowContextLevels = true;
 input bool InpShowPreviousDayPipe = true;
+input bool InpShowPreviousWeekPipe = true;
 input bool InpShowPreviousDayClose = true;
 input bool InpShowSessions = true;
 input bool InpShowDaySeparators = true;
@@ -34,6 +35,7 @@ input int InpNewYorkEndHourUtc = 18;
 input group "Colors"
 input color InpContextLevelColor = C'142,143,144';
 input color InpPreviousDayPipeColor = C'100,116,139';
+input color InpPreviousWeekPipeColor = C'71,85,105';
 input color InpPreviousDayCloseColor = C'22,163,74';
 input color InpAsiaFillColor = C'186,230,253';
 input color InpLondonFillColor = C'187,247,208';
@@ -49,9 +51,11 @@ input color InpLevelLabelBackgroundColor = clrWhite;
 input group "Line Styles"
 input ENUM_LINE_STYLE InpContextLevelStyle = STYLE_SOLID;
 input ENUM_LINE_STYLE InpPreviousDayPipeStyle = STYLE_DASH;
+input ENUM_LINE_STYLE InpPreviousWeekPipeStyle = STYLE_DASH;
 input ENUM_LINE_STYLE InpPreviousDayCloseStyle = STYLE_SOLID;
 input int InpContextLineWidth = 1;
 input int InpPipeLineWidth = 1;
+input int InpWeekPipeLineWidth = 1;
 input int InpPreviousCloseLineWidth = 1;
 input int InpLabelFontSize = 8;
 input int InpLevelLabelRightMarginPixels = 58;
@@ -301,6 +305,9 @@ void DrawIntradayTemplate(MqlRates &chart[], MqlRates &daily[])
 
    datetime first_day = UtcDayStartInServerTime(chart[0].time);
    datetime last_day = UtcDayStartInServerTime(chart[count - 1].time);
+   if(InpShowPreviousWeekPipe)
+      DrawPreviousWeekPipe(daily, first_day, last_day);
+
    bool has_previous_pipe = false;
    double previous_pipe_high = 0.0;
    double previous_pipe_low = 0.0;
@@ -394,7 +401,8 @@ void DrawIntradayTemplate(MqlRates &chart[], MqlRates &daily[])
                previous_pipe_high,
                pdh,
                InpPreviousDayPipeColor,
-               InpPreviousDayPipeStyle
+               InpPreviousDayPipeStyle,
+               InpPipeLineWidth
             );
             DrawConnector(
                "PDL_LINK_" + day_key,
@@ -402,7 +410,8 @@ void DrawIntradayTemplate(MqlRates &chart[], MqlRates &daily[])
                previous_pipe_low,
                pdl,
                InpPreviousDayPipeColor,
-               InpPreviousDayPipeStyle
+               InpPreviousDayPipeStyle,
+               InpPipeLineWidth
             );
          }
          has_previous_pipe = true;
@@ -438,6 +447,82 @@ void DrawIntradayTemplate(MqlRates &chart[], MqlRates &daily[])
             );
          }
       }
+   }
+}
+
+void DrawPreviousWeekPipe(
+   MqlRates &daily[],
+   const datetime first_day,
+   const datetime last_day
+)
+{
+   const datetime first_week = WeekStart(first_day);
+   const datetime last_week = WeekStart(last_day);
+   bool has_previous_pipe = false;
+   double previous_pipe_high = 0.0;
+   double previous_pipe_low = 0.0;
+
+   for(datetime week_start = first_week;
+       week_start <= last_week;
+       week_start += 7 * 86400)
+   {
+      const datetime week_end = week_start + 7 * 86400;
+      const datetime previous_week_start = week_start - 7 * 86400;
+      double pwh = 0.0;
+      double pwl = 0.0;
+      if(!HighLowBetween(daily, previous_week_start, week_start, pwh, pwl))
+      {
+         has_previous_pipe = false;
+         continue;
+      }
+
+      const string week_key = TimeToString(week_start, TIME_DATE);
+      DrawSegment(
+         "PWH_PIPE_" + week_key,
+         week_start,
+         week_end,
+         pwh,
+         InpPreviousWeekPipeColor,
+         InpPreviousWeekPipeStyle,
+         InpWeekPipeLineWidth,
+         true
+      );
+      DrawSegment(
+         "PWL_PIPE_" + week_key,
+         week_start,
+         week_end,
+         pwl,
+         InpPreviousWeekPipeColor,
+         InpPreviousWeekPipeStyle,
+         InpWeekPipeLineWidth,
+         true
+      );
+
+      if(has_previous_pipe)
+      {
+         DrawConnector(
+            "PWH_PIPE_LINK_" + week_key,
+            week_start,
+            previous_pipe_high,
+            pwh,
+            InpPreviousWeekPipeColor,
+            InpPreviousWeekPipeStyle,
+            InpWeekPipeLineWidth
+         );
+         DrawConnector(
+            "PWL_PIPE_LINK_" + week_key,
+            week_start,
+            previous_pipe_low,
+            pwl,
+            InpPreviousWeekPipeColor,
+            InpPreviousWeekPipeStyle,
+            InpWeekPipeLineWidth
+         );
+      }
+
+      has_previous_pipe = true;
+      previous_pipe_high = pwh;
+      previous_pipe_low = pwl;
    }
 }
 
@@ -1007,7 +1092,8 @@ void DrawConnector(
    const double first_price,
    const double second_price,
    const color line_color,
-   const ENUM_LINE_STYLE line_style
+   const ENUM_LINE_STYLE line_style,
+   const int line_width
 )
 {
    if(first_price == second_price)
@@ -1026,7 +1112,7 @@ void DrawConnector(
    {
       ObjectSetInteger(0, name, OBJPROP_COLOR, line_color);
       ObjectSetInteger(0, name, OBJPROP_STYLE, line_style);
-      ObjectSetInteger(0, name, OBJPROP_WIDTH, InpPipeLineWidth);
+      ObjectSetInteger(0, name, OBJPROP_WIDTH, line_width);
       ObjectSetInteger(0, name, OBJPROP_RAY_RIGHT, false);
       ObjectSetInteger(0, name, OBJPROP_BACK, true);
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
