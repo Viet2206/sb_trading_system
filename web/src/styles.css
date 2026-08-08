@@ -669,7 +669,7 @@ select {
   pointer-events: none;
 }
 
-.ema-legend {
+.indicator-legend {
   position: absolute;
   top: 10px;
   left: 12px;
@@ -682,6 +682,14 @@ select {
   font-weight: 700;
   gap: 8px 14px;
   pointer-events: none;
+}
+
+.indicator-legend.stacked {
+  top: 42px;
+}
+
+.sonic-legend {
+  border-left: 3px solid #0f766e;
 }
 
 .ema-legend-item {

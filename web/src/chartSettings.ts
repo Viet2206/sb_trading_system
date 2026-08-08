@@ -22,6 +22,10 @@ export type ChartSettings = {
   ema50Color: string;
   ema100Color: string;
   ema200Color: string;
+  sonicDragonHighColor: string;
+  sonicDragonCloseColor: string;
+  sonicDragonLowColor: string;
+  sonicTrendColor: string;
   majorRoundNumberColor: string;
   majorRoundNumberStyle: LineStyle;
   majorRoundFxInterval: number;
@@ -58,6 +62,10 @@ export const defaultChartSettings: ChartSettings = {
   ema50Color: "#16a34a",
   ema100Color: "#9333ea",
   ema200Color: "#d97706",
+  sonicDragonHighColor: "#0f766e",
+  sonicDragonCloseColor: "#14b8a6",
+  sonicDragonLowColor: "#0f766e",
+  sonicTrendColor: "#dc2626",
   majorRoundNumberColor: "#64748b",
   majorRoundNumberStyle: "solid",
   majorRoundFxInterval: 0.01,

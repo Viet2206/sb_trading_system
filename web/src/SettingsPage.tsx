@@ -36,6 +36,10 @@ type ColorField = {
     | "ema50Color"
     | "ema100Color"
     | "ema200Color"
+    | "sonicDragonHighColor"
+    | "sonicDragonCloseColor"
+    | "sonicDragonLowColor"
+    | "sonicTrendColor"
     | "majorRoundNumberColor"
   >;
   label: string;
@@ -70,6 +74,10 @@ const colorFields: ColorField[] = [
   { key: "ema50Color", label: "EMA 50" },
   { key: "ema100Color", label: "EMA 100" },
   { key: "ema200Color", label: "EMA 200" },
+  { key: "sonicDragonHighColor", label: "Sonic R Dragon High (EMA 34)" },
+  { key: "sonicDragonCloseColor", label: "Sonic R Dragon Close (EMA 34)" },
+  { key: "sonicDragonLowColor", label: "Sonic R Dragon Low (EMA 34)" },
+  { key: "sonicTrendColor", label: "Sonic R Trend (EMA 89)" },
   { key: "majorRoundNumberColor", label: "Major Round Numbers" },
 ];
 

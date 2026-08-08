@@ -23,6 +23,44 @@ const emaDefinitions = [
 
 type EmaPeriod = (typeof emaDefinitions)[number]["period"];
 
+const sonicDefinitions = [
+  {
+    id: "dragon-high",
+    label: "Dragon High",
+    period: 34,
+    source: "high",
+    colorKey: "sonicDragonHighColor",
+    lineWidth: 1,
+  },
+  {
+    id: "dragon-close",
+    label: "Dragon Close",
+    period: 34,
+    source: "close",
+    colorKey: "sonicDragonCloseColor",
+    lineWidth: 2,
+  },
+  {
+    id: "dragon-low",
+    label: "Dragon Low",
+    period: 34,
+    source: "low",
+    colorKey: "sonicDragonLowColor",
+    lineWidth: 1,
+  },
+  {
+    id: "trend",
+    label: "Trend 89",
+    period: 89,
+    source: "close",
+    colorKey: "sonicTrendColor",
+    lineWidth: 1,
+  },
+] as const;
+
+type SonicSeriesId = (typeof sonicDefinitions)[number]["id"];
+type CandleValueKey = (typeof sonicDefinitions)[number]["source"];
+
 type SvgLevel = {
   key: string;
   label: string;
@@ -115,6 +153,7 @@ type CandleChartProps = {
   overlays: OverlayResponse | null;
   showFiveEma: boolean;
   showMajorRoundNumbers: boolean;
+  showSonicR: boolean;
   defaultViewDays: number;
   settings: ChartSettings;
 };
@@ -125,6 +164,7 @@ export function CandleChart({
   overlays,
   showFiveEma,
   showMajorRoundNumbers,
+  showSonicR,
   defaultViewDays,
   settings,
 }: CandleChartProps) {
@@ -132,6 +172,7 @@ export function CandleChart({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const emaSeriesRef = useRef<Map<EmaPeriod, ISeriesApi<"Line">>>(new Map());
+  const sonicSeriesRef = useRef<Map<SonicSeriesId, ISeriesApi<"Line">>>(new Map());
   const overlaysRef = useRef(overlays);
   const chartDataRef = useRef<CandlestickData[]>([]);
   const settingsRef = useRef(settings);
@@ -169,6 +210,16 @@ export function CandleChart({
       ]),
     );
   }, [chartData, showFiveEma]);
+
+  const sonicData = useMemo(() => {
+    if (!showSonicR) return new Map<SonicSeriesId, LineData[]>();
+    return new Map<SonicSeriesId, LineData[]>(
+      sonicDefinitions.map((definition) => [
+        definition.id,
+        calculateEma(chartData, definition.period, definition.source),
+      ]),
+    );
+  }, [chartData, showSonicR]);
 
   useEffect(() => {
     overlaysRef.current = overlays;
@@ -241,6 +292,18 @@ export function CandleChart({
       emaSeriesRef.current.set(definition.period, emaSeries);
     }
 
+    for (const definition of sonicDefinitions) {
+      const sonicSeries = chart.addSeries(LineSeries, {
+        color: settings[definition.colorKey],
+        lineWidth: definition.lineWidth,
+        visible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      sonicSeriesRef.current.set(definition.id, sonicSeries);
+    }
+
     chartRef.current = chart;
     seriesRef.current = series;
 
@@ -262,6 +325,7 @@ export function CandleChart({
       chartRef.current = null;
       seriesRef.current = null;
       emaSeriesRef.current.clear();
+      sonicSeriesRef.current.clear();
     };
   }, []);
 
@@ -284,6 +348,18 @@ export function CandleChart({
       });
     }
   }, [emaData, settings, showFiveEma]);
+
+  useEffect(() => {
+    for (const definition of sonicDefinitions) {
+      const sonicSeries = sonicSeriesRef.current.get(definition.id);
+      if (!sonicSeries) continue;
+      sonicSeries.setData(sonicData.get(definition.id) ?? []);
+      sonicSeries.applyOptions({
+        color: settings[definition.colorKey],
+        visible: showSonicR,
+      });
+    }
+  }, [settings, showSonicR, sonicData]);
 
   function scheduleOverlayRedraw() {
     if (redrawFrameRef.current != null) {
@@ -569,7 +645,7 @@ export function CandleChart({
     <div className="chart-frame">
       <div ref={containerRef} className="chart-container" />
       {showFiveEma ? (
-        <div className="ema-legend" aria-label="EMA legend">
+        <div className="indicator-legend" aria-label="EMA legend">
           {emaDefinitions.map((definition) => (
             <span key={definition.period} className="ema-legend-item">
               <span
@@ -577,6 +653,26 @@ export function CandleChart({
                 style={{ backgroundColor: settings[definition.colorKey] }}
               />
               EMA {definition.period}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {showSonicR ? (
+        <div
+          className={
+            showFiveEma
+              ? "indicator-legend sonic-legend stacked"
+              : "indicator-legend sonic-legend"
+          }
+          aria-label="Sonic R legend"
+        >
+          {sonicDefinitions.map((definition) => (
+            <span key={definition.id} className="ema-legend-item">
+              <span
+                className="ema-legend-line"
+                style={{ backgroundColor: settings[definition.colorKey] }}
+              />
+              {definition.label}
             </span>
           ))}
         </div>
@@ -812,13 +908,17 @@ function pipeCornerRadius(
   return Math.min(requestedRadius, Math.abs(toY - fromY) / 2);
 }
 
-function calculateEma(data: CandlestickData[], period: number): LineData[] {
+function calculateEma(
+  data: CandlestickData[],
+  period: number,
+  source: CandleValueKey = "close",
+): LineData[] {
   if (data.length < period) return [];
 
   const multiplier = 2 / (period + 1);
   let ema = data
     .slice(0, period)
-    .reduce((total, candle) => total + candle.close, 0) / period;
+    .reduce((total, candle) => total + candle[source], 0) / period;
   const values: LineData[] = [
     {
       time: data[period - 1].time,
@@ -827,7 +927,7 @@ function calculateEma(data: CandlestickData[], period: number): LineData[] {
   ];
 
   for (let index = period; index < data.length; index += 1) {
-    ema = (data[index].close - ema) * multiplier + ema;
+    ema = (data[index][source] - ema) * multiplier + ema;
     values.push({
       time: data[index].time,
       value: ema,

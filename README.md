@@ -19,7 +19,8 @@ validated against labelled examples.
 Native chart versions of the current `weekly_template` are available for
 [MetaTrader 5 and cTrader](indicators/README.md). They include the SB context,
 session, previous-day pipe/close, CIB, and provisional daily-label layers, but
-intentionally exclude the separate 5 EMA and Major Round Number templates.
+intentionally exclude the separate 5 EMA, Major Round Number, and Sonic R
+templates.
 
 ## Local Setup
 
@@ -465,6 +466,7 @@ The dashboard supports:
 - Interactive candlestick chart with pan, zoom, and crosshair
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
+- Optional Sonic R visual layer with the 34 EMA high/close/low Dragon and 89 EMA Trend. It is disabled by default and does not feed SB signals, checklists, AI analysis, or alerts.
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
 - Settings page controls the update interval used by chart auto-refresh and the cTrader polling script.
 - Research Search combines local vector similarity, sparse term matching, setup filters,

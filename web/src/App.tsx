@@ -352,6 +352,7 @@ export function App() {
                 showMajorRoundNumbers={activeOverlayTemplates.includes(
                   "major_round_number",
                 )}
+                showSonicR={activeOverlayTemplates.includes("sonic_r")}
                 defaultViewDays={chartWindowDays(timeframe)}
                 settings={chartSettings}
               />
