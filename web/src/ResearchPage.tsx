@@ -30,9 +30,11 @@ import {
   searchResearch,
 } from "./api";
 
-type ResearchTab = "search" | "library" | "analyst";
+type ResearchTab = "search" | "library";
+type ResearchPageMode = "browse" | "analyst";
 
 type ResearchPageProps = {
+  mode: ResearchPageMode;
   summary: CandleSummary[];
   currentSymbol: string;
   currentTimeframe: string;
@@ -47,11 +49,12 @@ const suggestedQuestions = [
 ];
 
 export function ResearchPage({
+  mode,
   summary,
   currentSymbol,
   currentTimeframe,
 }: ResearchPageProps) {
-  const [tab, setTab] = useState<ResearchTab>("analyst");
+  const [tab, setTab] = useState<ResearchTab>("search");
   const [status, setStatus] = useState<ResearchStatus | null>(null);
   const [documents, setDocuments] = useState<ResearchDocument[]>([]);
   const [query, setQuery] = useState("first green day setup");
@@ -107,7 +110,7 @@ export function ResearchPage({
     try {
       const nextStatus = await fetchResearchStatus();
       setStatus(nextStatus);
-      if (nextStatus.ready) {
+      if (nextStatus.ready && mode !== "analyst") {
         const nextDocuments = await fetchResearchDocuments();
         setDocuments(nextDocuments);
       }
@@ -217,25 +220,43 @@ export function ResearchPage({
   }
 
   return (
-    <div className="research-page">
-      <div className="research-commandbar">
-        <div className="research-tabs" role="tablist" aria-label="Research workspace">
-          <TabButton active={tab === "search"} onClick={() => setTab("search")} icon={<Search size={16} />}>
-            Search
-          </TabButton>
-          <TabButton active={tab === "library"} onClick={() => setTab("library")} icon={<BookOpen size={16} />}>
-            Library
-          </TabButton>
-          <TabButton active={tab === "analyst"} onClick={() => setTab("analyst")} icon={<BrainCircuit size={16} />}>
-            Analyst
-          </TabButton>
+    <div
+      className={
+        mode === "analyst"
+          ? "research-page analyst-panel-mode"
+          : "research-page"
+      }
+    >
+      {mode !== "analyst" ? (
+        <div className="research-commandbar">
+          <div className="research-tabs" role="tablist" aria-label="Research workspace">
+            <TabButton active={tab === "search"} onClick={() => setTab("search")} icon={<Search size={16} />}>
+              Search
+            </TabButton>
+            <TabButton active={tab === "library"} onClick={() => setTab("library")} icon={<BookOpen size={16} />}>
+              Library
+            </TabButton>
+          </div>
+          <div className="research-status-strip">
+            <span>{status.documents} documents</span>
+            <span>{status.pages.toLocaleString()} pages</span>
+            <span>{status.chunks.toLocaleString()} passages</span>
+            <span className={status.ai.configured ? "status-dot ready" : "status-dot local"}>
+              {status.ai.configured ? status.ai.model : "Local mode"}
+            </span>
+            <button
+              className="icon-action"
+              title="Refresh research status"
+              onClick={() => void loadWorkspace()}
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
         </div>
-        <div className="research-status-strip">
-          <span>{status.documents} documents</span>
-          <span>{status.pages.toLocaleString()} pages</span>
-          <span>{status.chunks.toLocaleString()} passages</span>
+      ) : (
+        <div className="analyst-panel-statusbar">
           <span className={status.ai.configured ? "status-dot ready" : "status-dot local"}>
-            {status.ai.configured ? status.ai.model : "Local mode"}
+            {status.ai.configured ? status.ai.model : "Retrieval only"}
           </span>
           <button
             className="icon-action"
@@ -245,11 +266,11 @@ export function ResearchPage({
             <RefreshCw size={15} />
           </button>
         </div>
-      </div>
+      )}
 
       {error ? <div className="inline-error">{error}</div> : null}
 
-      {tab === "search" ? (
+      {mode !== "analyst" && tab === "search" ? (
         <SearchWorkspace
           query={query}
           setup={setup}
@@ -269,12 +290,13 @@ export function ResearchPage({
         />
       ) : null}
 
-      {tab === "library" ? (
+      {mode !== "analyst" && tab === "library" ? (
         <LibraryWorkspace documents={documents} categories={categories} />
       ) : null}
 
-      {tab === "analyst" ? (
+      {mode === "analyst" ? (
         <AnalystWorkspace
+          compact={mode === "analyst"}
           status={status}
           question={question}
           symbol={agentSymbol}
@@ -452,6 +474,7 @@ function LibraryWorkspace({
 }
 
 function AnalystWorkspace({
+  compact = false,
   status,
   question,
   symbol,
@@ -471,6 +494,7 @@ function AnalystWorkspace({
   onSelectSource,
   onVision,
 }: {
+  compact?: boolean;
   status: ResearchStatus;
   question: string;
   symbol: string;
@@ -491,7 +515,7 @@ function AnalystWorkspace({
   onVision: (source: ResearchResult) => void;
 }) {
   return (
-    <div className="analyst-workspace">
+    <div className={compact ? "analyst-workspace compact" : "analyst-workspace"}>
       <section className="analyst-column">
         <div className="analyst-contextbar">
           <label>
@@ -583,13 +607,15 @@ function AnalystWorkspace({
         </section>
       </section>
 
-      <SourceInspector
-        source={selectedSource}
-        vision={vision}
-        working={working}
-        aiConfigured={status.ai.configured}
-        onVision={onVision}
-      />
+      {!compact || selectedSource ? (
+        <SourceInspector
+          source={selectedSource}
+          vision={vision}
+          working={working}
+          aiConfigured={status.ai.configured}
+          onVision={onVision}
+        />
+      ) : null}
     </div>
   );
 }

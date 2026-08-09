@@ -461,9 +461,10 @@ http://127.0.0.1:5173
 
 The dashboard supports:
 
-- Sidebar navigation for Chart, Daily Checklist, Research, and Setting
+- Sidebar navigation for Chart, Daily Checklist, and Setting
 - Symbol/timeframe selection and refresh from the chart header
 - Interactive candlestick chart with pan, zoom, and crosshair
+- Collapsible AI Analyst panel beside the chart, with prompt and analysis state preserved while collapsed. Search and Library remain below the chart.
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
 - Optional Sonic R visual layer with the 34 EMA high/close/low Dragon and 89 EMA Trend. It is disabled by default and does not feed SB signals, checklists, AI analysis, or alerts.

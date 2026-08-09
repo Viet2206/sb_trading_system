@@ -6,6 +6,8 @@ import {
   LineChart,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   RefreshCw,
   Settings,
 } from "lucide-react";
@@ -35,11 +37,13 @@ import {
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
+const ANALYST_PANEL_STORAGE_KEY = "sb-trading-system-analyst-panel-expanded";
 type Page = "chart" | "checklist" | "settings";
 
 export function App() {
   const [activePage, setActivePage] = useState<Page>("chart");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed());
+  const [analystExpanded, setAnalystExpanded] = useState(() => loadAnalystExpanded());
   const [summary, setSummary] = useState<CandleSummary[]>([]);
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState("");
@@ -99,6 +103,13 @@ export function App() {
   useEffect(() => {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ANALYST_PANEL_STORAGE_KEY,
+      String(analystExpanded),
+    );
+  }, [analystExpanded]);
 
   useEffect(() => {
     if (!symbol && symbols.length > 0) {
@@ -373,24 +384,68 @@ export function App() {
             className={activePage === "chart" ? "workspace-page chart-page active" : "workspace-page chart-page"}
             aria-hidden={activePage !== "chart"}
           >
-            <div className="chart-stage">
-              <CandleChart
-                key={`${symbol}-${timeframe}`}
-                symbol={symbol}
-                candles={candles}
-                overlays={
-                  activeOverlayTemplates.includes("weekly_template")
-                    ? overlays
-                    : null
-                }
-                showFiveEma={activeOverlayTemplates.includes("five_ema")}
-                showMajorRoundNumbers={activeOverlayTemplates.includes(
-                  "major_round_number",
-                )}
-                showSonicR={activeOverlayTemplates.includes("sonic_r")}
-                defaultViewDays={chartWindowDays(timeframe)}
-                settings={chartSettings}
-              />
+            <div
+              className={
+                analystExpanded
+                  ? "chart-workbench analyst-expanded"
+                  : "chart-workbench analyst-collapsed"
+              }
+            >
+              <div className="chart-stage">
+                <CandleChart
+                  key={`${symbol}-${timeframe}`}
+                  symbol={symbol}
+                  candles={candles}
+                  overlays={
+                    activeOverlayTemplates.includes("weekly_template")
+                      ? overlays
+                      : null
+                  }
+                  showFiveEma={activeOverlayTemplates.includes("five_ema")}
+                  showMajorRoundNumbers={activeOverlayTemplates.includes(
+                    "major_round_number",
+                  )}
+                  showSonicR={activeOverlayTemplates.includes("sonic_r")}
+                  defaultViewDays={chartWindowDays(timeframe)}
+                  settings={chartSettings}
+                />
+              </div>
+
+              <aside className="chart-analyst-panel" aria-label="AI Analyst">
+                <header className="chart-analyst-header">
+                  <div className="chart-analyst-title">
+                    <BrainCircuit size={18} />
+                    <div>
+                      <strong>AI Analyst</strong>
+                      <span>{symbol} {timeframe}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="analyst-panel-toggle"
+                    onClick={() => setAnalystExpanded((value) => !value)}
+                    aria-expanded={analystExpanded}
+                    aria-controls="chart-analyst-body"
+                    title={analystExpanded ? "Collapse AI Analyst" : "Expand AI Analyst"}
+                  >
+                    {analystExpanded
+                      ? <PanelRightClose size={18} />
+                      : <PanelRightOpen size={18} />}
+                  </button>
+                </header>
+                <div
+                  id="chart-analyst-body"
+                  className="chart-analyst-body"
+                  aria-hidden={!analystExpanded}
+                >
+                  <ResearchPage
+                    mode="analyst"
+                    summary={summary}
+                    currentSymbol={symbol}
+                    currentTimeframe={timeframe}
+                  />
+                </div>
+              </aside>
             </div>
 
             <HistoricalMatches
@@ -403,11 +458,12 @@ export function App() {
               <header className="chart-research-heading">
                 <BrainCircuit size={20} />
                 <div>
-                  <h3 id="chart-research-title">Research &amp; Pattern Comparison</h3>
-                  <p>{symbol} {timeframe} market context</p>
+                  <h3 id="chart-research-title">Research &amp; Source Library</h3>
+                  <p>Search the SB playbook and inspect original evidence</p>
                 </div>
               </header>
               <ResearchPage
+                mode="browse"
                 summary={summary}
                 currentSymbol={symbol}
                 currentTimeframe={timeframe}
@@ -447,4 +503,8 @@ function chartWindowDays(timeframe: string) {
 
 function loadSidebarCollapsed() {
   return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+}
+
+function loadAnalystExpanded() {
+  return window.localStorage.getItem(ANALYST_PANEL_STORAGE_KEY) !== "false";
 }
