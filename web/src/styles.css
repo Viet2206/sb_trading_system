@@ -241,7 +241,7 @@ select {
 
 .chart-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(390px, 30vw, 460px);
+  grid-template-columns: minmax(0, 1fr) 7px var(--analyst-panel-width, 420px);
   height: max(560px, calc(100vh - 84px));
   min-height: 560px;
   min-width: 0;
@@ -249,7 +249,7 @@ select {
 }
 
 .chart-workbench.analyst-collapsed {
-  grid-template-columns: minmax(0, 1fr) 48px;
+  grid-template-columns: minmax(0, 1fr) 0 48px;
 }
 
 .chart-stage {
@@ -259,6 +259,55 @@ select {
   overflow: hidden;
 }
 
+.analyst-resize-handle {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.analyst-resize-handle::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 42px;
+  background: #94a3b8;
+  border-radius: 999px;
+  content: "";
+  transform: translate(-50%, -50%);
+  transition: background 120ms ease, height 120ms ease;
+}
+
+.analyst-resize-handle:hover::after,
+.analyst-resize-handle:focus-visible::after {
+  height: 56px;
+  background: #0f766e;
+}
+
+.analyst-resize-handle:focus-visible {
+  outline: 2px solid #14b8a6;
+  outline-offset: -2px;
+}
+
+.analyst-collapsed .analyst-resize-handle {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.resizing-analyst-panel {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.resizing-analyst-panel * {
+  cursor: col-resize !important;
+}
+
 .chart-analyst-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -266,7 +315,7 @@ select {
   min-height: 0;
   overflow: hidden;
   background: #ffffff;
-  border-left: 1px solid #cbd5e1;
+  border-left: 0;
 }
 
 .chart-analyst-header {
@@ -2472,6 +2521,10 @@ select {
   .chart-workbench.analyst-collapsed {
     grid-template-columns: minmax(0, 1fr);
     height: auto;
+  }
+
+  .analyst-resize-handle {
+    display: none;
   }
 
   .chart-stage {

@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   BrainCircuit,
   ClipboardList,
@@ -38,12 +43,19 @@ const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"]
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
 const ANALYST_PANEL_STORAGE_KEY = "sb-trading-system-analyst-panel-expanded";
+const ANALYST_PANEL_WIDTH_STORAGE_KEY = "sb-trading-system-analyst-panel-width";
+const ANALYST_PANEL_MIN_WIDTH = 360;
+const ANALYST_PANEL_MAX_WIDTH = 640;
+const ANALYST_PANEL_DEFAULT_WIDTH = 420;
 type Page = "chart" | "checklist" | "settings";
 
 export function App() {
   const [activePage, setActivePage] = useState<Page>("chart");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsed());
   const [analystExpanded, setAnalystExpanded] = useState(() => loadAnalystExpanded());
+  const [analystPanelWidth, setAnalystPanelWidth] = useState(() =>
+    loadAnalystPanelWidth(),
+  );
   const [summary, setSummary] = useState<CandleSummary[]>([]);
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState("");
@@ -57,6 +69,11 @@ export function App() {
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const chartRequestRef = useRef(0);
+  const analystResizeRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
 
   const symbols = useMemo(
     () => Array.from(new Set(summary.map((item) => item.broker_symbol))).sort(),
@@ -110,6 +127,13 @@ export function App() {
       String(analystExpanded),
     );
   }, [analystExpanded]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ANALYST_PANEL_WIDTH_STORAGE_KEY,
+      String(analystPanelWidth),
+    );
+  }, [analystPanelWidth]);
 
   useEffect(() => {
     if (!symbol && symbols.length > 0) {
@@ -238,6 +262,56 @@ export function App() {
         ? current.filter((id) => id !== templateId)
         : [...current, templateId],
     );
+  }
+
+  function startAnalystResize(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!analystExpanded) return;
+
+    analystResizeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startWidth: analystPanelWidth,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    document.body.classList.add("resizing-analyst-panel");
+  }
+
+  function resizeAnalystPanel(event: ReactPointerEvent<HTMLDivElement>) {
+    const resize = analystResizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+
+    setAnalystPanelWidth(
+      clampAnalystPanelWidth(
+        resize.startWidth + resize.startX - event.clientX,
+      ),
+    );
+  }
+
+  function stopAnalystResize(event: ReactPointerEvent<HTMLDivElement>) {
+    const resize = analystResizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    analystResizeRef.current = null;
+    document.body.classList.remove("resizing-analyst-panel");
+  }
+
+  function resizeAnalystPanelWithKeyboard(
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) {
+    const step = event.shiftKey ? 40 : 12;
+    let nextWidth: number | null = null;
+
+    if (event.key === "ArrowLeft") nextWidth = analystPanelWidth + step;
+    if (event.key === "ArrowRight") nextWidth = analystPanelWidth - step;
+    if (event.key === "Home") nextWidth = ANALYST_PANEL_MIN_WIDTH;
+    if (event.key === "End") nextWidth = ANALYST_PANEL_MAX_WIDTH;
+    if (nextWidth === null) return;
+
+    event.preventDefault();
+    setAnalystPanelWidth(clampAnalystPanelWidth(nextWidth));
   }
 
   return (
@@ -390,6 +464,11 @@ export function App() {
                   ? "chart-workbench analyst-expanded"
                   : "chart-workbench analyst-collapsed"
               }
+              style={
+                {
+                  "--analyst-panel-width": `${analystPanelWidth}px`,
+                } as CSSProperties
+              }
             >
               <div className="chart-stage">
                 <CandleChart
@@ -410,6 +489,23 @@ export function App() {
                   settings={chartSettings}
                 />
               </div>
+
+              <div
+                className="analyst-resize-handle"
+                role="separator"
+                aria-label="Resize AI Analyst"
+                aria-orientation="vertical"
+                aria-valuemin={ANALYST_PANEL_MIN_WIDTH}
+                aria-valuemax={ANALYST_PANEL_MAX_WIDTH}
+                aria-valuenow={Math.round(analystPanelWidth)}
+                tabIndex={analystExpanded ? 0 : -1}
+                title="Drag to resize AI Analyst"
+                onPointerDown={startAnalystResize}
+                onPointerMove={resizeAnalystPanel}
+                onPointerUp={stopAnalystResize}
+                onPointerCancel={stopAnalystResize}
+                onKeyDown={resizeAnalystPanelWithKeyboard}
+              />
 
               <aside className="chart-analyst-panel" aria-label="AI Analyst">
                 <header className="chart-analyst-header">
@@ -502,4 +598,20 @@ function loadSidebarCollapsed() {
 
 function loadAnalystExpanded() {
   return window.localStorage.getItem(ANALYST_PANEL_STORAGE_KEY) !== "false";
+}
+
+function clampAnalystPanelWidth(width: number) {
+  return Math.min(
+    ANALYST_PANEL_MAX_WIDTH,
+    Math.max(ANALYST_PANEL_MIN_WIDTH, width),
+  );
+}
+
+function loadAnalystPanelWidth() {
+  const savedWidth = Number(
+    window.localStorage.getItem(ANALYST_PANEL_WIDTH_STORAGE_KEY),
+  );
+  return Number.isFinite(savedWidth) && savedWidth > 0
+    ? clampAnalystPanelWidth(savedWidth)
+    : ANALYST_PANEL_DEFAULT_WIDTH;
 }
