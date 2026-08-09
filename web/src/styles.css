@@ -287,23 +287,9 @@ select {
   gap: 9px;
 }
 
-.chart-analyst-title > div {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
 .chart-analyst-title strong {
   color: #0f172a;
   font-size: 14px;
-}
-
-.chart-analyst-title span {
-  overflow: hidden;
-  color: #64748b;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .analyst-panel-toggle {
@@ -1802,14 +1788,6 @@ select {
   overflow: visible;
 }
 
-.analyst-panel-mode .analyst-contextbar {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.analyst-panel-mode .analyst-contextbar label:last-child {
-  grid-column: 1 / -1;
-}
-
 .analyst-panel-mode .source-inspector {
   min-height: 520px;
   border-top: 1px solid #e2e8f0;
@@ -2197,7 +2175,7 @@ select {
 
 .analyst-contextbar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(130px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 9px;
 }
 

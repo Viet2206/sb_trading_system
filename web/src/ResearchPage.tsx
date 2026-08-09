@@ -13,7 +13,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  CandleSummary,
   ResearchAnalysisResponse,
   ResearchDocument,
   ResearchResult,
@@ -35,7 +34,6 @@ type ResearchPageMode = "browse" | "analyst";
 
 type ResearchPageProps = {
   mode: ResearchPageMode;
-  summary: CandleSummary[];
   currentSymbol: string;
   currentTimeframe: string;
 };
@@ -50,7 +48,6 @@ const suggestedQuestions = [
 
 export function ResearchPage({
   mode,
-  summary,
   currentSymbol,
   currentTimeframe,
 }: ResearchPageProps) {
@@ -62,8 +59,6 @@ export function ResearchPage({
   const [searchData, setSearchData] = useState<ResearchSearchResponse | null>(null);
   const [selectedSource, setSelectedSource] = useState<ResearchResult | null>(null);
   const [question, setQuestion] = useState(suggestedQuestions[0]);
-  const [agentSymbol, setAgentSymbol] = useState(currentSymbol);
-  const [agentTimeframe, setAgentTimeframe] = useState(currentTimeframe || "M15");
   const [analysis, setAnalysis] = useState<ResearchAnalysisResponse | null>(null);
   const [vision, setVision] = useState<VisionAnalysisResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,16 +66,6 @@ export function ResearchPage({
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const symbols = useMemo(
-    () => Array.from(new Set(summary.map((item) => item.broker_symbol))).sort(),
-    [summary],
-  );
-  const timeframes = useMemo(() => {
-    const values = summary
-      .filter((item) => item.broker_symbol === agentSymbol)
-      .map((item) => item.timeframe);
-    return Array.from(new Set(values));
-  }, [summary, agentSymbol]);
   const categories = useMemo(
     () => Array.from(new Set(documents.map((item) => item.category))).sort(),
     [documents],
@@ -89,20 +74,6 @@ export function ResearchPage({
   useEffect(() => {
     void loadWorkspace();
   }, []);
-
-  useEffect(() => {
-    if (currentSymbol) setAgentSymbol(currentSymbol);
-  }, [currentSymbol]);
-
-  useEffect(() => {
-    if (currentTimeframe) setAgentTimeframe(currentTimeframe);
-  }, [currentTimeframe]);
-
-  useEffect(() => {
-    if (agentSymbol && timeframes.length > 0 && !timeframes.includes(agentTimeframe)) {
-      setAgentTimeframe(timeframes.includes("M15") ? "M15" : timeframes[0]);
-    }
-  }, [agentSymbol, agentTimeframe, timeframes]);
 
   async function loadWorkspace() {
     setLoading(true);
@@ -159,8 +130,8 @@ export function ResearchPage({
     try {
       const result = await analyzeResearch({
         question: nextQuestion,
-        symbol: agentSymbol || undefined,
-        timeframe: agentTimeframe || undefined,
+        symbol: currentSymbol || undefined,
+        timeframe: currentTimeframe || undefined,
         setup: setup || undefined,
       });
       setAnalysis(result);
@@ -299,18 +270,12 @@ export function ResearchPage({
           compact={mode === "analyst"}
           status={status}
           question={question}
-          symbol={agentSymbol}
-          timeframe={agentTimeframe}
           setup={setup}
-          symbols={symbols}
-          timeframes={timeframes}
           analysis={analysis}
           selectedSource={selectedSource}
           vision={vision}
           working={working}
           onQuestion={setQuestion}
-          onSymbol={setAgentSymbol}
-          onTimeframe={setAgentTimeframe}
           onSetup={setSetup}
           onAnalyze={runAnalysis}
           onSelectSource={(source) => {
@@ -477,18 +442,12 @@ function AnalystWorkspace({
   compact = false,
   status,
   question,
-  symbol,
-  timeframe,
   setup,
-  symbols,
-  timeframes,
   analysis,
   selectedSource,
   vision,
   working,
   onQuestion,
-  onSymbol,
-  onTimeframe,
   onSetup,
   onAnalyze,
   onSelectSource,
@@ -497,18 +456,12 @@ function AnalystWorkspace({
   compact?: boolean;
   status: ResearchStatus;
   question: string;
-  symbol: string;
-  timeframe: string;
   setup: string;
-  symbols: string[];
-  timeframes: string[];
   analysis: ResearchAnalysisResponse | null;
   selectedSource: ResearchResult | null;
   vision: VisionAnalysisResponse | null;
   working: boolean;
   onQuestion: (value: string) => void;
-  onSymbol: (value: string) => void;
-  onTimeframe: (value: string) => void;
   onSetup: (value: string) => void;
   onAnalyze: (value?: string) => void;
   onSelectSource: (source: ResearchResult) => void;
@@ -518,19 +471,6 @@ function AnalystWorkspace({
     <div className={compact ? "analyst-workspace compact" : "analyst-workspace"}>
       <section className="analyst-column">
         <div className="analyst-contextbar">
-          <label>
-            <span>Market</span>
-            <select value={symbol} onChange={(event) => onSymbol(event.target.value)}>
-              <option value="">No market context</option>
-              {symbols.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Timeframe</span>
-            <select value={timeframe} onChange={(event) => onTimeframe(event.target.value)}>
-              {timeframes.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
           <label>
             <span>Setup</span>
             <SetupSelect value={setup} options={status.setup_types} onChange={onSetup} />

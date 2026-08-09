@@ -415,10 +415,7 @@ export function App() {
                 <header className="chart-analyst-header">
                   <div className="chart-analyst-title">
                     <BrainCircuit size={18} />
-                    <div>
-                      <strong>AI Analyst</strong>
-                      <span>{symbol} {timeframe}</span>
-                    </div>
+                    <strong>AI Analyst</strong>
                   </div>
                   <button
                     type="button"
@@ -440,7 +437,6 @@ export function App() {
                 >
                   <ResearchPage
                     mode="analyst"
-                    summary={summary}
                     currentSymbol={symbol}
                     currentTimeframe={timeframe}
                   />
@@ -464,7 +460,6 @@ export function App() {
               </header>
               <ResearchPage
                 mode="browse"
-                summary={summary}
                 currentSymbol={symbol}
                 currentTimeframe={timeframe}
               />
