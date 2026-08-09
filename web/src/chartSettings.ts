@@ -26,6 +26,8 @@ export type ChartSettings = {
   sonicDragonCloseColor: string;
   sonicDragonLowColor: string;
   sonicTrendColor: string;
+  sonicRsiColor: string;
+  sonicRsiPeriod: number;
   majorRoundNumberColor: string;
   majorRoundNumberStyle: LineStyle;
   majorRoundFxInterval: number;
@@ -66,6 +68,8 @@ export const defaultChartSettings: ChartSettings = {
   sonicDragonCloseColor: "#14b8a6",
   sonicDragonLowColor: "#0f766e",
   sonicTrendColor: "#dc2626",
+  sonicRsiColor: "#2563eb",
+  sonicRsiPeriod: 14,
   majorRoundNumberColor: "#64748b",
   majorRoundNumberStyle: "solid",
   majorRoundFxInterval: 0.01,
@@ -133,6 +137,7 @@ function sanitizeSettings(value: Partial<ChartSettings>): ChartSettings {
       value.majorRoundDefaultInterval,
       defaultChartSettings.majorRoundDefaultInterval,
     ),
+    sonicRsiPeriod: sanitizeRsiPeriod(value.sonicRsiPeriod),
     rightOffsetBars: sanitizeOffset(value.rightOffsetBars),
     updateIntervalMinutes: sanitizeInterval(value.updateIntervalMinutes),
   };
@@ -160,6 +165,12 @@ function sanitizeInterval(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(60, Math.max(1, Math.round(value)))
     : defaultChartSettings.updateIntervalMinutes;
+}
+
+function sanitizeRsiPeriod(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(100, Math.max(2, Math.round(value)))
+    : defaultChartSettings.sonicRsiPeriod;
 }
 
 function sanitizePositiveNumber(value: unknown, fallback: number) {

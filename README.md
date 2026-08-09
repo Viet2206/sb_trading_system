@@ -467,7 +467,7 @@ The dashboard supports:
 - Resizable and collapsible AI Analyst panel beside the chart. Drag the divider to set its width; the chosen width and analysis state persist. Search and Library remain below the chart.
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
-- Optional Sonic R visual layer with the 34 EMA high/close/low Dragon and 89 EMA Trend. It is disabled by default and does not feed SB signals, checklists, AI analysis, or alerts.
+- Optional Sonic R visual layer with the 34 EMA high/close/low Dragon, 89 EMA Trend, and a separate Wilder RSI pane with a configurable period (default 14). It is disabled by default and does not feed SB signals, checklists, AI analysis, or alerts.
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
 - Settings page controls the update interval used by chart auto-refresh and the cTrader polling script.
 - Research Search combines local vector similarity, sparse term matching, setup filters,

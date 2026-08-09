@@ -5,6 +5,7 @@ import {
   IChartApi,
   ISeriesApi,
   LineData,
+  LineStyle as LightweightLineStyle,
   LineSeries,
   UTCTimestamp,
 } from "lightweight-charts";
@@ -176,6 +177,7 @@ export function CandleChart({
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const emaSeriesRef = useRef<Map<EmaPeriod, ISeriesApi<"Line">>>(new Map());
   const sonicSeriesRef = useRef<Map<SonicSeriesId, ISeriesApi<"Line">>>(new Map());
+  const sonicRsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const overlaysRef = useRef(overlays);
   const chartDataRef = useRef<CandlestickData[]>([]);
   const settingsRef = useRef(settings);
@@ -232,6 +234,13 @@ export function CandleChart({
       ]),
     );
   }, [indicatorChartData, showSonicR]);
+
+  const sonicRsiData = useMemo(
+    () => showSonicR
+      ? calculateRsi(indicatorChartData, settings.sonicRsiPeriod)
+      : [],
+    [indicatorChartData, settings.sonicRsiPeriod, showSonicR],
+  );
 
   useEffect(() => {
     overlaysRef.current = overlays;
@@ -338,6 +347,7 @@ export function CandleChart({
       seriesRef.current = null;
       emaSeriesRef.current.clear();
       sonicSeriesRef.current.clear();
+      sonicRsiSeriesRef.current = null;
     };
   }, []);
 
@@ -372,6 +382,77 @@ export function CandleChart({
       });
     }
   }, [settings, showSonicR, sonicData]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    if (!showSonicR) {
+      const rsiSeries = sonicRsiSeriesRef.current;
+      if (!rsiSeries) return;
+
+      const paneIndex = rsiSeries.getPane().paneIndex();
+      chart.removeSeries(rsiSeries);
+      sonicRsiSeriesRef.current = null;
+      if (chart.panes()[paneIndex]) {
+        chart.removePane(paneIndex);
+      }
+      chart.panes()[0]?.setStretchFactor(1);
+      scheduleOverlayRedraw();
+      return;
+    }
+
+    let rsiSeries = sonicRsiSeriesRef.current;
+    if (!rsiSeries) {
+      const rsiPane = chart.addPane(true);
+      chart.panes()[0]?.setStretchFactor(4);
+      rsiPane.setStretchFactor(1);
+      rsiPane.priceScale("right").applyOptions({
+        borderColor: "#cbd5e1",
+        scaleMargins: { top: 0, bottom: 0 },
+      });
+      rsiSeries = rsiPane.addSeries(LineSeries, {
+        color: settings.sonicRsiColor,
+        lineWidth: 2,
+        title: `RSI ${settings.sonicRsiPeriod}`,
+        priceLineVisible: false,
+        lastValueVisible: true,
+        crosshairMarkerVisible: true,
+        priceFormat: {
+          type: "price",
+          precision: 1,
+          minMove: 0.1,
+        },
+        autoscaleInfoProvider: () => ({
+          priceRange: { minValue: 0, maxValue: 100 },
+        }),
+      });
+      rsiSeries.createPriceLine({
+        price: 70,
+        color: "#94a3b8",
+        lineWidth: 1,
+        lineStyle: LightweightLineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "",
+      });
+      rsiSeries.createPriceLine({
+        price: 30,
+        color: "#94a3b8",
+        lineWidth: 1,
+        lineStyle: LightweightLineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "",
+      });
+      sonicRsiSeriesRef.current = rsiSeries;
+    }
+
+    rsiSeries.setData(sonicRsiData);
+    rsiSeries.applyOptions({
+      color: settings.sonicRsiColor,
+      title: `RSI ${settings.sonicRsiPeriod}`,
+    });
+    scheduleOverlayRedraw();
+  }, [settings.sonicRsiColor, settings.sonicRsiPeriod, showSonicR, sonicRsiData]);
 
   function scheduleOverlayRedraw() {
     if (redrawFrameRef.current != null) {
@@ -414,7 +495,7 @@ export function CandleChart({
 
     const pane = containerRef.current?.getBoundingClientRect();
     const paneWidth = pane?.width ?? 0;
-    const paneHeight = pane?.height ?? 0;
+    const paneHeight = chart.paneSize(0).height;
 
     const nextLevels = (overlaysRef.current?.levels ?? [])
       .map((level) => {
@@ -947,4 +1028,49 @@ function calculateEma(
   }
 
   return values;
+}
+
+function calculateRsi(data: CandlestickData[], period: number): LineData[] {
+  const normalizedPeriod = Math.min(100, Math.max(2, Math.round(period)));
+  if (data.length <= normalizedPeriod) return [];
+
+  let averageGain = 0;
+  let averageLoss = 0;
+  for (let index = 1; index <= normalizedPeriod; index += 1) {
+    const change = data[index].close - data[index - 1].close;
+    averageGain += Math.max(change, 0);
+    averageLoss += Math.max(-change, 0);
+  }
+  averageGain /= normalizedPeriod;
+  averageLoss /= normalizedPeriod;
+
+  const values: LineData[] = [
+    {
+      time: data[normalizedPeriod].time,
+      value: rsiValue(averageGain, averageLoss),
+    },
+  ];
+
+  for (let index = normalizedPeriod + 1; index < data.length; index += 1) {
+    const change = data[index].close - data[index - 1].close;
+    const gain = Math.max(change, 0);
+    const loss = Math.max(-change, 0);
+    averageGain = (
+      averageGain * (normalizedPeriod - 1) + gain
+    ) / normalizedPeriod;
+    averageLoss = (
+      averageLoss * (normalizedPeriod - 1) + loss
+    ) / normalizedPeriod;
+    values.push({
+      time: data[index].time,
+      value: rsiValue(averageGain, averageLoss),
+    });
+  }
+
+  return values;
+}
+
+function rsiValue(averageGain: number, averageLoss: number) {
+  if (averageLoss === 0) return averageGain === 0 ? 50 : 100;
+  return 100 - 100 / (1 + averageGain / averageLoss);
 }

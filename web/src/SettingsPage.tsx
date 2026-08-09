@@ -40,6 +40,7 @@ type ColorField = {
     | "sonicDragonCloseColor"
     | "sonicDragonLowColor"
     | "sonicTrendColor"
+    | "sonicRsiColor"
     | "majorRoundNumberColor"
   >;
   label: string;
@@ -78,6 +79,7 @@ const colorFields: ColorField[] = [
   { key: "sonicDragonCloseColor", label: "Sonic R Dragon Close (EMA 34)" },
   { key: "sonicDragonLowColor", label: "Sonic R Dragon Low (EMA 34)" },
   { key: "sonicTrendColor", label: "Sonic R Trend (EMA 89)" },
+  { key: "sonicRsiColor", label: "Sonic R RSI" },
   { key: "majorRoundNumberColor", label: "Major Round Numbers" },
 ];
 
@@ -180,6 +182,29 @@ export function SettingsPage({ settings, onChange }: SettingsPageProps) {
             </label>
           ))}
         </div>
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-section-title">
+          <h3>Sonic R</h3>
+        </div>
+        <label className="setting-row range-row">
+          <span>RSI Period</span>
+          <input
+            data-testid="setting-sonicRsiPeriod"
+            type="number"
+            min={2}
+            max={100}
+            step={1}
+            value={settings.sonicRsiPeriod}
+            onChange={(event) =>
+              update(
+                "sonicRsiPeriod",
+                Math.min(100, Math.max(2, Math.round(Number(event.target.value)))),
+              )
+            }
+          />
+        </label>
       </section>
 
       <section className="settings-section">
