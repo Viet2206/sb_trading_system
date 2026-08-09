@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrainCircuit,
   ClipboardList,
@@ -52,6 +52,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [chartRefreshKey, setChartRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const chartRequestRef = useRef(0);
 
   const symbols = useMemo(
     () => Array.from(new Set(summary.map((item) => item.broker_symbol))).sort(),
@@ -62,10 +63,13 @@ export function App() {
     const available = summary
       .filter((item) => item.broker_symbol === symbol)
       .map((item) => item.timeframe);
-    return Array.from(new Set(["M1", ...available])).sort(
+    return Array.from(new Set(available)).sort(
       (a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b),
     );
   }, [summary, symbol]);
+  const timeframeAvailable = Boolean(
+    symbol && timeframe && timeframes.includes(timeframe),
+  );
 
   useEffect(() => {
     void loadSummary();
@@ -109,10 +113,10 @@ export function App() {
   }, [symbol, timeframe, timeframes]);
 
   useEffect(() => {
-    if (symbol && timeframe) {
+    if (timeframeAvailable) {
       void loadCandles(symbol, timeframe);
     }
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, timeframeAvailable]);
 
   useEffect(() => {
     if (!symbol || !timeframe) return;
@@ -151,6 +155,7 @@ export function App() {
 
   async function loadCandles(nextSymbol = symbol, nextTimeframe = timeframe) {
     if (!nextSymbol || !nextTimeframe) return;
+    const requestId = ++chartRequestRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -158,20 +163,25 @@ export function App() {
         fetchCandles(nextSymbol, nextTimeframe),
         fetchOverlays(nextSymbol, nextTimeframe),
       ]);
+      if (requestId !== chartRequestRef.current) return;
       setCandles(candleData.candles);
       setOverlays(overlayData);
       setChartRefreshKey((current) => current + 1);
     } catch (err) {
+      if (requestId !== chartRequestRef.current) return;
       setCandles([]);
       setOverlays(null);
       setError(err instanceof Error ? err.message : "Failed to load candles");
     } finally {
-      setLoading(false);
+      if (requestId === chartRequestRef.current) {
+        setLoading(false);
+      }
     }
   }
 
   async function refreshChart() {
     if (!symbol || !timeframe) return;
+    const requestId = ++chartRequestRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -180,17 +190,35 @@ export function App() {
         fetchCandles(symbol, timeframe),
         fetchOverlays(symbol, timeframe),
       ]);
+      if (requestId !== chartRequestRef.current) return;
       setSummary(summaryData);
       setCandles(candleData.candles);
       setOverlays(overlayData);
       setChartRefreshKey((current) => current + 1);
     } catch (err) {
+      if (requestId !== chartRequestRef.current) return;
       setCandles([]);
       setOverlays(null);
       setError(err instanceof Error ? err.message : "Failed to refresh chart");
     } finally {
-      setLoading(false);
+      if (requestId === chartRequestRef.current) {
+        setLoading(false);
+      }
     }
+  }
+
+  function changeSymbol(nextSymbol: string) {
+    chartRequestRef.current += 1;
+    setCandles([]);
+    setOverlays(null);
+    setSymbol(nextSymbol);
+  }
+
+  function changeTimeframe(nextTimeframe: string) {
+    chartRequestRef.current += 1;
+    setCandles([]);
+    setOverlays(null);
+    setTimeframe(nextTimeframe);
   }
 
   function toggleOverlayTemplate(templateId: OverlayTemplateId) {
@@ -298,7 +326,10 @@ export function App() {
 
               <label className="chart-control">
                 <span>Symbol</span>
-                <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
+                <select
+                  value={symbol}
+                  onChange={(event) => changeSymbol(event.target.value)}
+                >
                   {symbols.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -309,7 +340,10 @@ export function App() {
 
               <label className="chart-control compact">
                 <span>Timeframe</span>
-                <select value={timeframe} onChange={(event) => setTimeframe(event.target.value)}>
+                <select
+                  value={timeframe}
+                  onChange={(event) => changeTimeframe(event.target.value)}
+                >
                   {timeframes.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -341,6 +375,7 @@ export function App() {
           >
             <div className="chart-stage">
               <CandleChart
+                key={`${symbol}-${timeframe}`}
                 symbol={symbol}
                 candles={candles}
                 overlays={

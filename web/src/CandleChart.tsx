@@ -23,6 +23,9 @@ const emaDefinitions = [
 
 type EmaPeriod = (typeof emaDefinitions)[number]["period"];
 
+// Keep the full candle series available while bounding indicator memory on M1.
+const MAX_INDICATOR_POINTS = 25_000;
+
 const sonicDefinitions = [
   {
     id: "dragon-high",
@@ -201,25 +204,34 @@ export function CandleChart({
     }));
   }, [candles]);
 
+  const indicatorChartData = useMemo(
+    () => chartData.slice(-MAX_INDICATOR_POINTS),
+    [chartData],
+  );
+
   const emaData = useMemo(() => {
     if (!showFiveEma) return new Map<EmaPeriod, LineData[]>();
     return new Map<EmaPeriod, LineData[]>(
       emaDefinitions.map(({ period }) => [
         period,
-        calculateEma(chartData, period),
+        calculateEma(indicatorChartData, period),
       ]),
     );
-  }, [chartData, showFiveEma]);
+  }, [indicatorChartData, showFiveEma]);
 
   const sonicData = useMemo(() => {
     if (!showSonicR) return new Map<SonicSeriesId, LineData[]>();
     return new Map<SonicSeriesId, LineData[]>(
       sonicDefinitions.map((definition) => [
         definition.id,
-        calculateEma(chartData, definition.period, definition.source),
+        calculateEma(
+          indicatorChartData,
+          definition.period,
+          definition.source,
+        ),
       ]),
     );
-  }, [chartData, showSonicR]);
+  }, [indicatorChartData, showSonicR]);
 
   useEffect(() => {
     overlaysRef.current = overlays;
