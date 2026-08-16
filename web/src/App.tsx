@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  BrainCircuit,
   ClipboardList,
+  Layers3,
   LineChart,
   PanelLeftClose,
   PanelLeftOpen,
@@ -9,6 +11,7 @@ import {
 } from "lucide-react";
 import { CandleChart } from "./CandleChart";
 import { DailyChecklistPage } from "./DailyChecklistPage";
+import { ResearchPage } from "./ResearchPage";
 import { SettingsPage } from "./SettingsPage";
 import {
   Candle,
@@ -21,6 +24,12 @@ import {
   updateRuntimeSettings,
 } from "./api";
 import { ChartSettings, loadChartSettings, saveChartSettings } from "./chartSettings";
+import {
+  loadActiveOverlayTemplates,
+  OverlayTemplateId,
+  overlayTemplates,
+  saveActiveOverlayTemplates,
+} from "./overlayTemplates";
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
@@ -35,6 +44,9 @@ export function App() {
   const [timeframe, setTimeframe] = useState("");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [overlays, setOverlays] = useState<OverlayResponse | null>(null);
+  const [activeOverlayTemplates, setActiveOverlayTemplates] = useState<
+    OverlayTemplateId[]
+  >(() => loadActiveOverlayTemplates());
   const [chartSettings, setChartSettings] = useState<ChartSettings>(() => loadChartSettings());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +60,9 @@ export function App() {
     const available = summary
       .filter((item) => item.broker_symbol === symbol)
       .map((item) => item.timeframe);
-    return available.sort((a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b));
+    return Array.from(new Set(["M1", ...available])).sort(
+      (a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b),
+    );
   }, [summary, symbol]);
 
   useEffect(() => {
@@ -59,6 +73,10 @@ export function App() {
   useEffect(() => {
     saveChartSettings(chartSettings);
   }, [chartSettings]);
+
+  useEffect(() => {
+    saveActiveOverlayTemplates(activeOverlayTemplates);
+  }, [activeOverlayTemplates]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -141,10 +159,42 @@ export function App() {
       setCandles(candleData.candles);
       setOverlays(overlayData);
     } catch (err) {
+      setCandles([]);
+      setOverlays(null);
       setError(err instanceof Error ? err.message : "Failed to load candles");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function refreshChart() {
+    if (!symbol || !timeframe) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryData, candleData, overlayData] = await Promise.all([
+        fetchSummary(),
+        fetchCandles(symbol, timeframe),
+        fetchOverlays(symbol, timeframe),
+      ]);
+      setSummary(summaryData);
+      setCandles(candleData.candles);
+      setOverlays(overlayData);
+    } catch (err) {
+      setCandles([]);
+      setOverlays(null);
+      setError(err instanceof Error ? err.message : "Failed to refresh chart");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleOverlayTemplate(templateId: OverlayTemplateId) {
+    setActiveOverlayTemplates((current) =>
+      current.includes(templateId)
+        ? current.filter((id) => id !== templateId)
+        : [...current, templateId],
+    );
   }
 
   return (
@@ -223,6 +273,25 @@ export function App() {
 
           {activePage === "chart" ? (
             <div className="chart-toolbar">
+              <div className="overlay-template-toggles" aria-label="Chart templates">
+                {overlayTemplates.map((template) => {
+                  const active = activeOverlayTemplates.includes(template.id);
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      className={active ? "template-toggle active" : "template-toggle"}
+                      aria-pressed={active}
+                      onClick={() => toggleOverlayTemplate(template.id)}
+                      title={`${active ? "Hide" : "Show"} ${template.label}`}
+                    >
+                      <Layers3 size={16} />
+                      <span>{template.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <label className="chart-control">
                 <span>Symbol</span>
                 <select value={symbol} onChange={(event) => setSymbol(event.target.value)}>
@@ -247,8 +316,8 @@ export function App() {
 
               <button
                 className="chart-refresh-button"
-                onClick={() => void loadCandles()}
-                title="Refresh candles"
+                onClick={() => void refreshChart()}
+                title="Refresh candles and available timeframes"
               >
                 <RefreshCw size={17} />
                 <span>{loading ? "Loading" : "Refresh"}</span>
@@ -257,20 +326,63 @@ export function App() {
           ) : null}
         </div>
 
-        {error ? <div className="error-banner">{error}</div> : null}
+        <div className="workspace-alerts">
+          {error ? <div className="error-banner">{error}</div> : null}
+        </div>
 
-        {activePage === "chart" ? (
-          <CandleChart
-            candles={candles}
-            overlays={overlays}
-            defaultViewDays={chartWindowDays(timeframe)}
-            settings={chartSettings}
-          />
-        ) : activePage === "checklist" ? (
-          <DailyChecklistPage />
-        ) : (
-          <SettingsPage settings={chartSettings} onChange={setChartSettings} />
-        )}
+        <div className="workspace-pages">
+          <section
+            className={activePage === "chart" ? "workspace-page chart-page active" : "workspace-page chart-page"}
+            aria-hidden={activePage !== "chart"}
+          >
+            <div className="chart-stage">
+              <CandleChart
+                symbol={symbol}
+                candles={candles}
+                overlays={
+                  activeOverlayTemplates.includes("weekly_template")
+                    ? overlays
+                    : null
+                }
+                showFiveEma={activeOverlayTemplates.includes("five_ema")}
+                showMajorRoundNumbers={activeOverlayTemplates.includes(
+                  "major_round_number",
+                )}
+                defaultViewDays={chartWindowDays(timeframe)}
+                settings={chartSettings}
+              />
+            </div>
+
+            <section className="chart-research-section" aria-labelledby="chart-research-title">
+              <header className="chart-research-heading">
+                <BrainCircuit size={20} />
+                <div>
+                  <h3 id="chart-research-title">Research &amp; Pattern Comparison</h3>
+                  <p>{symbol} {timeframe} market context</p>
+                </div>
+              </header>
+              <ResearchPage
+                summary={summary}
+                currentSymbol={symbol}
+                currentTimeframe={timeframe}
+              />
+            </section>
+          </section>
+
+          <section
+            className={activePage === "checklist" ? "workspace-page active" : "workspace-page"}
+            aria-hidden={activePage !== "checklist"}
+          >
+            <DailyChecklistPage />
+          </section>
+
+          <section
+            className={activePage === "settings" ? "workspace-page active" : "workspace-page"}
+            aria-hidden={activePage !== "settings"}
+          >
+            <SettingsPage settings={chartSettings} onChange={setChartSettings} />
+          </section>
+        </div>
       </section>
     </main>
   );

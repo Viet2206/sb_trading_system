@@ -7,3 +7,6 @@ uvicorn[standard]>=0.30
 tqdm>=4.66
 ipykernel>=6.29
 jupyterlab>=4.2
+pypdf>=6.0
+PyMuPDF>=1.26
+openai>=2.0

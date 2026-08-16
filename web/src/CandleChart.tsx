@@ -4,11 +4,24 @@ import {
   createChart,
   IChartApi,
   ISeriesApi,
+  LineData,
+  LineSeries,
   UTCTimestamp,
 } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Candle, OverlayResponse } from "./api";
 import { ChartSettings, lineDashArray } from "./chartSettings";
+import { buildMajorRoundNumbers } from "./majorRoundNumbers";
+
+const emaDefinitions = [
+  { period: 9, colorKey: "ema9Color", lineWidth: 2 },
+  { period: 21, colorKey: "ema21Color", lineWidth: 2 },
+  { period: 50, colorKey: "ema50Color", lineWidth: 1 },
+  { period: 100, colorKey: "ema100Color", lineWidth: 1 },
+  { period: 200, colorKey: "ema200Color", lineWidth: 1 },
+] as const;
+
+type EmaPeriod = (typeof emaDefinitions)[number]["period"];
 
 type SvgLevel = {
   key: string;
@@ -17,6 +30,14 @@ type SvgLevel = {
   y: number;
   labelX: number;
   price: number;
+  color: string;
+};
+
+type SvgRoundNumber = {
+  key: string;
+  label: string;
+  y: number;
+  labelX: number;
   color: string;
 };
 
@@ -66,6 +87,17 @@ type SvgDayRangePipe = {
   yLow: number;
   previousYHigh?: number;
   previousYLow?: number;
+  nextYHigh?: number;
+  nextYLow?: number;
+  color: string;
+};
+
+type SvgCibMarker = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   color: string;
 };
 
@@ -78,30 +110,44 @@ type SvgLabel = {
 };
 
 type CandleChartProps = {
+  symbol: string;
   candles: Candle[];
   overlays: OverlayResponse | null;
+  showFiveEma: boolean;
+  showMajorRoundNumbers: boolean;
   defaultViewDays: number;
   settings: ChartSettings;
 };
 
 export function CandleChart({
+  symbol,
   candles,
   overlays,
+  showFiveEma,
+  showMajorRoundNumbers,
   defaultViewDays,
   settings,
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const emaSeriesRef = useRef<Map<EmaPeriod, ISeriesApi<"Line">>>(new Map());
   const overlaysRef = useRef(overlays);
   const chartDataRef = useRef<CandlestickData[]>([]);
+  const settingsRef = useRef(settings);
+  const symbolRef = useRef(symbol);
+  const showMajorRoundNumbersRef = useRef(showMajorRoundNumbers);
+  const redrawFrameRef = useRef<number | null>(null);
+  const followupRedrawFrameRef = useRef<number | null>(null);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
+  const [svgRoundNumbers, setSvgRoundNumbers] = useState<SvgRoundNumber[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
   const [svgDayPeriods, setSvgDayPeriods] = useState<SvgDayPeriod[]>([]);
   const [svgDaySeparators, setSvgDaySeparators] = useState<SvgDaySeparator[]>([]);
   const [svgMonthSeparators, setSvgMonthSeparators] = useState<SvgMonthSeparator[]>([]);
   const [svgDayRangePipes, setSvgDayRangePipes] = useState<SvgDayRangePipe[]>([]);
   const [svgDayCloseSegments, setSvgDayCloseSegments] = useState<SvgDayCloseSegment[]>([]);
+  const [svgCibMarkers, setSvgCibMarkers] = useState<SvgCibMarker[]>([]);
   const [svgSetupLabels, setSvgSetupLabels] = useState<SvgLabel[]>([]);
 
   const chartData = useMemo<CandlestickData[]>(() => {
@@ -114,19 +160,36 @@ export function CandleChart({
     }));
   }, [candles]);
 
+  const emaData = useMemo(() => {
+    if (!showFiveEma) return new Map<EmaPeriod, LineData[]>();
+    return new Map<EmaPeriod, LineData[]>(
+      emaDefinitions.map(({ period }) => [
+        period,
+        calculateEma(chartData, period),
+      ]),
+    );
+  }, [chartData, showFiveEma]);
+
   useEffect(() => {
     overlaysRef.current = overlays;
-    redrawOverlays();
+    scheduleOverlayRedraw();
   }, [overlays]);
 
   useEffect(() => {
+    symbolRef.current = symbol;
+    showMajorRoundNumbersRef.current = showMajorRoundNumbers;
+    scheduleOverlayRedraw();
+  }, [showMajorRoundNumbers, symbol]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
     chartRef.current?.applyOptions({
       timeScale: {
         rightOffset: settings.rightOffsetBars,
       },
     });
     applyDefaultVisibleRange();
-    redrawOverlays();
+    scheduleOverlayRedraw();
   }, [settings]);
 
   useEffect(() => {
@@ -166,15 +229,39 @@ export function CandleChart({
       wickDownColor: "#111827",
     });
 
+    for (const definition of emaDefinitions) {
+      const emaSeries = chart.addSeries(LineSeries, {
+        color: settings[definition.colorKey],
+        lineWidth: definition.lineWidth,
+        visible: false,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      emaSeriesRef.current.set(definition.period, emaSeries);
+    }
+
     chartRef.current = chart;
     seriesRef.current = series;
 
-    chart.timeScale().subscribeVisibleTimeRangeChange(() => redrawOverlays());
+    const handleRangeChange = () => scheduleOverlayRedraw();
+    const handleSizeChange = () => scheduleOverlayRedraw();
+    chart.timeScale().subscribeVisibleTimeRangeChange(handleRangeChange);
+    chart.timeScale().subscribeSizeChange(handleSizeChange);
+
+    const resizeObserver = new ResizeObserver(() => scheduleOverlayRedraw());
+    resizeObserver.observe(containerRef.current);
+    scheduleOverlayRedraw();
 
     return () => {
+      resizeObserver.disconnect();
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(handleRangeChange);
+      chart.timeScale().unsubscribeSizeChange(handleSizeChange);
+      cancelScheduledOverlayRedraw();
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
+      emaSeriesRef.current.clear();
     };
   }, []);
 
@@ -183,13 +270,59 @@ export function CandleChart({
     chartDataRef.current = chartData;
     seriesRef.current.setData(chartData);
     applyDefaultVisibleRange();
-    redrawOverlays();
+    scheduleOverlayRedraw();
   }, [chartData, defaultViewDays]);
+
+  useEffect(() => {
+    for (const definition of emaDefinitions) {
+      const emaSeries = emaSeriesRef.current.get(definition.period);
+      if (!emaSeries) continue;
+      emaSeries.setData(emaData.get(definition.period) ?? []);
+      emaSeries.applyOptions({
+        color: settings[definition.colorKey],
+        visible: showFiveEma,
+      });
+    }
+  }, [emaData, settings, showFiveEma]);
+
+  function scheduleOverlayRedraw() {
+    if (redrawFrameRef.current != null) {
+      window.cancelAnimationFrame(redrawFrameRef.current);
+    }
+    if (followupRedrawFrameRef.current != null) {
+      window.cancelAnimationFrame(followupRedrawFrameRef.current);
+      followupRedrawFrameRef.current = null;
+    }
+
+    redrawFrameRef.current = window.requestAnimationFrame(() => {
+      redrawFrameRef.current = null;
+      redrawOverlays();
+
+      // Lightweight Charts completes autoscaling during its own animation frame.
+      // A follow-up pass keeps SVG coordinates aligned with the settled scales.
+      followupRedrawFrameRef.current = window.requestAnimationFrame(() => {
+        followupRedrawFrameRef.current = null;
+        redrawOverlays();
+      });
+    });
+  }
+
+  function cancelScheduledOverlayRedraw() {
+    if (redrawFrameRef.current != null) {
+      window.cancelAnimationFrame(redrawFrameRef.current);
+      redrawFrameRef.current = null;
+    }
+    if (followupRedrawFrameRef.current != null) {
+      window.cancelAnimationFrame(followupRedrawFrameRef.current);
+      followupRedrawFrameRef.current = null;
+    }
+  }
 
   function redrawOverlays() {
     const chart = chartRef.current;
     const series = seriesRef.current;
     if (!chart || !series) return;
+    const currentSettings = settingsRef.current;
 
     const pane = containerRef.current?.getBoundingClientRect();
     const paneWidth = pane?.width ?? 0;
@@ -207,12 +340,32 @@ export function CandleChart({
           label: level.label,
           x1: Number(x1 ?? 0),
           y: Number(y),
-          labelX: Math.max(12, paneWidth - 112),
+          labelX: Math.max(12, paneWidth - 82),
           price: level.price,
-          color: settings.horizontalLevelColor,
+          color: currentSettings.horizontalLevelColor,
         };
       })
       .filter((level): level is SvgLevel => level !== null);
+
+    const nextRoundNumbers = showMajorRoundNumbersRef.current
+      ? buildMajorRoundNumbers(
+        chartDataRef.current,
+        symbolRef.current,
+        currentSettings,
+      )
+        .map((level) => {
+          const y = series.priceToCoordinate(level.price);
+          if (y == null) return null;
+          return {
+            key: level.key,
+            label: level.label,
+            y: Number(y),
+            labelX: 12,
+            color: currentSettings.majorRoundNumberColor,
+          };
+        })
+        .filter((level): level is SvgRoundNumber => level !== null)
+      : [];
 
     const nextSessions = (overlaysRef.current?.sessions ?? [])
       .map((session) => {
@@ -231,7 +384,7 @@ export function CandleChart({
           y: top,
           width: Math.max(2, right - left),
           height: Math.max(2, bottom - top),
-          color: sessionColor(session.id, settings),
+          color: sessionColor(session.id, currentSettings),
         };
       })
       .filter((session): session is SvgSession => session !== null);
@@ -286,10 +439,39 @@ export function CandleChart({
           x1: left,
           x2: right,
           y: Number(y),
-          color: settings.previousCloseColor,
+          color: currentSettings.previousCloseColor,
         };
       })
       .filter((segment): segment is SvgDayCloseSegment => segment !== null);
+
+    const nextCibMarkers = (overlaysRef.current?.cib_markers ?? [])
+      .map((marker) => {
+        const boundaryX = coordinateForTime(
+          chart,
+          toTimestamp(marker.time),
+          chartDataRef.current,
+        );
+        const yOpen = series.priceToCoordinate(marker.open);
+        const yClose = series.priceToCoordinate(marker.close);
+        if (boundaryX == null || yOpen == null || yClose == null) return null;
+
+        const rawHeight = Math.abs(Number(yClose) - Number(yOpen));
+        const height = Math.min(24, Math.max(4, rawHeight));
+        const width = 12;
+        return {
+          id: marker.id,
+          x: Number(boundaryX) + 1,
+          y: marker.direction === "green"
+            ? Number(yClose)
+            : Number(yClose) - height,
+          width,
+          height,
+          color: marker.direction === "green"
+            ? currentSettings.cibBullishColor
+            : currentSettings.cibBearishColor,
+        };
+      })
+      .filter((marker): marker is SvgCibMarker => marker !== null);
 
     const dayRangePipeSegments = (overlaysRef.current?.day_range_pipes ?? [])
       .map((pipe) => {
@@ -307,7 +489,7 @@ export function CandleChart({
           x2: right,
           yHigh: Number(yHigh),
           yLow: Number(yLow),
-          color: settings.previousRangePipeColor,
+          color: currentSettings.previousRangePipeColor,
         };
       })
       .filter((pipe): pipe is SvgDayRangePipe => pipe !== null);
@@ -315,11 +497,13 @@ export function CandleChart({
       .sort((left, right) => left.x1 - right.x1)
       .map((pipe, index, pipes) => {
         const previous = pipes[index - 1];
-        if (!previous) return pipe;
+        const next = pipes[index + 1];
         return {
           ...pipe,
-          previousYHigh: previous.yHigh,
-          previousYLow: previous.yLow,
+          previousYHigh: previous?.yHigh,
+          previousYLow: previous?.yLow,
+          nextYHigh: next?.yHigh,
+          nextYLow: next?.yLow,
         };
       });
 
@@ -346,8 +530,10 @@ export function CandleChart({
 
     if (paneWidth <= 0) {
       setSvgLevels([]);
+      setSvgRoundNumbers([]);
     } else {
       setSvgLevels(nextLevels);
+      setSvgRoundNumbers(nextRoundNumbers);
     }
     setSvgSessions(nextSessions);
     setSvgDayPeriods(nextDayPeriods);
@@ -355,6 +541,7 @@ export function CandleChart({
     setSvgMonthSeparators(nextMonthSeparators);
     setSvgDayRangePipes(nextDayRangePipes);
     setSvgDayCloseSegments(nextDayCloseSegments);
+    setSvgCibMarkers(nextCibMarkers);
     setSvgSetupLabels(nextSetupLabels);
   }
 
@@ -381,6 +568,19 @@ export function CandleChart({
   return (
     <div className="chart-frame">
       <div ref={containerRef} className="chart-container" />
+      {showFiveEma ? (
+        <div className="ema-legend" aria-label="EMA legend">
+          {emaDefinitions.map((definition) => (
+            <span key={definition.period} className="ema-legend-item">
+              <span
+                className="ema-legend-line"
+                style={{ backgroundColor: settings[definition.colorKey] }}
+              />
+              EMA {definition.period}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <svg className="chart-overlay" aria-hidden="true">
         {svgDayPeriods.map((period) => (
           <g key={period.id}>
@@ -437,45 +637,33 @@ export function CandleChart({
         ))}
         {svgDayRangePipes.map((pipe) => (
           <g key={pipe.id} className="day-range-pipe">
-            {pipe.previousYHigh != null ? (
-              <line
-                x1={pipe.x1}
-                y1={pipe.previousYHigh}
-                x2={pipe.x1}
-                y2={pipe.yHigh}
-                stroke={pipe.color}
-                className="day-range-pipe-connector"
-                strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
-              />
-            ) : null}
-            {pipe.previousYLow != null ? (
-              <line
-                x1={pipe.x1}
-                y1={pipe.previousYLow}
-                x2={pipe.x1}
-                y2={pipe.yLow}
-                stroke={pipe.color}
-                className="day-range-pipe-connector"
-                strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
-              />
-            ) : null}
-            <line
-              x1={pipe.x1}
-              y1={pipe.yHigh}
-              x2={pipe.x2}
-              y2={pipe.yHigh}
+            <path
+              d={roundedPipePath(
+                pipe.x1,
+                pipe.x2,
+                pipe.previousYHigh,
+                pipe.yHigh,
+                pipe.nextYHigh,
+                settings.previousRangePipeCornerRadius,
+              )}
               stroke={pipe.color}
               className="day-range-pipe-line"
               strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
+              fill="none"
             />
-            <line
-              x1={pipe.x1}
-              y1={pipe.yLow}
-              x2={pipe.x2}
-              y2={pipe.yLow}
+            <path
+              d={roundedPipePath(
+                pipe.x1,
+                pipe.x2,
+                pipe.previousYLow,
+                pipe.yLow,
+                pipe.nextYLow,
+                settings.previousRangePipeCornerRadius,
+              )}
               stroke={pipe.color}
               className="day-range-pipe-line"
               strokeDasharray={lineDashArray(settings.previousRangePipeStyle)}
+              fill="none"
             />
           </g>
         ))}
@@ -492,6 +680,27 @@ export function CandleChart({
             />
           </g>
         ))}
+        {svgRoundNumbers.map((level) => (
+          <g key={level.key}>
+            <line
+              x1={0}
+              y1={level.y}
+              x2="100%"
+              y2={level.y}
+              stroke={level.color}
+              className="round-number-line"
+              strokeDasharray={lineDashArray(settings.majorRoundNumberStyle)}
+            />
+            <text
+              x={level.labelX}
+              y={level.y}
+              fill={level.color}
+              className="round-number-label"
+            >
+              {level.label}
+            </text>
+          </g>
+        ))}
         {svgLevels.map((level) => (
           <g key={level.key}>
             <line
@@ -503,10 +712,21 @@ export function CandleChart({
               className="level-line"
               strokeDasharray={lineDashArray(settings.horizontalLevelStyle)}
             />
-            <text x={level.labelX} y={level.y - 5} fill={level.color} className="level-label">
+            <text x={level.labelX} y={level.y} fill={level.color} className="level-label">
               {level.label}
             </text>
           </g>
+        ))}
+        {svgCibMarkers.map((marker) => (
+          <rect
+            key={marker.id}
+            x={marker.x}
+            y={marker.y}
+            width={marker.width}
+            height={marker.height}
+            fill={marker.color}
+            className="cib-marker"
+          />
         ))}
         {svgSetupLabels.map((label) => (
           <text
@@ -550,4 +770,69 @@ function coordinateForTime(
 
   const coordinate = chart.timeScale().timeToCoordinate(nextCandle.time);
   return coordinate == null ? null : Number(coordinate);
+}
+
+function roundedPipePath(
+  x1: number,
+  x2: number,
+  previousY: number | undefined,
+  y: number,
+  nextY: number | undefined,
+  requestedRadius: number,
+) {
+  const startRadius = pipeCornerRadius(previousY, y, requestedRadius);
+  const endRadius = pipeCornerRadius(y, nextY, requestedRadius);
+  const commands: string[] = [];
+
+  if (previousY == null || startRadius === 0) {
+    commands.push(`M ${x1} ${previousY ?? y}`);
+    if (previousY != null && previousY !== y) {
+      commands.push(`V ${y}`);
+    }
+  } else {
+    const direction = y > previousY ? 1 : -1;
+    commands.push(`M ${x1 - startRadius} ${previousY}`);
+    commands.push(
+      `Q ${x1} ${previousY} ${x1} ${previousY + direction * startRadius}`,
+    );
+    commands.push(`V ${y - direction * startRadius}`);
+    commands.push(`Q ${x1} ${y} ${x1 + startRadius} ${y}`);
+  }
+
+  commands.push(`H ${Math.max(x1 + startRadius, x2 - endRadius)}`);
+  return commands.join(" ");
+}
+
+function pipeCornerRadius(
+  fromY: number | undefined,
+  toY: number | undefined,
+  requestedRadius: number,
+) {
+  if (fromY == null || toY == null || fromY === toY) return 0;
+  return Math.min(requestedRadius, Math.abs(toY - fromY) / 2);
+}
+
+function calculateEma(data: CandlestickData[], period: number): LineData[] {
+  if (data.length < period) return [];
+
+  const multiplier = 2 / (period + 1);
+  let ema = data
+    .slice(0, period)
+    .reduce((total, candle) => total + candle.close, 0) / period;
+  const values: LineData[] = [
+    {
+      time: data[period - 1].time,
+      value: ema,
+    },
+  ];
+
+  for (let index = period; index < data.length; index += 1) {
+    ema = (data[index].close - ema) * multiplier + ema;
+    values.push({
+      time: data[index].time,
+      value: ema,
+    });
+  }
+
+  return values;
 }

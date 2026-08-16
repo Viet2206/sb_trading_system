@@ -7,6 +7,7 @@ export type ChartSettings = {
   previousCloseStyle: LineStyle;
   previousRangePipeColor: string;
   previousRangePipeStyle: LineStyle;
+  previousRangePipeCornerRadius: number;
   asiaSessionFillColor: string;
   londonSessionFillColor: string;
   newYorkSessionFillColor: string;
@@ -14,6 +15,21 @@ export type ChartSettings = {
   monthSeparatorColor: string;
   weekdayLabelColor: string;
   signalLabelColor: string;
+  cibBullishColor: string;
+  cibBearishColor: string;
+  ema9Color: string;
+  ema21Color: string;
+  ema50Color: string;
+  ema100Color: string;
+  ema200Color: string;
+  majorRoundNumberColor: string;
+  majorRoundNumberStyle: LineStyle;
+  majorRoundFxInterval: number;
+  majorRoundJpyInterval: number;
+  majorRoundGoldInterval: number;
+  majorRoundNas100Interval: number;
+  majorRoundSp500Interval: number;
+  majorRoundDefaultInterval: number;
   rightOffsetBars: number;
   updateIntervalMinutes: number;
 };
@@ -21,20 +37,36 @@ export type ChartSettings = {
 const STORAGE_KEY = "sb-system-chart-settings-v1";
 
 export const defaultChartSettings: ChartSettings = {
-  horizontalLevelColor: "#38bdf8",
+  horizontalLevelColor: "#8e8f90",
   horizontalLevelStyle: "solid",
   previousCloseColor: "#16a34a",
   previousCloseStyle: "solid",
   previousRangePipeColor: "#64748b",
   previousRangePipeStyle: "dashed",
+  previousRangePipeCornerRadius: 7,
   asiaSessionFillColor: "#bae6fd",
   londonSessionFillColor: "#bbf7d0",
   newYorkSessionFillColor: "#fed7aa",
   daySeparatorColor: "#cbd5e1",
   monthSeparatorColor: "#64748b",
-  weekdayLabelColor: "#0f172a",
-  signalLabelColor: "#475569",
-  rightOffsetBars: 14,
+  weekdayLabelColor: "#b30000",
+  signalLabelColor: "#ff0000",
+  cibBullishColor: "#16a34a",
+  cibBearishColor: "#ef4444",
+  ema9Color: "#dc2626",
+  ema21Color: "#2563eb",
+  ema50Color: "#16a34a",
+  ema100Color: "#9333ea",
+  ema200Color: "#d97706",
+  majorRoundNumberColor: "#64748b",
+  majorRoundNumberStyle: "solid",
+  majorRoundFxInterval: 0.01,
+  majorRoundJpyInterval: 1,
+  majorRoundGoldInterval: 100,
+  majorRoundNas100Interval: 100,
+  majorRoundSp500Interval: 100,
+  majorRoundDefaultInterval: 100,
+  rightOffsetBars: 20,
   updateIntervalMinutes: 5,
 };
 
@@ -65,6 +97,34 @@ function sanitizeSettings(value: Partial<ChartSettings>): ChartSettings {
     horizontalLevelStyle: sanitizeLineStyle(value.horizontalLevelStyle),
     previousCloseStyle: sanitizeLineStyle(value.previousCloseStyle),
     previousRangePipeStyle: sanitizeLineStyle(value.previousRangePipeStyle),
+    majorRoundNumberStyle: sanitizeLineStyle(value.majorRoundNumberStyle),
+    previousRangePipeCornerRadius: sanitizeCornerRadius(
+      value.previousRangePipeCornerRadius,
+    ),
+    majorRoundFxInterval: sanitizePositiveNumber(
+      value.majorRoundFxInterval,
+      defaultChartSettings.majorRoundFxInterval,
+    ),
+    majorRoundJpyInterval: sanitizePositiveNumber(
+      value.majorRoundJpyInterval,
+      defaultChartSettings.majorRoundJpyInterval,
+    ),
+    majorRoundGoldInterval: sanitizePositiveNumber(
+      value.majorRoundGoldInterval,
+      defaultChartSettings.majorRoundGoldInterval,
+    ),
+    majorRoundNas100Interval: sanitizePositiveNumber(
+      value.majorRoundNas100Interval,
+      defaultChartSettings.majorRoundNas100Interval,
+    ),
+    majorRoundSp500Interval: sanitizePositiveNumber(
+      value.majorRoundSp500Interval,
+      defaultChartSettings.majorRoundSp500Interval,
+    ),
+    majorRoundDefaultInterval: sanitizePositiveNumber(
+      value.majorRoundDefaultInterval,
+      defaultChartSettings.majorRoundDefaultInterval,
+    ),
     rightOffsetBars: sanitizeOffset(value.rightOffsetBars),
     updateIntervalMinutes: sanitizeInterval(value.updateIntervalMinutes),
   };
@@ -82,8 +142,20 @@ function sanitizeOffset(value: unknown) {
     : defaultChartSettings.rightOffsetBars;
 }
 
+function sanitizeCornerRadius(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(16, Math.max(0, Math.round(value)))
+    : defaultChartSettings.previousRangePipeCornerRadius;
+}
+
 function sanitizeInterval(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(60, Math.max(1, Math.round(value)))
     : defaultChartSettings.updateIntervalMinutes;
+}
+
+function sanitizePositiveNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : fallback;
 }

@@ -210,6 +210,17 @@ RAG output should answer:
 - What evidence weakens the signal?
 - What should invalidate the setup?
 
+Current implementation:
+
+- `scripts/index_research_library.py` incrementally indexes all PDFs under `docs`.
+- `src/sb_system/research.py` stores document, page, chunk, setup tag, and vector
+  metadata in local SQLite under `data/research`.
+- Search combines a deterministic local feature vector, sparse query overlap, setup
+  aliases, and explicit setup filters.
+- Every result retains document ID, title, category, page number, excerpt, and score.
+- Source PDFs and rendered source pages are served by the backend for direct review.
+- The generated index and page cache are local runtime data and must not be committed.
+
 ### 6. Computer Vision
 
 Computer vision is useful for chart screenshot comparison and example retrieval, but it should not replace OHLC/time/session logic.
@@ -225,6 +236,14 @@ Risk:
 
 - Chart images can vary by theme, zoom level, broker candle shape, indicators, and annotations.
 - Prefer structured candle data for live rule detection.
+
+Current implementation:
+
+- PDF pages can be rendered on demand with PyMuPDF and inspected in the Research UI.
+- When Z.AI or OpenAI is configured, the selected source page can be submitted as an
+  image input for annotation and setup analysis.
+- Vision output is supporting evidence only. It cannot create or override a
+  deterministic signal.
 
 ### 7. Web UI
 
@@ -256,8 +275,8 @@ Chart overlay should support:
 Current Phase 1 overlay implementation:
 
 - Backend endpoint: `GET /context/overlays`
-- First context levels: previous day high/low, previous week high/low, latest Friday close, current Monday high/low as light blue solid right-extending rays from their relevant start time
-- First intraday range layer: previous-day high and low are drawn as gray dashed connected step pipes, high-to-high and low-to-low, across day periods
+- First context levels: previous day high/low, previous week high/low, previous month high/low, current month first trading-day high/low, latest Friday close, and current Monday high/low as solid right-extending rays from their relevant start time
+- First intraday range layer: previous-day high and low are drawn as gray dashed connected step pipes, high-to-high and low-to-low, across day periods; pipe corner radius is adjustable
 - First day layer: custom chart day-period bands with centered weekday labels; avoid relying on the chart library's default grid
 - First month layer: vertical month separators across the chart
 - First intraday close layer: previous-day-close is drawn as a green horizontal segment that spans only the current day period
@@ -265,7 +284,8 @@ Current Phase 1 overlay implementation:
 - Intraday day/session templates are hidden on H4 and D1 charts
 - Default visible chart view is 7 days for M1/M5/M15/M30/H1 and 30 days for H4/D1; do not restrict the loaded candle history for this behavior
 - First labels: weekday labels plus deterministic daily setup labels. Inside Day requires today's high/low inside the previous day range. FGD requires a green daily candle after at least two consecutive red daily candles. FRD requires a red daily candle after at least two consecutive green daily candles. 3DL/3DS marks only the third consecutive green/red daily candle, not every later continuation day.
-- Sidebar navigation has Chart, Daily Checklist, and Setting pages only; symbol/timeframe/refresh controls live in the chart header
+- Sidebar navigation has Chart, Daily Checklist, Research, and Setting pages; symbol/timeframe/refresh controls live in the chart header
+- Chart overlays are registered as independently toggleable templates. `weekly_template` contains the SB context overlay; `five_ema` contains native EMA 9, 21, 50, 100, and 200 series. Template selections persist in browser local storage.
 - Web UI Setting page controls overlay colors, line styles, label colors, each session fill color, and right-side chart spacing, with values saved in browser local storage
 - Web UI Setting page also controls the update interval in minutes; this is saved to the backend runtime settings file for the cTrader poller and used by the chart auto-refresh
 - These labels are deterministic context markers and must be validated/refined against manually tagged Stacey Burke examples before they are treated as trading signals.
@@ -384,6 +404,15 @@ Deliverables:
 - Chart image similarity
 - Confidence explanation
 
+Implementation status:
+
+- Complete: document inventory, text extraction, page citations, local hybrid search,
+  source-page rendering, RAG evidence packets, retrieval-only fallback, AI synthesis,
+  and optional visual source-page analysis.
+- Pending validation data: calibrated visual similarity between the current chart and
+  labelled historical examples. Page/title/setup retrieval is available now, but a
+  meaningful image-similarity confidence score requires user-reviewed example labels.
+
 ### Phase 7 - Paper Trading and Validation
 
 Goal: validate the system without real execution.
@@ -467,13 +496,12 @@ For implementation tasks, finish with a GitHub-ready change set:
 
 ## Open Questions To Resolve
 
-- Which Forex pairs should be supported first?
-- Which timeframes matter most for the SB strategy?
-- Which sessions should be modeled first: Asia, London, New York, rollover?
-- Which setup types are highest priority?
-- Should examples be manually tagged first or auto-tagged with review?
-- Will cTrader Open API polling run on Mac, Windows, or a VPS?
-- Should the first UI be local-only or hosted on a private server?
+- Signal labels remain provisional until tested by the user against known examples.
+- The first markets are XAUUSD, EURUSD, GBPUSD, USDJPY, AUDUSD, NAS100, and SP500.
+- Timestamps remain UTC and the existing session windows remain unchanged.
+- cTrader is the preferred five-minute source; file storage remains the default.
+- AI explains and retrieves evidence. It does not invent signals or execute trades.
+- Auto-trading and risk automation remain out of scope.
 
 ## First Implementation Target
 

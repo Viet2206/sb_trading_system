@@ -6,8 +6,10 @@ from typing import Annotated
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.engine import Engine
 
+from sb_system.ai_research import SBResearchAgent
 from sb_system.context import build_sb_overlays
 from sb_system.daily_checklist import build_daily_checklist, save_checklist_state
 from sb_system.file_store import (
@@ -31,6 +33,8 @@ from sb_system.runtime_settings import (
     runtime_settings_from_payload,
     save_runtime_settings,
 )
+from sb_system.telegram import TelegramNotifier
+from sb_system.research import ResearchLibrary, SETUP_TAXONOMY
 
 
 app = FastAPI(
@@ -45,9 +49,12 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:5173",
     ],
-    allow_origin_regex=r"^https?://[A-Za-z0-9_.-]+:5173$|^https?://(?:\d{1,3}\.){3}\d{1,3}:5173$",
+    allow_origin_regex=(
+        r"^https?://[A-Za-z0-9_.-]+:517[3-9]$"
+        r"|^https?://(?:\d{1,3}\.){3}\d{1,3}:517[3-9]$"
+    ),
     allow_credentials=False,
-    allow_methods=["GET", "PUT"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["*"],
 )
 
@@ -63,6 +70,21 @@ def get_engine() -> Engine:
     if not config.database_url:
         raise RuntimeError("DATABASE_URL is required.")
     return create_db_engine(config.database_url)
+
+
+@lru_cache(maxsize=1)
+def get_research_library() -> ResearchLibrary:
+    return ResearchLibrary()
+
+
+@lru_cache(maxsize=1)
+def get_research_agent() -> SBResearchAgent:
+    return SBResearchAgent(get_research_library())
+
+
+@lru_cache(maxsize=1)
+def get_telegram_notifier() -> TelegramNotifier:
+    return TelegramNotifier()
 
 
 @app.get("/health")
@@ -216,6 +238,138 @@ def update_daily_checklist_state(payload: Annotated[dict, Body(...)]) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/research/status")
+def research_status(
+    library: Annotated[ResearchLibrary, Depends(get_research_library)],
+    agent: Annotated[SBResearchAgent, Depends(get_research_agent)],
+) -> dict:
+    return {
+        **library.status(),
+        "ai": agent.status(),
+        "setup_types": sorted(SETUP_TAXONOMY),
+    }
+
+
+@app.post("/research/index")
+def research_index(
+    payload: Annotated[dict, Body(...)],
+    library: Annotated[ResearchLibrary, Depends(get_research_library)],
+) -> dict:
+    try:
+        return library.index_documents(rebuild=bool(payload.get("rebuild", False)))
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/research/documents")
+def research_documents(
+    library: Annotated[ResearchLibrary, Depends(get_research_library)],
+    category: str | None = Query(None),
+    setup: str | None = Query(None),
+) -> list[dict]:
+    return library.documents(category=category, setup=setup)
+
+
+@app.get("/research/search")
+def research_search(
+    library: Annotated[ResearchLibrary, Depends(get_research_library)],
+    query: str = Query(..., min_length=2, max_length=500),
+    setup: str | None = Query(None),
+    category: str | None = Query(None),
+    limit: int = Query(12, ge=1, le=50),
+) -> dict:
+    try:
+        return library.search(
+            query,
+            setup=setup,
+            category=category,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/research/documents/{document_id}/file")
+def research_document_file(
+    document_id: str,
+    library: Annotated[ResearchLibrary, Depends(get_research_library)],
+) -> FileResponse:
+    try:
+        path = library.document_path(document_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Research document not found.") from exc
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=path.name,
+        content_disposition_type="inline",
+    )
+
+
+@app.get("/research/documents/{document_id}/pages/{page}.png")
+def research_document_page(
+    document_id: str,
+    page: int,
+    library: Annotated[ResearchLibrary, Depends(get_research_library)],
+) -> FileResponse:
+    try:
+        path = library.render_page(document_id, page)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Research document not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return FileResponse(path, media_type="image/png")
+
+
+@app.post("/research/analyze")
+def research_analyze(
+    payload: Annotated[dict, Body(...)],
+    config: Annotated[ImportConfig, Depends(get_config)],
+    agent: Annotated[SBResearchAgent, Depends(get_research_agent)],
+) -> dict:
+    question = str(payload.get("question", "")).strip()
+    symbol = _optional_string(payload.get("symbol"))
+    timeframe = _optional_string(payload.get("timeframe"))
+    setup = _optional_string(payload.get("setup"))
+    try:
+        return agent.analyze(
+            question=question,
+            symbol=symbol,
+            timeframe=timeframe,
+            setup=setup,
+            market_context=_research_market_context(config, symbol),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.post("/research/vision")
+def research_vision(
+    payload: Annotated[dict, Body(...)],
+    agent: Annotated[SBResearchAgent, Depends(get_research_agent)],
+) -> dict:
+    document_id = str(payload.get("document_id", "")).strip()
+    page = payload.get("page")
+    if not document_id or not isinstance(page, int):
+        raise HTTPException(
+            status_code=400, detail="document_id and integer page are required."
+        )
+    try:
+        return agent.analyze_document_page(
+            document_id=document_id,
+            page=page,
+            question=str(payload.get("question", "")).strip(),
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Research document not found.") from exc
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/runtime/settings")
 def runtime_settings() -> dict:
     return _runtime_settings_payload()
@@ -225,6 +379,25 @@ def runtime_settings() -> dict:
 def update_runtime_settings(payload: Annotated[dict, Body(...)]) -> dict:
     settings = save_runtime_settings(runtime_settings_from_payload(payload))
     return _runtime_settings_payload(settings)
+
+
+@app.get("/notifications/telegram/status")
+def telegram_status(
+    notifier: Annotated[TelegramNotifier, Depends(get_telegram_notifier)],
+) -> dict:
+    return notifier.status()
+
+
+@app.post("/notifications/telegram/test")
+def telegram_test(
+    notifier: Annotated[TelegramNotifier, Depends(get_telegram_notifier)],
+) -> dict:
+    try:
+        return notifier.send_test()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 def _runtime_settings_payload(settings: RuntimeSettings | None = None) -> dict:
@@ -239,3 +412,41 @@ def _symbols_with_daily(summary) -> list[str]:
     daily = summary[summary["timeframe"] == "D1"]
     source = daily if not daily.empty else summary
     return sorted(set(source["broker_symbol"].dropna().astype(str)))
+
+
+def _optional_string(value) -> str | None:
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _research_market_context(
+    config: ImportConfig, symbol: str | None
+) -> dict | None:
+    if not symbol:
+        return None
+    if config.storage == "file":
+        checklist = build_daily_checklist(
+            config.data_dir,
+            symbols=[symbol],
+            fetcher=lambda data_dir, **kwargs: fetch_file_candles(
+                data_dir,
+                file_format=config.file_format,
+                **kwargs,
+            ),
+        )
+    else:
+        checklist = build_daily_checklist(get_engine(), symbols=[symbol])
+    if not checklist["rows"]:
+        return None
+    row = checklist["rows"][0]
+    return {
+        "symbol": row["symbol"],
+        "last_candle_time": row["last_candle_time"],
+        "signal_days": row["signal_days"],
+        "previous_signal_days": row["previous_signal_days"],
+        "weekly_template_state": row["weekly_template_state"],
+        "price_location": row["price_location"],
+        "candidate_direction": row["candidate_direction"],
+        "quality_score": row["quality_score"],
+        "no_trade_reasons": row["no_trade_reasons"],
+        "context": row["context"],
+    }

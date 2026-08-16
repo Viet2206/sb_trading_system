@@ -20,10 +20,12 @@ data/raw/*
 data/exports/*
 data/market/*
 data/runtime/*
+data/research/*
 !data/raw/.gitkeep
 !data/exports/.gitkeep
 !data/market/.gitkeep
 !data/runtime/.gitkeep
+!data/research/.gitkeep
 
 # Frontend
 node_modules/

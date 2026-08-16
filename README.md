@@ -4,12 +4,17 @@ SB Trading System is a Forex trading research and signal platform based on Stace
 
 Same thing every week, over and over again.
 
-The current development focus is Phase 1:
+The current development focus is a complete non-trading research workflow:
 
-- Normalize the project direction.
-- Prepare source documents for later strategy extraction.
-- Build the first lightweight cTrader-to-file market data ingestion path.
-- Keep signal detection separate from future auto-trading.
+- Five-minute cTrader candle collection with local file storage.
+- Deterministic, provisional SB context and signal labels.
+- Searchable PDF playbook and chart-example library.
+- Evidence-backed RAG and AI analysis with source-page citations.
+- Visual PDF-page inspection and optional AI vision analysis.
+- Human validation through Chart, Daily Checklist, and Research workspaces.
+
+Trading execution and risk automation remain out of scope until the signal rules are
+validated against labelled examples.
 
 ## Local Setup
 
@@ -26,6 +31,16 @@ Copy environment settings:
 ```bash
 cp .env.example .env
 ```
+
+Build or update the local research index:
+
+```bash
+python scripts/index_research_library.py
+```
+
+The local index supports search and RAG retrieval without an API key. To enable AI
+synthesis and visual page analysis, configure either Z.AI or OpenAI in `.env`. Keep
+credentials out of Git and do not enter them in the browser UI.
 
 The default setup now uses local file storage, so Docker and PostgreSQL are not required for the lightweight Windows workflow:
 
@@ -113,6 +128,9 @@ This script opens separate windows for:
 - cTrader candle polling
 - Backend API on port `8010`
 - Web UI on port `5173`
+
+It also installs the research dependencies and incrementally indexes the PDFs under
+`docs` before the services start.
 
 If you only want API + Web UI and do not want to poll broker data yet:
 
@@ -405,6 +423,12 @@ GET /candles?symbol=EURUSD&timeframe=M15&limit=200
 GET /context/overlays?symbol=EURUSD&timeframe=M15&limit=1500
 GET /runtime/settings
 PUT /runtime/settings
+GET /research/status
+POST /research/index
+GET /research/documents
+GET /research/search?query=first+green+day
+POST /research/analyze
+POST /research/vision
 ```
 
 The `/context/overlays` endpoint returns the first SB context layer for the active chart: previous day high/low, previous week high/low, latest Friday close, current Monday high/low, chart day periods, intraday previous-day-close segments, Asia/London/New York session boxes, weekday labels, and deterministic daily setup labels for Inside Day, FGD, FRD, 3DL, and 3DS. FGD requires a green daily candle after at least two consecutive red daily candles, FRD requires a red daily candle after at least two consecutive green daily candles, and 3DL/3DS marks only the third consecutive green/red daily candle. Current session windows use chart/data time: Asia 03:00-06:00, London 09:00-12:00, New York 15:00-18:00. Intraday day-period and session templates are hidden on H4 and D1 charts. Horizontal context levels are light blue, intraday previous-day-close segments are green, previous-day high/low pipes are gray dashed step lines, and session boxes are separated by fill color without text labels by default; these colors and styles can be changed on the Web UI Settings page.
@@ -425,15 +449,53 @@ Open:
 http://127.0.0.1:5173
 ```
 
-The first dashboard supports:
+The dashboard supports:
 
-- Sidebar navigation for Chart, Daily Checklist, and Setting
+- Sidebar navigation for Chart, Daily Checklist, Research, and Setting
 - Symbol/timeframe selection and refresh from the chart header
 - Interactive candlestick chart with pan, zoom, and crosshair
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
 - Settings page controls the update interval used by chart auto-refresh and the cTrader polling script.
+- Research Search combines local vector similarity, sparse term matching, setup filters,
+  and page-level citations.
+- Research Library inventories every indexed document and opens the original PDF.
+- Research Analyst combines deterministic market context with retrieved evidence. It
+  operates in retrieval-only mode until a supported AI provider is configured.
+- Source Inspector renders the original PDF page and optionally sends that page to the
+  configured multimodal model for visual analysis.
+
+## Research And AI
+
+The repository currently contains 27 PDFs and 1,086 pages. Indexing creates a local
+SQLite file under `data/research`; this generated index is deliberately excluded from
+Git and is rebuilt on each machine.
+
+Default configuration:
+
+```env
+SB_RESEARCH_DOCS_DIR=docs
+SB_RESEARCH_INDEX=data/research/research.sqlite3
+SB_EMBEDDING_PROVIDER=local
+SB_AI_PROVIDER=zai
+ZAI_BASE_URL=https://api.z.ai/api/paas/v4
+ZAI_MODEL=glm-4.7
+ZAI_VISION_MODEL=glm-4.6v-flash
+OPENAI_MODEL=gpt-5.6-terra
+OPENAI_REASONING_EFFORT=low
+```
+
+Use `SB_EMBEDDING_PROVIDER=local` for the small Windows/VPS deployment. Optional OpenAI
+embeddings can be enabled later with `SB_EMBEDDING_PROVIDER=openai`; rebuild the index
+after changing providers:
+
+```bash
+python scripts/index_research_library.py --rebuild
+```
+
+See [Research AI Architecture](docs/RESEARCH_AI_ARCHITECTURE.md) for the data flow,
+evidence contract, and validation boundary.
 
 ## Project Instructions
 
