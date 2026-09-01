@@ -162,7 +162,12 @@ def poll_once(
             )
             rates = mt5.copy_rates_range(symbol, mt5_timeframe, date_from, date_to)
             candles = normalize_rates(rates, symbol=symbol, timeframe=timeframe)
-            rows = upsert_file_candles(data_dir, candles, file_format=file_format)
+            rows = upsert_file_candles(
+                data_dir,
+                candles,
+                file_format=file_format,
+                retain_from=import_start,
+            )
             total_rows += rows
             print(f"{symbol:12} {timeframe:4} {rows:8} candles from {date_from.isoformat()}")
 

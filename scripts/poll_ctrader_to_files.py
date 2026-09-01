@@ -225,6 +225,10 @@ def _poll_once(
     @defer.inlineCallbacks
     def _inner():
         date_to = datetime.now(timezone.utc)
+        import_start = max(
+            utc_datetime_from_date(ctrader_config.import_start),
+            utc_datetime_from_date(storage_config.import_start),
+        )
         total_rows = 0
 
         for symbol_info in symbol_index.values():
@@ -240,7 +244,7 @@ def _poll_once(
                     symbol=symbol_name,
                     timeframe=timeframe,
                     file_format=storage_config.file_format,
-                    import_start=utc_datetime_from_date(ctrader_config.import_start),
+                    import_start=import_start,
                     lookback_candles=lookback_candles,
                 )
                 rows_for_pair = 0
@@ -269,6 +273,7 @@ def _poll_once(
                         storage_config.data_dir,
                         candles,
                         file_format=storage_config.file_format,
+                        retain_from=import_start,
                     )
 
                 total_rows += rows_for_pair

@@ -115,7 +115,7 @@ type CandleChartProps = {
   overlays: OverlayResponse | null;
   showFiveEma: boolean;
   showMajorRoundNumbers: boolean;
-  defaultViewDays: number;
+  defaultViewStart: string;
   settings: ChartSettings;
 };
 
@@ -125,7 +125,7 @@ export function CandleChart({
   overlays,
   showFiveEma,
   showMajorRoundNumbers,
-  defaultViewDays,
+  defaultViewStart,
   settings,
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -139,6 +139,7 @@ export function CandleChart({
   const showMajorRoundNumbersRef = useRef(showMajorRoundNumbers);
   const redrawFrameRef = useRef<number | null>(null);
   const followupRedrawFrameRef = useRef<number | null>(null);
+  const defaultRangeAppliedRef = useRef(false);
   const [svgLevels, setSvgLevels] = useState<SvgLevel[]>([]);
   const [svgRoundNumbers, setSvgRoundNumbers] = useState<SvgRoundNumber[]>([]);
   const [svgSessions, setSvgSessions] = useState<SvgSession[]>([]);
@@ -269,9 +270,12 @@ export function CandleChart({
     if (!seriesRef.current) return;
     chartDataRef.current = chartData;
     seriesRef.current.setData(chartData);
-    applyDefaultVisibleRange();
+    if (!defaultRangeAppliedRef.current && chartData.length > 0) {
+      applyDefaultVisibleRange();
+      defaultRangeAppliedRef.current = true;
+    }
     scheduleOverlayRedraw();
-  }, [chartData, defaultViewDays]);
+  }, [chartData, defaultViewStart]);
 
   useEffect(() => {
     for (const definition of emaDefinitions) {
@@ -549,10 +553,9 @@ export function CandleChart({
     const chart = chartRef.current;
     if (!chart || !candles.length) return;
 
-    const end = toTimestamp(candles[candles.length - 1].candle_time);
     const start = Math.max(
       toTimestamp(candles[0].candle_time),
-      (end - defaultViewDays * 24 * 60 * 60) as UTCTimestamp,
+      toTimestamp(defaultViewStart),
     ) as UTCTimestamp;
     const startIndex = Math.max(
       0,

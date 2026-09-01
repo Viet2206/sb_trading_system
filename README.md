@@ -50,7 +50,24 @@ SB_DATA_SOURCE=ctrader
 SB_DATA_DIR=data/market
 SB_FILE_FORMAT=csv.gz
 SB_UPDATE_INTERVAL_MINUTES=5
+SB_HISTORY_MONTHS=3
 ```
+
+`SB_HISTORY_MONTHS=3` keeps the active market store and chart API on a rolling
+three-calendar-month window. The boundary is the first day of the month three
+months before today, so on September 10, 2026 the window begins June 1, 2026.
+M1 is excluded from the default Windows configuration.
+
+Existing file stores are upgraded once with a lightweight summary index so the
+symbol selector does not decompress every candle file on each page load:
+
+```bash
+python scripts/rebuild_market_summary.py
+```
+
+The Windows launcher runs this migration automatically when the index is missing.
+Candle updates use atomic replacement, allowing the API to read the previous
+complete file while the poller prepares the next version.
 
 Run the backend API:
 

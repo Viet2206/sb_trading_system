@@ -27,6 +27,7 @@ if not exist ".env" (
 findstr /B /C:"SB_DATA_SOURCE=" ".env" >nul || echo SB_DATA_SOURCE=ctrader>>".env"
 findstr /B /C:"SB_API_HOST=" ".env" >nul || echo SB_API_HOST=0.0.0.0>>".env"
 findstr /B /C:"SB_API_PORT=" ".env" >nul || echo SB_API_PORT=8010>>".env"
+findstr /B /C:"SB_HISTORY_MONTHS=" ".env" >nul || echo SB_HISTORY_MONTHS=3>>".env"
 
 set "DATA_SOURCE=ctrader"
 for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"SB_DATA_SOURCE=" ".env"') do set "DATA_SOURCE=%%B"
@@ -69,6 +70,17 @@ if errorlevel 1 (
 )
 
 echo.
+echo === Prepare fast market summary ===
+if not exist "data\market\.candle-summary.json" (
+    python scripts\rebuild_market_summary.py
+    if errorlevel 1 (
+        echo Market summary indexing failed. Stop the poller, repair any incomplete candle files, then retry.
+        pause
+        exit /b 1
+    )
+)
+
+echo.
 echo === Prepare Web UI dependencies ===
 where npm >nul 2>nul
 if errorlevel 1 (
@@ -79,7 +91,7 @@ if errorlevel 1 (
 )
 
 pushd "web"
-npm install
+call npm install
 if errorlevel 1 (
     popd
     echo Web dependency install failed.
@@ -95,7 +107,7 @@ if "%START_POLLER%"=="1" (
 ) else (
     echo Skipping market data poller because --no-poller was passed.
 )
-start "SB API 8010" /D "%PROJECT_ROOT%" cmd /k "call .venv\Scripts\activate.bat && python scripts\run_api.py --reload"
+start "SB API 8010" /D "%PROJECT_ROOT%" cmd /k "call .venv\Scripts\activate.bat && python scripts\run_api.py"
 start "SB Web 5173" /D "%PROJECT_ROOT%\web" cmd /k "npm run dev"
 
 echo.

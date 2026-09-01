@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrainCircuit,
   ClipboardList,
@@ -32,8 +32,8 @@ import {
 } from "./overlayTemplates";
 
 const timeframeOrder = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
-const intradayWindowTimeframes = new Set(["M1", "M5", "M15", "M30", "H1"]);
 const SIDEBAR_STORAGE_KEY = "sb-trading-system-sidebar-collapsed";
+const MAX_CHART_CANDLES = 50_000;
 type Page = "chart" | "checklist" | "settings";
 
 export function App() {
@@ -50,6 +50,8 @@ export function App() {
   const [chartSettings, setChartSettings] = useState<ChartSettings>(() => loadChartSettings());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const candlesRef = useRef<Candle[]>([]);
+  const chartStart = chartWindowStartIso();
 
   const symbols = useMemo(
     () => Array.from(new Set(summary.map((item) => item.broker_symbol))).sort(),
@@ -60,7 +62,7 @@ export function App() {
     const available = summary
       .filter((item) => item.broker_symbol === symbol)
       .map((item) => item.timeframe);
-    return Array.from(new Set(["M1", ...available])).sort(
+    return Array.from(new Set(available)).sort(
       (a, b) => timeframeOrder.indexOf(a) - timeframeOrder.indexOf(b),
     );
   }, [summary, symbol]);
@@ -73,6 +75,10 @@ export function App() {
   useEffect(() => {
     saveChartSettings(chartSettings);
   }, [chartSettings]);
+
+  useEffect(() => {
+    candlesRef.current = candles;
+  }, [candles]);
 
   useEffect(() => {
     saveActiveOverlayTemplates(activeOverlayTemplates);
@@ -110,17 +116,17 @@ export function App() {
     if (symbol && timeframe) {
       void loadCandles(symbol, timeframe);
     }
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, chartStart]);
 
   useEffect(() => {
     if (!symbol || !timeframe) return;
 
     const interval = window.setInterval(() => {
-      void loadCandles(symbol, timeframe);
+      void refreshLatestCandles(symbol, timeframe);
     }, chartSettings.updateIntervalMinutes * 60 * 1000);
 
     return () => window.clearInterval(interval);
-  }, [symbol, timeframe, chartSettings.updateIntervalMinutes]);
+  }, [symbol, timeframe, chartSettings.updateIntervalMinutes, chartStart]);
 
   async function loadSummary() {
     setLoading(true);
@@ -152,10 +158,14 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      const [candleData, overlayData] = await Promise.all([
-        fetchCandles(nextSymbol, nextTimeframe),
-        fetchOverlays(nextSymbol, nextTimeframe),
-      ]);
+      const candleData = await fetchCandles(nextSymbol, nextTimeframe, {
+        start: chartStart,
+        limit: MAX_CHART_CANDLES,
+      });
+      const overlayData = await fetchOverlays(nextSymbol, nextTimeframe, {
+        start: chartStart,
+        limit: MAX_CHART_CANDLES,
+      });
       setCandles(candleData.candles);
       setOverlays(overlayData);
     } catch (err) {
@@ -167,16 +177,42 @@ export function App() {
     }
   }
 
+  async function refreshLatestCandles(nextSymbol: string, nextTimeframe: string) {
+    const current = candlesRef.current;
+    const overlapStart = current[Math.max(0, current.length - 3)]?.candle_time ?? chartStart;
+    try {
+      const candleData = await fetchCandles(nextSymbol, nextTimeframe, {
+        start: overlapStart,
+        limit: 500,
+      });
+      setCandles(mergeCandles(current, candleData.candles, chartStart));
+      if (candleData.candles.length > 0) {
+        const overlayData = await fetchOverlays(nextSymbol, nextTimeframe, {
+          start: chartStart,
+          limit: MAX_CHART_CANDLES,
+        });
+        setOverlays(overlayData);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh latest candles");
+    }
+  }
+
   async function refreshChart() {
     if (!symbol || !timeframe) return;
     setLoading(true);
     setError(null);
     try {
-      const [summaryData, candleData, overlayData] = await Promise.all([
-        fetchSummary(),
-        fetchCandles(symbol, timeframe),
-        fetchOverlays(symbol, timeframe),
-      ]);
+      const summaryData = await fetchSummary();
+      const candleData = await fetchCandles(symbol, timeframe, {
+        start: chartStart,
+        limit: MAX_CHART_CANDLES,
+      });
+      const overlayData = await fetchOverlays(symbol, timeframe, {
+        start: chartStart,
+        limit: MAX_CHART_CANDLES,
+      });
       setSummary(summaryData);
       setCandles(candleData.candles);
       setOverlays(overlayData);
@@ -254,7 +290,7 @@ export function App() {
                 </h2>
                 <p>
                   {candles.length
-                    ? `${candles.length.toLocaleString()} loaded candles / default view ${chartWindowDays(timeframe)} days / update ${chartSettings.updateIntervalMinutes} min`
+                    ? `${candles.length.toLocaleString()} candles since ${formatChartStart(chartStart)} / update ${chartSettings.updateIntervalMinutes} min`
                     : "Loading chart"}
                 </p>
               </>
@@ -337,6 +373,7 @@ export function App() {
           >
             <div className="chart-stage">
               <CandleChart
+                key={`${symbol}-${timeframe}`}
                 symbol={symbol}
                 candles={candles}
                 overlays={
@@ -348,7 +385,7 @@ export function App() {
                 showMajorRoundNumbers={activeOverlayTemplates.includes(
                   "major_round_number",
                 )}
-                defaultViewDays={chartWindowDays(timeframe)}
+                defaultViewStart={chartStart}
                 settings={chartSettings}
               />
             </div>
@@ -395,8 +432,32 @@ function preferredDefaultSymbol(symbols: string[]) {
     ?? symbols[0];
 }
 
-function chartWindowDays(timeframe: string) {
-  return intradayWindowTimeframes.has(timeframe) ? 7 : 30;
+function chartWindowStartIso(reference = new Date()) {
+  return new Date(Date.UTC(
+    reference.getUTCFullYear(),
+    reference.getUTCMonth() - 3,
+    1,
+  )).toISOString();
+}
+
+function formatChartStart(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
+
+function mergeCandles(existing: Candle[], updates: Candle[], windowStart: string) {
+  const merged = new Map<string, Candle>();
+  for (const candle of existing) merged.set(candle.candle_time, candle);
+  for (const candle of updates) merged.set(candle.candle_time, candle);
+  const startTime = new Date(windowStart).getTime();
+  return Array.from(merged.values())
+    .filter((candle) => new Date(candle.candle_time).getTime() >= startTime)
+    .sort((a, b) => a.candle_time.localeCompare(b.candle_time))
+    .slice(-MAX_CHART_CANDLES);
 }
 
 function loadSidebarCollapsed() {

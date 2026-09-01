@@ -12,7 +12,7 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from sb_system.file_store import fetch_file_candle_summary, upsert_file_candles
-from sb_system.market_data import load_config
+from sb_system.market_data import load_config, utc_datetime_from_date
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,7 +45,12 @@ def main() -> int:
     total_rows = 0
     for file_path in files:
         candles = pd.read_csv(file_path)
-        rows = upsert_file_candles(config.data_dir, candles, file_format=config.file_format)
+        rows = upsert_file_candles(
+            config.data_dir,
+            candles,
+            file_format=config.file_format,
+            retain_from=utc_datetime_from_date(config.import_start),
+        )
         total_rows += rows
         print(f"{rows:8} candles <- {file_path}")
 

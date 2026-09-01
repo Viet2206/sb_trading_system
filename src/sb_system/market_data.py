@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
+from sb_system.chart_window import CHART_WINDOW_MONTHS, chart_window_start
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = PROJECT_ROOT / "sql" / "001_market_data.sql"
@@ -57,8 +59,15 @@ def load_config(env_path: str | Path | None = None, *, require_database_url: boo
         "AUDJPY.pc,CADCHF.pc,CADJPY.pc,CHFJPY.pc,COPPER-C,EURAUD.pc,EURCAD.pc,"
         "EURCHF.pc,EURGBP.pc,GBPAUD.pc,GBPCAD.pc,GBPCHF.pc,USOUSD.pc",
     )
-    timeframes = _split_env("SB_TIMEFRAMES", "M1,M5,M15,H1,H4,D1")
-    import_start = date.fromisoformat(os.getenv("SB_IMPORT_START", "2026-01-01"))
+    timeframes = _split_env("SB_TIMEFRAMES", "M5,M15,H1,H4,D1")
+    history_months_value = os.getenv("SB_HISTORY_MONTHS", str(CHART_WINDOW_MONTHS)).strip()
+    if history_months_value:
+        history_months = int(history_months_value)
+        if history_months < 1 or history_months > 120:
+            raise ValueError("SB_HISTORY_MONTHS must be between 1 and 120.")
+        import_start = chart_window_start(months=history_months).date()
+    else:
+        import_start = date.fromisoformat(os.getenv("SB_IMPORT_START", "2026-01-01"))
 
     return ImportConfig(
         database_url=database_url,
