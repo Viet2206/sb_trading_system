@@ -24,12 +24,15 @@ if not exist ".env" (
     copy ".env.example" ".env" >nul
     echo Created .env from .env.example
 )
-findstr /B /C:"SB_DATA_SOURCE=" ".env" >nul || echo SB_DATA_SOURCE=ctrader>>".env"
+findstr /B /C:"SB_STORAGE=" ".env" >nul || echo SB_STORAGE=postgres>>".env"
+findstr /B /C:"SB_DATA_SOURCE=" ".env" >nul || echo SB_DATA_SOURCE=mt5>>".env"
 findstr /B /C:"SB_API_HOST=" ".env" >nul || echo SB_API_HOST=0.0.0.0>>".env"
 findstr /B /C:"SB_API_PORT=" ".env" >nul || echo SB_API_PORT=8010>>".env"
 findstr /B /C:"SB_HISTORY_MONTHS=" ".env" >nul || echo SB_HISTORY_MONTHS=3>>".env"
 
-set "DATA_SOURCE=ctrader"
+set "STORAGE=postgres"
+for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"SB_STORAGE=" ".env"') do set "STORAGE=%%B"
+set "DATA_SOURCE=mt5"
 for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"SB_DATA_SOURCE=" ".env"') do set "DATA_SOURCE=%%B"
 set "REQUIREMENTS=requirements-ctrader.txt"
 set "POLLER_TITLE=SB cTrader Poller"
@@ -70,13 +73,39 @@ if errorlevel 1 (
 )
 
 echo.
-echo === Prepare fast market summary ===
-if not exist "data\market\.candle-summary.json" (
-    python scripts\rebuild_market_summary.py
+echo === Prepare market storage ===
+if /I "%STORAGE%"=="postgres" (
+    python scripts\check_postgres.py
     if errorlevel 1 (
-        echo Market summary indexing failed. Stop the poller, repair any incomplete candle files, then retry.
-        pause
-        exit /b 1
+        where docker >nul 2>nul
+        if errorlevel 1 (
+            echo PostgreSQL is unavailable and Docker was not found.
+            echo Install PostgreSQL 16 or Docker Desktop, then verify DATABASE_URL in .env.
+            pause
+            exit /b 1
+        )
+        echo Starting the bundled PostgreSQL service...
+        docker compose up -d --wait postgres
+        if errorlevel 1 (
+            echo PostgreSQL startup failed. Open Docker Desktop and retry.
+            pause
+            exit /b 1
+        )
+        python scripts\check_postgres.py
+        if errorlevel 1 (
+            echo PostgreSQL validation failed. Verify DATABASE_URL in .env.
+            pause
+            exit /b 1
+        )
+    )
+) else (
+    if not exist "data\market\.candle-summary.json" (
+        python scripts\rebuild_market_summary.py
+        if errorlevel 1 (
+            echo Market summary indexing failed. Stop the poller, repair incomplete files, then retry.
+            pause
+            exit /b 1
+        )
     )
 )
 

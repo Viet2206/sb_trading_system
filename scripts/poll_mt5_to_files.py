@@ -12,7 +12,17 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from sb_system.file_store import latest_file_candle_time, upsert_file_candles
-from sb_system.market_data import load_config, normalize_rates, utc_datetime_from_date
+from sb_system.market_data import (
+    check_connection,
+    create_db_engine,
+    create_schema,
+    latest_candle_time,
+    load_config,
+    normalize_rates,
+    prune_candles_before,
+    upsert_candles,
+    utc_datetime_from_date,
+)
 from sb_system.runtime_settings import (
     RuntimeSettings,
     load_runtime_settings,
@@ -46,12 +56,12 @@ TIMEFRAME_SECONDS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Poll MetaTrader 5 candles into local SB Trading System files."
+        description="Poll MetaTrader 5 candles into SB Trading System storage."
     )
     parser.add_argument(
         "--env",
         default=str(PROJECT_ROOT / ".env"),
-        help="Path to .env file with SB symbols, timeframes, and file storage settings.",
+        help="Path to .env file with SB symbols, timeframes, and storage settings.",
     )
     parser.add_argument(
         "--once",
@@ -78,6 +88,18 @@ def main() -> int:
         save_runtime_settings(RuntimeSettings(update_interval_minutes=args.interval_minutes))
 
     config = load_config(args.env, require_database_url=False)
+    engine = None
+    if config.storage == "postgres":
+        if not config.database_url:
+            print("DATABASE_URL is required when SB_STORAGE=postgres.")
+            return 1
+        engine = create_db_engine(config.database_url)
+        create_schema(engine)
+        connection = check_connection(engine).iloc[0]
+        print(f"PostgreSQL: {connection['database']} as {connection['username']}")
+        removed = prune_candles_before(engine, utc_datetime_from_date(config.import_start))
+        if removed:
+            print(f"PostgreSQL retention removed {removed} expired candles")
 
     try:
         import MetaTrader5 as mt5
@@ -111,6 +133,7 @@ def main() -> int:
                 timeframes=config.timeframes,
                 import_start=utc_datetime_from_date(config.import_start),
                 lookback_candles=args.lookback_candles,
+                engine=engine,
             )
             print(f"{datetime.now(timezone.utc).isoformat()} updated {rows} candles")
 
@@ -137,6 +160,7 @@ def poll_once(
     timeframes: list[str],
     import_start: datetime,
     lookback_candles: int,
+    engine=None,
 ) -> int:
     date_to = datetime.now(timezone.utc)
     total_rows = 0
@@ -159,15 +183,24 @@ def poll_once(
                 file_format=file_format,
                 import_start=import_start,
                 lookback_candles=lookback_candles,
+                engine=engine,
             )
             rates = mt5.copy_rates_range(symbol, mt5_timeframe, date_from, date_to)
             candles = normalize_rates(rates, symbol=symbol, timeframe=timeframe)
-            rows = upsert_file_candles(
-                data_dir,
-                candles,
-                file_format=file_format,
-                retain_from=import_start,
-            )
+            if engine is None:
+                rows = upsert_file_candles(
+                    data_dir,
+                    candles,
+                    file_format=file_format,
+                    retain_from=import_start,
+                )
+            else:
+                rows = upsert_candles(
+                    engine,
+                    candles,
+                    source="mt5",
+                    retain_from=import_start,
+                )
             total_rows += rows
             print(f"{symbol:12} {timeframe:4} {rows:8} candles from {date_from.isoformat()}")
 
@@ -182,12 +215,17 @@ def _next_fetch_start(
     file_format: str,
     import_start: datetime,
     lookback_candles: int,
+    engine=None,
 ) -> datetime:
-    latest = latest_file_candle_time(
-        data_dir,
-        symbol=symbol,
-        timeframe=timeframe,
-        file_format=file_format,
+    latest = (
+        latest_candle_time(engine, symbol=symbol, timeframe=timeframe)
+        if engine is not None
+        else latest_file_candle_time(
+            data_dir,
+            symbol=symbol,
+            timeframe=timeframe,
+            file_format=file_format,
+        )
     )
     if latest is None:
         return import_start

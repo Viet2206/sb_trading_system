@@ -22,6 +22,7 @@ from sb_system.market_data import (
     ImportConfig,
     check_connection,
     create_db_engine,
+    create_schema,
     dataframe_records,
     fetch_candle_summary,
     fetch_candles,
@@ -70,7 +71,9 @@ def get_engine() -> Engine:
     config = get_config()
     if not config.database_url:
         raise RuntimeError("DATABASE_URL is required.")
-    return create_db_engine(config.database_url)
+    engine = create_db_engine(config.database_url)
+    create_schema(engine)
+    return engine
 
 
 @lru_cache(maxsize=1)

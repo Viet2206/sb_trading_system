@@ -5,6 +5,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT / "src") not in sys.path:
@@ -21,7 +23,15 @@ from sb_system.ctrader import (
     validate_ctrader_config,
 )
 from sb_system.file_store import latest_file_candle_time, upsert_file_candles
-from sb_system.market_data import load_config
+from sb_system.market_data import (
+    check_connection,
+    create_db_engine,
+    create_schema,
+    latest_candle_time,
+    load_config,
+    prune_candles_before,
+    upsert_candles,
+)
 from sb_system.runtime_settings import (
     RuntimeSettings,
     load_runtime_settings,
@@ -31,7 +41,7 @@ from sb_system.runtime_settings import (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Poll cTrader Open API trendbars into local SB Trading System files."
+        description="Poll cTrader Open API trendbars into SB Trading System storage."
     )
     parser.add_argument(
         "--env",
@@ -105,6 +115,21 @@ def run_twisted_poller(args: argparse.Namespace, storage_config, ctrader_config:
     )
     client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
     exit_code = {"value": 0}
+    engine = None
+    if storage_config.storage == "postgres":
+        if not storage_config.database_url:
+            print("DATABASE_URL is required when SB_STORAGE=postgres.")
+            return 1
+        engine = create_db_engine(storage_config.database_url)
+        create_schema(engine)
+        connection = check_connection(engine).iloc[0]
+        print(f"PostgreSQL: {connection['database']} as {connection['username']}")
+        removed = prune_candles_before(
+            engine,
+            utc_datetime_from_date(storage_config.import_start),
+        )
+        if removed:
+            print(f"PostgreSQL retention removed {removed} expired candles")
 
     @defer.inlineCallbacks
     def poll_loop():
@@ -129,6 +154,7 @@ def run_twisted_poller(args: argparse.Namespace, storage_config, ctrader_config:
                     ProtoOATrendbarPeriod,
                     lookback_candles=args.lookback_candles,
                     max_bars_per_request=args.max_bars_per_request,
+                    engine=engine,
                 )
                 print(f"{datetime.now(timezone.utc).isoformat()} updated {rows} candles from cTrader")
 
@@ -219,6 +245,7 @@ def _poll_once(
     *,
     lookback_candles: int,
     max_bars_per_request: int,
+    engine=None,
 ):
     from twisted.internet import defer
 
@@ -246,8 +273,9 @@ def _poll_once(
                     file_format=storage_config.file_format,
                     import_start=import_start,
                     lookback_candles=lookback_candles,
+                    engine=engine,
                 )
-                rows_for_pair = 0
+                candle_chunks = []
                 for chunk_start, chunk_end in chunk_ranges(
                     date_from,
                     date_to,
@@ -269,10 +297,26 @@ def _poll_once(
                         timeframe=timeframe,
                         digits=symbol_info["digits"],
                     )
-                    rows_for_pair += upsert_file_candles(
+                    if not candles.empty:
+                        candle_chunks.append(candles)
+
+                combined = (
+                    pd.concat(candle_chunks, ignore_index=True)
+                    if candle_chunks
+                    else pd.DataFrame()
+                )
+                if engine is None:
+                    rows_for_pair = upsert_file_candles(
                         storage_config.data_dir,
-                        candles,
+                        combined,
                         file_format=storage_config.file_format,
+                        retain_from=import_start,
+                    )
+                else:
+                    rows_for_pair = upsert_candles(
+                        engine,
+                        combined,
+                        source="ctrader",
                         retain_from=import_start,
                     )
 
@@ -292,12 +336,17 @@ def _next_fetch_start(
     file_format: str,
     import_start: datetime,
     lookback_candles: int,
+    engine=None,
 ) -> datetime:
-    latest = latest_file_candle_time(
-        data_dir,
-        symbol=symbol,
-        timeframe=timeframe,
-        file_format=file_format,
+    latest = (
+        latest_candle_time(engine, symbol=symbol, timeframe=timeframe)
+        if engine is not None
+        else latest_file_candle_time(
+            data_dir,
+            symbol=symbol,
+            timeframe=timeframe,
+            file_format=file_format,
+        )
     )
     if latest is None:
         return import_start
