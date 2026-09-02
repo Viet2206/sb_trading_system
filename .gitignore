@@ -21,11 +21,13 @@ data/exports/*
 data/market/*
 data/runtime/*
 data/research/*
+data/backups/*
 !data/raw/.gitkeep
 !data/exports/.gitkeep
 !data/market/.gitkeep
 !data/runtime/.gitkeep
 !data/research/.gitkeep
+!data/backups/.gitkeep
 
 # Frontend
 node_modules/

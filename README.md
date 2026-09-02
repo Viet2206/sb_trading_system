@@ -6,7 +6,7 @@ Same thing every week, over and over again.
 
 The current development focus is a complete non-trading research workflow:
 
-- Five-minute cTrader candle collection with local file storage.
+- Five-minute MT5 candle collection with PostgreSQL as the primary store.
 - Deterministic, provisional SB context and signal labels.
 - Searchable PDF playbook and chart-example library.
 - Evidence-backed RAG and AI analysis with source-page citations.
@@ -42,15 +42,32 @@ The local index supports search and RAG retrieval without an API key. To enable 
 synthesis and visual page analysis, configure either Z.AI or OpenAI in `.env`. Keep
 credentials out of Git and do not enter them in the browser UI.
 
-The default setup now uses local file storage, so Docker and PostgreSQL are not required for the lightweight Windows workflow:
+The default Windows deployment uses MT5 and PostgreSQL:
 
 ```env
-SB_STORAGE=file
-SB_DATA_SOURCE=ctrader
+SB_STORAGE=postgres
+SB_DATA_SOURCE=mt5
 SB_DATA_DIR=data/market
 SB_FILE_FORMAT=csv.gz
 SB_UPDATE_INTERVAL_MINUTES=5
+SB_HISTORY_MONTHS=3
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/sb_system
 ```
+
+`SB_HISTORY_MONTHS=3` keeps the active market store and chart API on a rolling
+three-calendar-month window. The boundary is the first day of the month three
+months before today, so on September 10, 2026 the window begins June 1, 2026.
+M1 is excluded from the default Windows configuration.
+
+PostgreSQL keeps an indexed summary table, so `/candles/summary` does not scan all
+candles. Existing file stores can still be upgraded with a lightweight summary index:
+
+```bash
+python scripts/rebuild_market_summary.py
+```
+
+The Windows launcher applies PostgreSQL schema migrations and validates the database
+before starting the poller and API. File fallback mode still uses atomic replacement.
 
 Run the backend API:
 
@@ -73,9 +90,10 @@ Open:
 http://127.0.0.1:5173
 ```
 
-## cTrader No-Database Workflow
+## Optional cTrader Workflow
 
-This is the recommended path for 5-minute SB Strategy updates. cTrader Open API writes candles into `data/market`, and the existing API/UI reads those files.
+Use this only after obtaining cTrader Open API credentials. Both PostgreSQL and file
+storage are supported by the same poller.
 
 Create a cTrader Open API application at:
 
@@ -125,7 +143,7 @@ scripts\windows_start_platform.bat
 
 This script opens separate windows for:
 
-- cTrader candle polling
+- The configured MT5 or cTrader candle poller
 - Backend API on port `8010`
 - Web UI on port `5173`
 
@@ -174,7 +192,8 @@ data\runtime\settings.json
 
 The cTrader polling script reads that file between update cycles.
 
-If you already have exported CSV/CSV.gz files, import them into the active file store:
+If file fallback mode is enabled and you have exported CSV/CSV.gz files, import them
+into the file store:
 
 ```bat
 python scripts\import_candles_to_files.py data\raw\mt5_export
@@ -201,7 +220,8 @@ http://127.0.0.1:5173
 
 ## Tailscale Access From Mac
 
-Run the cTrader poller, the API, and the web UI on the host machine. Then open the web UI from your Mac through the host machine's Tailscale address.
+Run the configured market poller, the API, and the web UI on the host machine. Then
+open the web UI from your Mac through the host machine's Tailscale address.
 
 Install and log in to Tailscale on both Windows and Mac, then find the Windows Tailscale IP:
 
@@ -245,9 +265,10 @@ http://100.x.y.z:5173
 
 The web UI automatically calls the backend API on the same Windows Tailscale host using port `8010`.
 
-## Optional MT5 Workflow
+## MT5 Workflow
 
-MT5 support remains available if you later switch back to a Windows terminal workflow. Set this in `.env`:
+MT5 is the default Windows data source. Open the MetaTrader 5 terminal, log in to the
+broker account, and set this in `.env`:
 
 ```env
 SB_DATA_SOURCE=mt5
@@ -265,9 +286,19 @@ Run the MT5 poller:
 python scripts\poll_mt5_to_files.py
 ```
 
-## Optional PostgreSQL Setup
+## PostgreSQL Setup
 
-Use this later for VPS, automation, trade logs, or larger workflows. Set `SB_STORAGE=postgres` in `.env`.
+PostgreSQL is the recommended store for responsive charts, safe concurrent reads,
+deduplication, and future automation. Install Docker Desktop on Windows and make sure
+it is running. Then set these values in `.env`:
+
+```env
+SB_STORAGE=postgres
+SB_DATA_SOURCE=mt5
+SB_HISTORY_MONTHS=3
+POSTGRES_PASSWORD=postgres
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/sb_system
+```
 
 Start PostgreSQL with Docker:
 
@@ -281,28 +312,44 @@ The default `.env.example` connection string already matches this local Docker d
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/sb_system
 ```
 
-Check the database container:
+Check the database and apply all schema migrations:
 
 ```bash
 docker compose ps
+python scripts/check_postgres.py
 ```
 
-Run the Mac import notebook:
+Migrate candles already stored under `data/market` once:
 
 ```bash
-jupyter lab notebooks/02_mac_import_csv_to_postgres.ipynb
+python scripts/import_candles_from_csv.py data/market
 ```
 
-If the notebook shows `connection refused` on port `5432`, PostgreSQL is not running yet. Start it with `docker compose up -d postgres`, then rerun the connection/schema cell.
+Run one MT5 update on Windows, then start continuous polling:
 
-## Legacy MT5 Notes
+```bat
+python scripts\poll_mt5_to_files.py --once
+python scripts\poll_mt5_to_files.py
+```
 
-The MT5 Python package workflow is intended to run on Windows with an installed MetaTrader 5 terminal. Keep this only as a fallback workflow:
+Create a compressed backup (requires PostgreSQL client tools on `PATH`):
 
-- Windows laptop/VPS: connect to MT5 and write candles into local files under `data/market`.
-- MacBook: use copied `data/market` files for development, or use PostgreSQL if desired.
+```bat
+python scripts\backup_postgres.py
+```
 
-This means Windows does not need Docker or PostgreSQL if you use the MT5 fallback.
+The Docker port binds only to `127.0.0.1`; do not expose PostgreSQL port 5432 to the
+public internet. Before a fresh production install, change `POSTGRES_PASSWORD` and the
+matching password inside `DATABASE_URL` in `.env`.
+
+If the check reports `connection refused`, start Docker Desktop and rerun
+`docker compose up -d postgres`.
+
+## MT5 Environment Troubleshooting
+
+The MT5 Python package must run on Windows with an installed MetaTrader 5 terminal.
+It writes directly to PostgreSQL when `SB_STORAGE=postgres`, or to `data/market` when
+`SB_STORAGE=file`.
 
 Install the Windows/VPS dependencies with:
 
@@ -457,7 +504,7 @@ The dashboard supports:
 - Black and white candlestick styling
 - SB context overlays for solid right-extending key level rays, intraday previous-day high/low pipes, intraday day periods, month/day separators, color-separated session boxes, weekday labels, and v0 daily setup labels
 - Default visible chart view: latest 7 days for M1/M5/M15/M30/H1 and latest 30 days for H4/D1. Data is still loaded from the full available imported history.
-- Settings page controls the update interval used by chart auto-refresh and the cTrader polling script.
+- Settings page controls the update interval used by chart auto-refresh and the configured market poller.
 - Research Search combines local vector similarity, sparse term matching, setup filters,
   and page-level citations.
 - Research Library inventories every indexed document and opens the original PDF.

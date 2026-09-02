@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Annotated
 
@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.engine import Engine
 
 from sb_system.ai_research import SBResearchAgent
+from sb_system.chart_window import MAX_CHART_CANDLES, chart_window_start
 from sb_system.context import build_sb_overlays
 from sb_system.daily_checklist import build_daily_checklist, save_checklist_state
 from sb_system.file_store import (
@@ -21,6 +22,7 @@ from sb_system.market_data import (
     ImportConfig,
     check_connection,
     create_db_engine,
+    create_schema,
     dataframe_records,
     fetch_candle_summary,
     fetch_candles,
@@ -69,7 +71,9 @@ def get_engine() -> Engine:
     config = get_config()
     if not config.database_url:
         raise RuntimeError("DATABASE_URL is required.")
-    return create_db_engine(config.database_url)
+    engine = create_db_engine(config.database_url)
+    create_schema(engine)
+    return engine
 
 
 @lru_cache(maxsize=1)
@@ -133,15 +137,16 @@ def candles(
     timeframe: str = Query(..., description="Timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),
-    limit: int | None = Query(None, ge=1, le=200_000, description="Optional maximum candles to return."),
+    limit: int = Query(MAX_CHART_CANDLES, ge=1, le=MAX_CHART_CANDLES, description="Maximum candles to return."),
 ) -> dict:
+    effective_start = start or chart_window_start(end or datetime.now(UTC))
     if config.storage == "file":
         rows = fetch_file_candles(
             config.data_dir,
             symbol=symbol,
             timeframe=timeframe,
             file_format=config.file_format,
-            start=start,
+            start=effective_start,
             end=end,
             limit=limit,
         )
@@ -150,7 +155,7 @@ def candles(
             get_engine(),
             symbol=symbol,
             timeframe=timeframe,
-            start=start,
+            start=effective_start,
             end=end,
             limit=limit,
         )
@@ -169,14 +174,15 @@ def context_overlays(
     timeframe: str = Query(..., description="Chart timeframe such as M5, M15, H1, H4, or D1."),
     start: datetime | None = Query(None, description="Optional inclusive start time."),
     end: datetime | None = Query(None, description="Optional inclusive end time."),
-    limit: int | None = Query(None, ge=100, le=200_000, description="Optional maximum chart candles to contextualize."),
+    limit: int = Query(MAX_CHART_CANDLES, ge=100, le=MAX_CHART_CANDLES, description="Maximum chart candles to contextualize."),
 ) -> dict:
+    effective_start = start or chart_window_start(end or datetime.now(UTC))
     if config.storage == "file":
         return build_sb_overlays(
             config.data_dir,
             symbol=symbol,
             timeframe=timeframe,
-            start=start,
+            start=effective_start,
             end=end,
             limit=limit,
             fetcher=lambda data_dir, **kwargs: fetch_file_candles(
@@ -190,7 +196,7 @@ def context_overlays(
         get_engine(),
         symbol=symbol,
         timeframe=timeframe,
-        start=start,
+        start=effective_start,
         end=end,
         limit=limit,
     )

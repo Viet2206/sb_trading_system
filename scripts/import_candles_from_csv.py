@@ -16,8 +16,12 @@ from sb_system.market_data import (
     create_db_engine,
     create_schema,
     fetch_candle_summary,
+    finish_import_run,
     load_config,
+    prune_candles_before,
+    start_import_run,
     upsert_candles,
+    utc_datetime_from_date,
 )
 
 
@@ -56,12 +60,37 @@ def main() -> int:
 
     print(check_connection(engine).to_string(index=False))
 
+    import_start = utc_datetime_from_date(config.import_start)
+    removed = prune_candles_before(engine, import_start)
+    if removed:
+        print(f"PostgreSQL retention removed {removed} expired candles")
+    run_id = start_import_run(
+        engine,
+        source="file_import",
+        symbols=config.symbols,
+        timeframes=config.timeframes,
+        started_from=import_start,
+        notes=f"Import from {input_path.resolve()}",
+    )
     total_rows = 0
-    for file_path in files:
-        candles = pd.read_csv(file_path)
-        rows = upsert_candles(engine, candles)
-        total_rows += rows
-        print(f"{rows:8} candles <- {file_path}")
+    try:
+        for file_path in files:
+            candles = pd.read_csv(file_path)
+            candle_times = pd.to_datetime(candles["candle_time"], utc=True)
+            candles = candles.loc[candle_times >= import_start].copy()
+            rows = upsert_candles(
+                engine,
+                candles,
+                source="file_import",
+                retain_from=import_start,
+            )
+            total_rows += rows
+            print(f"{rows:8} candles <- {file_path}")
+    except Exception:
+        finish_import_run(engine, run_id, status="failed", rows_imported=total_rows)
+        raise
+
+    finish_import_run(engine, run_id, status="completed", rows_imported=total_rows)
 
     print(f"Total imported rows: {total_rows}")
     print(fetch_candle_summary(engine).to_string(index=False))

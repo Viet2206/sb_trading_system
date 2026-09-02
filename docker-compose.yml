@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_DB: sb_system
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - sb_system_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,4 +19,3 @@ services:
 
 volumes:
   sb_system_postgres_data:
-
